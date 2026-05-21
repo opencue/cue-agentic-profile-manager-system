@@ -49,6 +49,10 @@ export const COMMANDS = {
     summary: "Install/uninstall ~/.local/bin/{claude,codex} shims",
     load: () => import("./shell"),
   },
+  current: {
+    summary: "Print the active profile and its resolved capability counts",
+    load: () => import("./current"),
+  },
 } as const satisfies Record<string, Command>;
 
 export type CommandName = keyof typeof COMMANDS;
