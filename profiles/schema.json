@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/recodeee/soul/profiles/schema.json",
+  "title": "Soul Profile",
+  "description": "Schema for profiles/<name>/profile.yaml — bundles skills, MCPs, and env for a Claude Code or Codex session.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$",
+      "description": "kebab-case, must equal the directory name profiles/<name>/"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "One-line description shown in `soul list` and embedded in the materialized CLAUDE.md stamp."
+    },
+    "agents": {
+      "type": "array",
+      "items": { "enum": ["claude-code", "codex"] },
+      "uniqueItems": true,
+      "default": ["claude-code", "codex"]
+    },
+    "inherits": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$",
+      "description": "Single parent profile name. Depth ≤ 3, cycles forbidden."
+    },
+    "skills": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "local": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Paths relative to soul/skills/ (e.g. 'medusa/building-with-medusa')."
+        },
+        "npx": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/NpxSkillRef" },
+          "uniqueItems": true
+        },
+        "plugins": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Claude Code plugin names; resolved from ~/.claude/plugins/<name>/skills/."
+        }
+      }
+    },
+    "mcps": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "MCP server IDs that must exist in soul/mcps/configs/."
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Env vars set when this profile is materialized; values may contain ${VAR} placeholders."
+    }
+  },
+  "$defs": {
+    "NpxSkillRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "skills"],
+      "properties": {
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "description": "GitHub org/repo coordinate."
+        },
+        "pin": {
+          "type": "string",
+          "pattern": "^(git@[A-Fa-f0-9]{4,40}|tag@.+)$",
+          "description": "Either 'git@<sha>' or 'tag@<version>'. Omitted = HEAD of default branch."
+        },
+        "skills": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

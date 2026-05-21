@@ -1,0 +1,20 @@
+name: fleet-control
+description: Multi-agent orchestration, Colony coordination, OMX flows, and gx safety
+inherits: core
+skills:
+  local:
+    - colony/colony
+    - colony/colony-prompts
+    - orchestration/worker
+    - orchestration/pipeline
+    - orchestration/codex-fleet-login
+    - orchestration/visual-ralph
+    - github/gitguardex
+    - github/github
+    - meta/ask-claude
+    - meta/ask-gemini
+    - meta/omx-setup
+    - meta/workspace-recipes
+mcps:
+  - colony
+  - soul-skills

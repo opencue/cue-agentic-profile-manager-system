@@ -1,0 +1,13 @@
+name: caveman-quick
+description: Fast low-context edits, summaries, reviews, notes, and commit prep
+inherits: core
+skills:
+  local:
+    - caveman/caveman-compress
+    - caveman/caveman-help
+    - caveman/caveman-review
+    - meta/note
+    - meta/full-output-enforcement
+    - meta/memory-pressure
+    - meta/doctor
+mcps: []

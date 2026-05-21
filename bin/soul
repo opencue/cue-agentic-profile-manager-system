@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# soul — launcher for the Bun-based CLI.
+# Resolves its own location so the script works from any cwd and through symlinks.
+
+set -euo pipefail
+
+# Resolve symlinks until we get the real path of this script.
+src="${BASH_SOURCE[0]}"
+while [ -h "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  [[ "$src" != /* ]] && src="$dir/$src"
+done
+SOUL_BIN_DIR="$(cd -P "$(dirname "$src")" && pwd)"
+SOUL_REPO_ROOT="$(cd -P "$SOUL_BIN_DIR/.." && pwd)"
+
+export SOUL_REPO_ROOT
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "soul: bun is required but was not found in PATH" >&2
+  echo "      install from https://bun.sh and re-run" >&2
+  exit 2
+fi
+
+exec bun "$SOUL_BIN_DIR/cli/index.ts" "$@"

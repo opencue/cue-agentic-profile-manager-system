@@ -1,0 +1,133 @@
+# Profile Schema
+
+A profile is one `profile.yaml` file living under `profiles/<name>/`. The
+directory name and the `name:` field MUST match.
+
+```yaml
+name: medusa-dev
+description: Medusa v2 backend + storefront work
+agents: [claude-code, codex]
+inherits: core            # optional — exactly one parent
+skills:
+  local:
+    - medusa/building-with-medusa
+    - medusa/db-generate
+  npx:
+    - repo: anthropics/skills
+      pin: tag@v0.4.1     # optional — see "Pin forms" below
+      skills: [pdf, xlsx]
+  plugins:
+    - claude-mem
+mcps:
+  - medusadocs
+  - claude-mem
+env:
+  MEDUSA_DEV: "1"
+```
+
+## Top-level fields
+
+| Field         | Type                                                          | Required | Default | Notes                                                                                              |
+|---------------|---------------------------------------------------------------|----------|---------|----------------------------------------------------------------------------------------------------|
+| `name`        | string (kebab-case, `[a-z][a-z0-9-]{1,63}`)                   | yes      | —       | Must equal the dirname `profiles/<name>/`.                                                         |
+| `description` | string (one-line, < 200 chars)                                | yes      | —       | Shown by `soul list` and embedded in the materialized `CLAUDE.md` stamp.                           |
+| `agents`      | array of `"claude-code" \| "codex"`                           | no       | `[claude-code, codex]` | Restricts which agent runtimes this profile materializes for.                          |
+| `inherits`    | string (name of another profile)                              | no       | —       | Single parent. Depth ≤ 3. Cycles are an error.                                                     |
+| `skills`      | object (see below)                                            | no       | `{}`    | At least one of `local`, `npx`, `plugins` should appear in a useful profile.                       |
+| `skills.local`| array of strings (paths relative to `soul/skills/`)           | no       | `[]`    | E.g. `medusa/building-with-medusa` → resolves to `soul/skills/skills/medusa/building-with-medusa/`. |
+| `skills.npx`  | array of `NpxSkillRef`                                        | no       | `[]`    | See "NpxSkillRef" below.                                                                           |
+| `skills.plugins` | array of strings (Claude Code plugin names)                | no       | `[]`    | Resolved from `~/.claude/plugins/<name>/skills/`. Targets are namespaced as `<plugin>:<skill>`.    |
+| `mcps`        | array of strings (MCP server IDs)                             | no       | `[]`    | Must match a key in `soul/mcps/configs/claude.sanitized.json` (or the codex counterpart).          |
+| `env`         | map<string, string>                                           | no       | `{}`    | Plain string values. Placeholders like `"${HOSTINGER_API_TOKEN}"` are substituted at materialize-time. |
+
+## NpxSkillRef
+
+```yaml
+- repo: anthropics/skills
+  pin: tag@v0.4.1
+  skills: [pdf, xlsx]
+```
+
+| Field    | Type             | Required | Notes                                                                          |
+|----------|------------------|----------|--------------------------------------------------------------------------------|
+| `repo`   | string (`org/repo`) | yes   | Passed verbatim to `npx skills add <repo>`.                                    |
+| `pin`    | string           | no       | Two forms — see below. Omitted = HEAD of default branch.                       |
+| `skills` | array of strings | yes      | At least one skill name. Must exist at the resolved ref.                       |
+
+### Pin forms
+
+| Form           | Example          | Meaning                                                          |
+|----------------|------------------|------------------------------------------------------------------|
+| `git@<sha>`    | `git@a1b2c3d`    | Fetches at that exact commit (full or abbreviated SHA).          |
+| `tag@<version>`| `tag@v0.4.1`     | Fetches at the named git tag.                                    |
+
+The cache key is `sha256(repo + (pin || "HEAD"))`, so changing the pin always
+forces a fresh fetch.
+
+## Inheritance
+
+```yaml
+# profiles/core/profile.yaml
+name: core
+description: Always-on baseline
+skills:
+  local: [meta/caveman-commit, meta/find-skills]
+mcps: [claude-mem]
+```
+
+```yaml
+# profiles/medusa-dev/profile.yaml
+name: medusa-dev
+description: Medusa v2 work
+inherits: core
+skills:
+  local: [medusa/building-with-medusa]
+mcps: [medusadocs]
+```
+
+Resolves to:
+
+```yaml
+name: medusa-dev
+description: Medusa v2 work
+skills:
+  local:
+    - meta/caveman-commit       # from core
+    - meta/find-skills          # from core
+    - medusa/building-with-medusa  # from medusa-dev
+mcps:
+  - claude-mem                  # from core
+  - medusadocs                  # from medusa-dev
+```
+
+**Merge rules:**
+
+- **arrays** (`skills.local`, `skills.npx`, `skills.plugins`, `mcps`, `agents`) — concat parent then child, dedupe by identity (string for plain arrays; `repo` for `NpxSkillRef`)
+- **objects** (`skills`, `env`) — child keys override parent keys; nested arrays merge per the rule above
+- **scalars** (`name`, `description`) — child overrides parent
+
+**Constraints:**
+
+- `inherits` is a single string, never a list. Deep chains are discouraged; depth > 3 is a validation warning, cycles are a validation error.
+
+## Name uniqueness rule
+
+The `name:` field must equal the directory name. Two profiles with the same
+`name:` is a validation error even if they live in different dirs. Linter rule
+`E1` enforces this.
+
+## Defaults summary
+
+| Field           | If omitted, becomes                |
+|-----------------|------------------------------------|
+| `agents`        | `[claude-code, codex]`             |
+| `inherits`      | (no parent)                        |
+| `skills.local`  | `[]`                               |
+| `skills.npx`    | `[]`                               |
+| `skills.plugins`| `[]`                               |
+| `mcps`          | `[]`                               |
+| `env`           | `{}`                               |
+
+A profile with only `name` and `description` is legal but useless — it
+materializes an empty workspace. The linter flags this as `W5` (vacuous
+profile).

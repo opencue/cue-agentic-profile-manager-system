@@ -1,0 +1,16 @@
+name: docs-writer
+description: Documentation, Markdown, PDF, Obsidian, and structured writing work
+inherits: core
+skills:
+  local:
+    - content/doc
+    - content/pdf
+    - obsidian/obsidian-markdown
+    - obsidian/obsidian-cli
+    - obsidian/obsidian-bases
+    - obsidian/json-canvas
+    - medusa/marva-blog-author
+    - caveman/caveman-compress
+mcps:
+  - gbrain
+  - obsidian-vault

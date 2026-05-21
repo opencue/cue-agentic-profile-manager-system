@@ -1,0 +1,20 @@
+name: medusa-dev
+description: Medusa v2 backend, storefront, admin, migration, and shop setup work
+inherits: core
+skills:
+  local:
+    - medusa/medusa-reference
+    - medusa/building-with-medusa
+    - medusa/building-storefronts
+    - medusa/storefront-best-practices
+    - medusa/building-admin-dashboard-customizations
+    - medusa/creating-internal-agents
+    - medusa/db-generate
+    - medusa/db-migrate
+    - medusa/new-user
+    - medusa/new-admin-via-api
+    - medusa/medusa-shop-setup
+    - medusa/woocommerce-to-medusa-import
+mcps:
+  - medusadocs
+  - coolify

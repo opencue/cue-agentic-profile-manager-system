@@ -1,0 +1,332 @@
+/**
+ * Resolver for `skills.npx` profile entries.
+ *
+ * Each entry { repo, pin?, skills } expands into one cache slot
+ *   <repoRoot>/profiles/_cache/npx/<sha256(repo + (pin || "HEAD"))>/
+ * containing one subdir per skill. The resolver returns a LinkPlan[] mapping
+ * each cached skill dir into `.claude/skills/<skill>`.
+ *
+ * Fetching is delegated to an injectable function so tests never shell out
+ * to the real `npx`. The production fetcher (`npxFetch`) executes
+ *   npx skills add <repo> --skill <name> -a claude-code -y
+ * into a temp dir and then hands the populated dir to `cachePut`.
+ *
+ * Environment:
+ *   SOUL_OFFLINE=1   →  cache miss is a hard failure (NpxFetchFailed).
+ *   SOUL_REPO_ROOT   →  override repo root (mirrors bin/cli/index.ts).
+ *
+ * Owned by agent A7. Touches only bin/cli/lib/resolver-npx*.ts and cache.ts.
+ */
+
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import type { LinkPlan, NpxSkillRef, Profile } from "../../../profiles/_types";
+import { ProfileError } from "../../../profiles/_types";
+import {
+  cacheChildren,
+  cacheHit,
+  cachePath,
+  cachePut,
+  cacheSkillPath,
+  type CacheLayout,
+} from "./cache";
+
+// ---------------------------------------------------------------------------
+// Errors
+// ---------------------------------------------------------------------------
+
+/** `npx skills add ...` failed, or `--offline` blocked a needed fetch. */
+export class NpxFetchFailed extends ProfileError {
+  constructor(
+    public repo: string,
+    public reason: string,
+    public details?: unknown,
+  ) {
+    super("NPX_FETCH_FAILED", `npx fetch failed for ${repo}: ${reason}`);
+  }
+}
+
+/** Pin given but the fetched payload doesn't contain the expected skill dir. */
+export class PinNotFound extends ProfileError {
+  constructor(
+    public repo: string,
+    public pin: string,
+    public skill: string,
+  ) {
+    super(
+      "PIN_NOT_FOUND",
+      `skill "${skill}" missing in ${repo}@${pin} after fetch`,
+    );
+  }
+}
+
+/** Cache slot exists but is incoherent (missing requested skill subdir). */
+export class CacheCorrupt extends ProfileError {
+  constructor(
+    public key: string,
+    public missing: string[],
+  ) {
+    super(
+      "CACHE_CORRUPT",
+      `cache slot ${key} missing skill(s): ${missing.join(", ")}`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cache-key scheme
+// ---------------------------------------------------------------------------
+
+/**
+ * Cache key = sha256(`<repo>` + `<pin || "HEAD">`).
+ *
+ * Hex digest, 64 chars. Stable across machines so cache hits work in CI.
+ * Note: we deliberately do NOT hash the skill name — one (repo, pin) tuple
+ * yields one cache slot containing every skill that's been pulled from it.
+ */
+export function cacheKey(repo: string, pin: string | undefined): string {
+  const ref = pin ?? "HEAD";
+  return createHash("sha256").update(repo + ref).digest("hex");
+}
+
+// ---------------------------------------------------------------------------
+// Fetcher contract
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch one skill from `repo` (optionally at `pin`) into `destDir`. The
+ * resolver always passes an empty, freshly-created `destDir`; the fetcher
+ * must leave a directory named `<skill>` under it.
+ */
+export type NpxFetchFn = (
+  repo: string,
+  pin: string | undefined,
+  skill: string,
+  destDir: string,
+) => Promise<void>;
+
+/**
+ * Production fetcher: shells out to `npx skills add ...`.
+ *
+ * Exported so the default resolver can use it; tests inject a mock instead
+ * and never reach this code path. We don't even import child_process lazily
+ * because the tests pass their own fetcher.
+ */
+export const npxFetch: NpxFetchFn = async (repo, pin, skill, destDir) => {
+  const args = ["skills", "add", repo, "--skill", skill, "-a", "claude-code", "-y"];
+  if (pin) {
+    // Pin format from schema: "git@<sha>" or "tag@<version>".
+    // `npx skills add` accepts `--ref <ref>` for both shas and tags.
+    const ref = pin.replace(/^git@/, "").replace(/^tag@/, "");
+    args.push("--ref", ref);
+  }
+  const res = spawnSync("npx", args, {
+    cwd: destDir,
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf8",
+  });
+  if (res.error) {
+    throw new NpxFetchFailed(repo, res.error.message, res.error);
+  }
+  if (res.status !== 0) {
+    throw new NpxFetchFailed(repo, `exit ${res.status}`, {
+      stdout: res.stdout,
+      stderr: res.stderr,
+    });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Public resolver
+// ---------------------------------------------------------------------------
+
+export interface ResolveNpxOptions {
+  /** Repo root for the cache layout. Defaults to SOUL_REPO_ROOT or the CLI root. */
+  repoRoot?: string;
+  /** Fetcher; defaults to the real `npx skills add` shellout. */
+  fetch?: NpxFetchFn;
+  /** Override offline flag (defaults to SOUL_OFFLINE env). */
+  offline?: boolean;
+}
+
+export interface ResolveNpxResult {
+  plans: LinkPlan[];
+  /** Per-entry cache key — useful for debugging / `soul doctor`. */
+  keys: Record<string, string>;
+}
+
+/**
+ * Resolve every `skills.npx` entry on `profile` into a LinkPlan[].
+ *
+ * Steps per entry:
+ *   1. Compute cache key from (repo, pin).
+ *   2. If cache hit AND every requested skill subdir exists  → reuse.
+ *   3. Cache hit but some skill missing                       → CacheCorrupt
+ *      (force a re-fetch into a fresh slot; if `--offline`, fail hard).
+ *   4. Cache miss                                             → fetch into
+ *      a tmp dir, then cachePut it as the new slot.
+ *
+ * Returns one LinkPlan per (entry, skill) tuple. Target is fixed at
+ * `.claude/skills/<skill>` to match the materializer's expectations.
+ */
+export async function resolveNpx(
+  profile: Profile,
+  opts: ResolveNpxOptions = {},
+): Promise<LinkPlan[]> {
+  const { plans } = await resolveNpxDetailed(profile, opts);
+  return plans;
+}
+
+/** Same as resolveNpx but also returns the cache keys (handy for doctor/list). */
+export async function resolveNpxDetailed(
+  profile: Profile,
+  opts: ResolveNpxOptions = {},
+): Promise<ResolveNpxResult> {
+  const entries = profile.skills?.npx ?? [];
+  const plans: LinkPlan[] = [];
+  const keys: Record<string, string> = {};
+  if (entries.length === 0) {
+    return { plans, keys };
+  }
+
+  const layout: CacheLayout = { repoRoot: opts.repoRoot ?? defaultRepoRoot() };
+  const fetcher = opts.fetch ?? npxFetch;
+  const offline = opts.offline ?? process.env.SOUL_OFFLINE === "1";
+
+  for (const entry of entries) {
+    const key = cacheKey(entry.repo, entry.pin);
+    keys[entryId(entry)] = key;
+
+    await ensureCacheForEntry(layout, key, entry, fetcher, offline);
+
+    for (const skill of entry.skills) {
+      plans.push({
+        source: cacheSkillPath(layout, key, skill),
+        target: `.claude/skills/${skill}`,
+        origin: "npx",
+      });
+    }
+  }
+
+  return { plans, keys };
+}
+
+// ---------------------------------------------------------------------------
+// Internals
+// ---------------------------------------------------------------------------
+
+async function ensureCacheForEntry(
+  layout: CacheLayout,
+  key: string,
+  entry: NpxSkillRef,
+  fetcher: NpxFetchFn,
+  offline: boolean,
+): Promise<void> {
+  if (cacheHit(layout, key)) {
+    const present = new Set(cacheChildren(layout, key));
+    const missing = entry.skills.filter((s) => !present.has(s) || !isNonEmptyDir(cacheSkillPath(layout, key, s)));
+    if (missing.length === 0) {
+      return; // full hit
+    }
+    // Partial hit: detectable corruption. In offline mode this is fatal.
+    if (offline) {
+      throw new CacheCorrupt(key, missing);
+    }
+    // Otherwise, fall through to re-populate the missing skills.
+    await fetchInto(layout, key, entry, missing, fetcher);
+    return;
+  }
+
+  // Total miss.
+  if (offline) {
+    throw new NpxFetchFailed(
+      entry.repo,
+      `cache miss for key ${key} and SOUL_OFFLINE=1`,
+    );
+  }
+  await fetchInto(layout, key, entry, entry.skills, fetcher);
+}
+
+async function fetchInto(
+  layout: CacheLayout,
+  key: string,
+  entry: NpxSkillRef,
+  skills: string[],
+  fetcher: NpxFetchFn,
+): Promise<void> {
+  // Stage into a tmp dir, then publish via cachePut (atomic-ish rename).
+  // If the slot already exists (partial-hit repair), we merge skill subdirs
+  // into the existing slot rather than nuking it; this keeps already-good
+  // skills warm.
+  const staging = mkdtempSync(join(tmpdir(), "soul-npx-"));
+  try {
+    for (const skill of skills) {
+      await fetcher(entry.repo, entry.pin, skill, staging);
+      const produced = join(staging, skill);
+      if (!isNonEmptyDir(produced)) {
+        throw new PinNotFound(entry.repo, entry.pin ?? "HEAD", skill);
+      }
+    }
+
+    if (cacheHit(layout, key)) {
+      // Partial-repair path: move skills one at a time into existing slot.
+      for (const skill of skills) {
+        const src = join(staging, skill);
+        const dest = cacheSkillPath(layout, key, skill);
+        if (existsSync(dest)) rmSync(dest, { recursive: true, force: true });
+        // renameSync within tmp -> repo can fail across FS; fall back to copy.
+        try {
+          // We deliberately import only on demand to avoid a top-level cycle.
+          const { renameSync } = await import("node:fs");
+          renameSync(src, dest);
+        } catch {
+          const { cpSync } = await import("node:fs");
+          cpSync(src, dest, { recursive: true });
+          rmSync(src, { recursive: true, force: true });
+        }
+      }
+    } else {
+      cachePut(layout, key, staging);
+      return; // staging was consumed by rename inside cachePut
+    }
+  } finally {
+    // Best-effort cleanup; cachePut may have already renamed `staging` away.
+    if (existsSync(staging)) {
+      try {
+        rmSync(staging, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
+
+function isNonEmptyDir(p: string): boolean {
+  try {
+    if (!existsSync(p)) return false;
+    const st = statSync(p);
+    if (!st.isDirectory()) return false;
+    return readdirSync(p).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function entryId(e: NpxSkillRef): string {
+  return `${e.repo}@${e.pin ?? "HEAD"}`;
+}
+
+function defaultRepoRoot(): string {
+  if (process.env.SOUL_REPO_ROOT) return resolve(process.env.SOUL_REPO_ROOT);
+  // bin/cli/lib/resolver-npx.ts  →  repo root is three levels up.
+  const here = fileURLToPath(import.meta.url);
+  return resolve(here, "..", "..", "..", "..");
+}
+
+// Re-export cachePath for callers that want to print the slot for debugging.
+export { cachePath } from "./cache";

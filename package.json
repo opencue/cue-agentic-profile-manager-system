@@ -1,0 +1,20 @@
+{
+  "name": "soul",
+  "version": "0.1.0",
+  "description": "Profile-driven Claude Code / Codex setup — skills, MCPs, and plugins as composable profiles.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "soul": "bin/soul"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "scripts": {
+    "soul": "bun bin/cli/index.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.6.0"
+  }
+}

@@ -1,0 +1,16 @@
+name: frontend
+description: Frontend UI implementation, redesign, screenshots, testing, and visual polish
+inherits: core
+skills:
+  local:
+    - design/design-taste-frontend
+    - design/ui-ux-pro-max
+    - design/image-to-code
+    - design/redesign-existing-projects
+    - design/screenshot
+    - content/playwright
+    - design/imagegen-frontend-web
+    - design/imagegen-frontend-mobile
+    - design/minimalist-ui
+    - design/industrial-brutalist-ui
+mcps: []

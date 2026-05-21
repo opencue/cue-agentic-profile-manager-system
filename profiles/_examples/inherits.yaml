@@ -1,0 +1,27 @@
+# Inheritance fixture — child profile.
+#
+# Paired with a sibling `core.yaml` (created on the fly by the test) that acts
+# as the parent. After resolution the loader must:
+#   - concat parent + child `skills.local`, deduping by identity
+#   - concat parent + child `mcps`, deduping
+#   - keep parent env keys, with child keys overriding
+#   - keep the child's `name` and `description`
+#
+# The test renames this file to `inherits/profile.yaml` and writes a matching
+# parent at `core/profile.yaml` before calling `loadProfile("inherits")`.
+name: inherits
+description: Child profile that inherits from core
+inherits: core
+agents: [claude-code]
+skills:
+  local:
+    - medusa/building-with-medusa
+  npx:
+    - repo: anthropics/skills
+      pin: tag@v0.5.0
+      skills: [xlsx]
+mcps:
+  - medusadocs
+env:
+  CHILD_FLAG: "1"
+  SHARED_FLAG: "child-wins"

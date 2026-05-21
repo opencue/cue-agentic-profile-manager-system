@@ -1,0 +1,18 @@
+name: backend
+description: APIs, webhooks, security review, CI, package, database, and deploy work
+inherits: core
+skills:
+  local:
+    - review/api-tester
+    - review/code-review
+    - review/security-best-practices
+    - review/security-review
+    - stripe/stripe-best-practices
+    - stripe/stripe-webhooks
+    - deployment/supabase
+    - deployment/pnpm
+    - github/github
+    - github/gh-fix-ci
+    - deployment/coolify
+mcps:
+  - coolify

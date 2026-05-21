@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+# medusa-dev — run multiple Medusa shops side-by-side without port collisions.
+#
+# Reads ~/Documents/medusa-shops/.dev-ports.yaml as the source of truth.
+# Each shop gets a deterministic backend port + storefront port from that file.
+#
+# Usage:
+#   medusa-dev list                     # show registry + which ports are live now
+#   medusa-dev start <shop> [back|front|both]   # default: both
+#   medusa-dev stop  <shop> [back|front|both]
+#   medusa-dev tail  <shop> [back|front]        # tail the log
+#   medusa-dev status                   # what's running across all shops
+#   medusa-dev cors-fix <shop>          # set STORE_CORS/AUTH_CORS to a regex
+#                                       # that allows any http://localhost:PORT
+#
+# Logs go to ~/.cache/medusa-dev/<shop>.<back|front>.log
+# Pidfiles to ~/.cache/medusa-dev/<shop>.<back|front>.pid
+
+set -euo pipefail
+
+REGISTRY="${MEDUSA_DEV_REGISTRY:-$HOME/Documents/medusa-shops/.dev-ports.yaml}"
+WORKSPACE="${MEDUSA_DEV_WORKSPACE:-$HOME/Documents}"
+CACHE="$HOME/.cache/medusa-dev"
+mkdir -p "$CACHE"
+
+err()  { printf '\033[31m%s\033[0m\n' "$*" >&2; }
+info() { printf '\033[36m%s\033[0m\n' "$*" >&2; }
+ok()   { printf '\033[32m%s\033[0m\n' "$*" >&2; }
+
+# Parse the YAML using inline python3 (always available on the user's machine).
+# Returns a TSV: shop<TAB>path<TAB>backend_port<TAB>storefront_port<TAB>framework<TAB>notes
+registry_tsv() {
+  python3 - "$REGISTRY" <<'PY'
+import sys, re
+path = sys.argv[1]
+with open(path) as f: txt = f.read()
+
+# Tiny YAML walker — no PyYAML dependency. Handles the flat 2-level shape
+# only: `shops:` then `<name>:` with indented `key: value` children.
+out, cur = [], None
+def flush():
+    if cur is not None:
+        out.append((cur["name"], cur.get("path",""), cur.get("backend",""),
+                    cur.get("storefront",""), cur.get("framework",""),
+                    cur.get("notes","").strip('"')))
+for raw in txt.splitlines():
+    line = raw.rstrip()
+    if not line.strip() or line.lstrip().startswith("#"): continue
+    if line == "shops:": continue
+    if re.match(r"^  [A-Za-z0-9_.-]+:\s*$", line):
+        flush()
+        cur = {"name": line.strip().rstrip(":")}
+    elif cur is not None and re.match(r"^    [a-z_]+:", line):
+        k,_,v = line.strip().partition(":")
+        cur[k.strip()] = v.strip()
+flush()
+for row in out:
+    print("\t".join(str(c) for c in row))
+PY
+}
+
+# Look up a single shop. Echoes a TSV line, or returns nonzero if not found.
+shop_row() {
+  local name="$1"
+  registry_tsv | awk -F'\t' -v n="$name" '$1==n {print; found=1} END{exit !found}'
+}
+
+# Process status — is the pidfile alive?
+is_alive() {
+  local pidfile="$1"
+  [[ -f "$pidfile" ]] || return 1
+  local pid; pid="$(cat "$pidfile" 2>/dev/null || true)"
+  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
+}
+
+# Is a port currently held by *any* process?
+port_held() {
+  ss -lntH "sport = :$1" 2>/dev/null | grep -q LISTEN
+}
+
+cmd_list() {
+  printf "%-16s %-7s %-7s %-7s %-7s %s\n" SHOP BACKEND STATE FRONT STATE PATH
+  while IFS=$'\t' read -r name path back front fw notes; do
+    [[ -z "${name:-}" ]] && continue
+    local bstate fstate
+    if is_alive "$CACHE/$name.back.pid"; then bstate="up"
+    elif port_held "$back"; then bstate="busy"
+    else bstate="-"; fi
+    if is_alive "$CACHE/$name.front.pid"; then fstate="up"
+    elif port_held "$front"; then fstate="busy"
+    else fstate="-"; fi
+    printf "%-16s %-7s %-7s %-7s %-7s %s\n" "$name" "$back" "$bstate" "$front" "$fstate" "$path"
+  done < <(registry_tsv)
+}
+
+cmd_status() { cmd_list; }
+
+# Start one role of one shop.
+start_one() {
+  local shop="$1" role="$2" path="$3" port="$4"
+  local cwd="$WORKSPACE/$path"
+  local pidfile="$CACHE/$shop.$role.pid"
+  local logfile="$CACHE/$shop.$role.log"
+
+  if is_alive "$pidfile"; then
+    info "$shop.$role already running (pid $(cat "$pidfile"))."
+    return 0
+  fi
+  if port_held "$port"; then
+    local owner
+    owner=$(ss -lntpH "sport = :$port" 2>/dev/null | awk -F'"' '{print $2}' | head -1)
+    err "Port $port already in use by '$owner' — won't collide. Stop it or change the registry."
+    return 1
+  fi
+  if [[ ! -d "$cwd" ]]; then
+    err "Path missing: $cwd"
+    return 1
+  fi
+
+  local script
+  case "$role" in
+    back)  script="--filter backend dev" ;;
+    front) script="--filter storefront dev" ;;
+    *) err "unknown role: $role"; return 1 ;;
+  esac
+
+  info "Starting $shop.$role on port $port → $cwd"
+  ( cd "$cwd" && PORT="$port" nohup pnpm $script > "$logfile" 2>&1 & echo $! > "$pidfile" )
+  ok "$shop.$role started (pid $(cat "$pidfile"), log: $logfile)"
+}
+
+cmd_start() {
+  local shop="${1:?shop name required}" which="${2:-both}"
+  local row; row="$(shop_row "$shop")" || { err "unknown shop: $shop"; exit 1; }
+  IFS=$'\t' read -r name path back front _fw _notes <<<"$row"
+  case "$which" in
+    back)  start_one "$shop" back  "$path" "$back"  ;;
+    front) start_one "$shop" front "$path" "$front" ;;
+    both)  start_one "$shop" back  "$path" "$back" || true
+           start_one "$shop" front "$path" "$front" || true ;;
+    *) err "expected back|front|both, got: $which"; exit 1 ;;
+  esac
+}
+
+stop_one() {
+  local shop="$1" role="$2"
+  local pidfile="$CACHE/$shop.$role.pid"
+  if is_alive "$pidfile"; then
+    local pid; pid="$(cat "$pidfile")"
+    info "Stopping $shop.$role (pid $pid)"
+    kill "$pid" 2>/dev/null || true
+    # Give it 5s for graceful, then SIGKILL the whole process group.
+    for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -9 -- "-$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null || true
+    fi
+    rm -f "$pidfile"
+    ok "$shop.$role stopped"
+  else
+    info "$shop.$role not running"
+    rm -f "$pidfile" 2>/dev/null || true
+  fi
+}
+
+cmd_stop() {
+  local shop="${1:?shop name required}" which="${2:-both}"
+  shop_row "$shop" >/dev/null || { err "unknown shop: $shop"; exit 1; }
+  case "$which" in
+    back)  stop_one "$shop" back  ;;
+    front) stop_one "$shop" front ;;
+    both)  stop_one "$shop" back; stop_one "$shop" front ;;
+    *) err "expected back|front|both, got: $which"; exit 1 ;;
+  esac
+}
+
+cmd_tail() {
+  local shop="${1:?shop name required}" role="${2:-back}"
+  local logfile="$CACHE/$shop.$role.log"
+  [[ -f "$logfile" ]] || { err "no log at $logfile"; exit 1; }
+  exec tail -f "$logfile"
+}
+
+# Loosen CORS in a shop's backend .env so any localhost port is accepted.
+cmd_cors_fix() {
+  local shop="${1:?shop name required}"
+  local row; row="$(shop_row "$shop")" || { err "unknown shop: $shop"; exit 1; }
+  IFS=$'\t' read -r name path _back _front _fw _notes <<<"$row"
+  local envfile="$WORKSPACE/$path/apps/backend/.env"
+  [[ -f "$envfile" ]] || { err "no backend .env at $envfile"; exit 1; }
+  cp "$envfile" "$envfile.bak.$(date +%s)"
+  python3 - "$envfile" <<'PY'
+import sys, re
+p = sys.argv[1]
+regex = "^http://localhost:\\d+$"
+with open(p) as f: lines = f.readlines()
+keys = ("STORE_CORS","AUTH_CORS","ADMIN_CORS")
+seen = {k: False for k in keys}
+out = []
+for ln in lines:
+    m = re.match(r"^(STORE_CORS|AUTH_CORS|ADMIN_CORS)=", ln)
+    if m:
+        out.append(f"{m.group(1)}={regex}\n")
+        seen[m.group(1)] = True
+    else:
+        out.append(ln)
+for k, ok in seen.items():
+    if not ok:
+        out.append(f"{k}={regex}\n")
+with open(p, "w") as f: f.writelines(out)
+print("Updated:", ", ".join(seen.keys()))
+PY
+  ok "Backup saved alongside $envfile.bak.<ts>"
+}
+
+usage() {
+  cat <<EOF
+medusa-dev — run multiple Medusa shops side-by-side on stable per-shop ports.
+
+  medusa-dev list                            # show registry + live state
+  medusa-dev status                          # alias for list
+  medusa-dev start <shop> [back|front|both]
+  medusa-dev stop  <shop> [back|front|both]
+  medusa-dev tail  <shop> [back|front]
+  medusa-dev cors-fix <shop>                 # set CORS keys to localhost regex
+
+Registry: $REGISTRY
+Cache:    $CACHE
+EOF
+}
+
+case "${1:-list}" in
+  list|ls)        shift; cmd_list "$@" ;;
+  status)         shift; cmd_status "$@" ;;
+  start|up)       shift; cmd_start "$@" ;;
+  stop|down|kill) shift; cmd_stop "$@" ;;
+  tail|log|logs)  shift; cmd_tail "$@" ;;
+  cors-fix)       shift; cmd_cors_fix "$@" ;;
+  -h|--help|help) usage ;;
+  *) err "unknown command: $1"; usage; exit 1 ;;
+esac

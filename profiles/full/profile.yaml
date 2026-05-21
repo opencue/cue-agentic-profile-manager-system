@@ -1,0 +1,22 @@
+name: full
+description: Diagnostic fallback profile that loads every local skill and MCP
+inherits: core
+skills:
+  local:
+    - "*/*"
+mcps:
+  - claude-mem
+  - Higgsfield
+  - colony
+  - coolify
+  - drawio
+  - gbrain
+  - hostinger-api
+  - letsfg
+  - marva-blog
+  - medusadocs
+  - obsidian-vault
+  - polymarket-live
+  - recodee
+  - ruflo
+  - soul-skills

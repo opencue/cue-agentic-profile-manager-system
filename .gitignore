@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+bun.lock.bak
+
+# Profile runtime / cache
+profiles/_active
+profiles/_cache/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Cloned marketplace (not part of this repo)
+claude-plugins-official/
+
+# Generated runtime (lives at ~/.config/cue/ but excluded if symlinked in for inspection)
+.cue-hash

@@ -1,0 +1,11 @@
+# Minimal valid profile fixture.
+#
+# Exercises the loader's "valid minimal" path:
+#   - only the two required fields (`name`, `description`)
+#   - no `inherits`, no `skills`, no `mcps`, no `env`
+#
+# When dropped into `profiles/minimal/profile.yaml` it must load cleanly and
+# materialize to a ResolvedProfile with the schema defaults applied
+# (agents = [claude-code, codex]; everything else = empty).
+name: minimal
+description: Minimal profile — required fields only, no extras

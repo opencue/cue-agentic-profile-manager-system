@@ -1,0 +1,11 @@
+name: core
+description: Baseline profile for every lean Soul install profile
+skills:
+  local:
+    - meta/analyze
+    - meta/just
+    - meta/skill-suggestion
+    - caveman/caveman
+    - caveman/caveman-commit
+mcps:
+  - claude-mem

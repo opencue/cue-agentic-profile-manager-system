@@ -1,0 +1,18 @@
+name: research
+description: Source-backed lookup, extraction, keyword, browser, crate, and market research
+inherits: core
+skills:
+  local:
+    - research/find-skills
+    - research/keyword-research
+    - research/defuddle
+    - research/openai-docs
+    - research/awesome-rust-search
+    - research/obscura
+    - research/flight-search
+    - research/cloakbrowser
+    - polymarket/polymarket-research
+    - polymarket/polymarket-predictions-audit
+mcps:
+  - gbrain
+  - polymarket-live
