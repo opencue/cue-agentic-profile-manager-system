@@ -104,7 +104,19 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
     if (reg !== undefined) mcpServers[m.id] = reg;
   }
   if (agent === "claude-code") {
-    const settings = { enabledPlugins, mcpServers };
+    // Merge with existing settings from credentials source (preserves permissions, trust, etc.)
+    let baseSettings: Record<string, unknown> = {};
+    if (input.credentialsSource) {
+      try {
+        const raw = await readFile(join(input.credentialsSource, "settings.json"), "utf8");
+        baseSettings = JSON.parse(raw);
+      } catch { /* no existing settings — start fresh */ }
+    }
+    const settings = {
+      ...baseSettings,
+      enabledPlugins: { ...(baseSettings.enabledPlugins as Record<string, unknown> ?? {}), ...enabledPlugins },
+      mcpServers: { ...(baseSettings.mcpServers as Record<string, unknown> ?? {}), ...mcpServers },
+    };
     await writeFile(join(tmpDir, "settings.json"), JSON.stringify(settings, null, 2) + "\n");
   } else {
     // Codex equivalent — write config.toml from registry. Caller pre-renders to TOML.
