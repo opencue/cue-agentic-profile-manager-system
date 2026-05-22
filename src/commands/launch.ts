@@ -21,7 +21,7 @@ import { resolveProfileForCwd } from "../lib/cwd-resolver";
 import { runPicker, type PickerOption } from "../lib/picker";
 import { materializeRuntime } from "../lib/runtime-materializer";
 import { resolveLocalSkill, listAllSkillIds } from "../lib/resolver-local";
-import { isKittyTerminal, renderKittyImage } from "../lib/kitty-image";
+import { detectKittyTerminal, renderKittyImage } from "../lib/kitty-image";
 
 // ---------------------------------------------------------------------------
 // Arg parsing
@@ -102,7 +102,7 @@ export function sortProfileOptions(opts: PickerOption[], pinnedProfile?: string)
 async function listProfileOptions(pinnedProfile?: string): Promise<PickerOption[]> {
   const names = await listProfiles();
   const opts: PickerOption[] = [];
-  const kitty = isKittyTerminal();
+  const kitty = await detectKittyTerminal();
   const profilesRoot = process.env.CUE_PROFILES_DIR ?? process.env.SOUL_PROFILES_DIR ?? join(
     resolve(new URL(import.meta.url).pathname, "..", "..", ".."),
     "profiles",

@@ -132,4 +132,85 @@ export function renderKittyImage(
 /** Test-only: clear the kitty-ancestor cache. */
 export function _resetCache(): void {
   kittyAncestorCache = null;
+  probeCache = null;
+}
+
+let probeCache: boolean | null = null;
+
+/**
+ * Runtime probe: send a Kitty graphics-protocol query and wait briefly for
+ * a Kitty-format response. Works regardless of env vars or process tree —
+ * the only signal that's actually 100% reliable in a tmux+terminal mix.
+ *
+ * Sends `\x1b_Gi=999,a=q,t=d,f=32,q=1;AAAA\x1b\\` — a query for a
+ * non-existent image. Kitty replies with a status line containing "OK" or
+ * "ENOENT" inside an APC graphics response. Other terminals silently drop
+ * unknown APC sequences.
+ *
+ * If we're inside tmux, the query is wrapped with the tmux passthrough
+ * envelope (requires `set -g allow-passthrough on`).
+ *
+ * Returns false (no images) on stdin/stdout not being a TTY, or on timeout.
+ */
+export function probeKittyTerminal(timeoutMs = 100): Promise<boolean> {
+  if (probeCache !== null) return Promise.resolve(probeCache);
+  if (!process.stdout.isTTY || !process.stdin.isTTY) {
+    return Promise.resolve((probeCache = false));
+  }
+
+  return new Promise((resolve) => {
+    let buf = "";
+    let resolved = false;
+
+    const cleanup = (result: boolean) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      try { process.stdin.setRawMode?.(false); } catch { /* not a tty */ }
+      process.stdin.removeListener("data", onData);
+      process.stdin.pause();
+      probeCache = result;
+      resolve(result);
+    };
+
+    const onData = (chunk: Buffer) => {
+      buf += chunk.toString("binary");
+      // Kitty graphics response lives inside ESC _G ... ESC \ and ends with
+      // either ;OK or ;EINVAL/ENOENT/etc. status text. Any one of those
+      // confirms Kitty is at the other end.
+      if (/\x1b_G[^\x1b]*?;(?:OK|E[A-Z]+)[^\x1b]*?\x1b\\/.test(buf)) {
+        cleanup(true);
+      }
+    };
+
+    const timer = setTimeout(() => cleanup(false), timeoutMs);
+
+    try { process.stdin.setRawMode?.(true); } catch { /* may not be a TTY */ }
+    process.stdin.resume();
+    process.stdin.on("data", onData);
+
+    // Query for a non-existent image. Kitty answers; others ignore.
+    let query = "\x1b_Gi=999,a=q,t=d,f=32,q=1;AAAA\x1b\\";
+    if (process.env.TMUX) {
+      // Wrap with tmux passthrough envelope (each ESC inside doubled).
+      const escaped = query.replace(/\x1b/g, "\x1b\x1b");
+      query = `\x1bPtmux;${escaped}\x1b\\`;
+    }
+    process.stdout.write(query);
+  });
+}
+
+/**
+ * Convenience: call `probeKittyTerminal()` once and combine with env signals.
+ * Use this from the launch hot path; `isKittyTerminal()` is the env-only
+ * sync version kept around for callers that can't await.
+ */
+export async function detectKittyTerminal(timeoutMs = 100): Promise<boolean> {
+  if (process.env.CUE_DISABLE_KITTY_IMAGES === "1") return false;
+  if (process.env.CUE_KITTY === "1") return true;
+  // Direct, unambiguous signals first (skip the probe roundtrip).
+  if (process.env.TERM === "xterm-kitty") return true;
+  if (process.env.KITTY_WINDOW_ID) return true;
+  // Otherwise probe.
+  return probeKittyTerminal(timeoutMs);
 }
