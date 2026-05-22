@@ -93,17 +93,22 @@ Cue tries, in order:
 
 When inside tmux, two things are required for Kitty images to render:
 
-1. **`set -g allow-passthrough on`** in `~/.tmux.conf` (default in tmux 3.3+)
-2. **Cue knows it's Kitty.** Because tmux strips `KITTY_*` env vars and runs
-   its server detached, the auto-detection often misses Kitty when launching
-   from inside tmux. Set `CUE_KITTY=1` once and propagate it:
+1. **`set -g allow-passthrough on`** in `~/.tmux.conf` (default in tmux 3.3+).
+   This forwards graphics-protocol escapes from cue down to the terminal —
+   but **note**: tmux's passthrough is one-way. Terminal responses (used by
+   the auto-probe) do *not* reliably travel back, so the probe usually
+   times out inside tmux even when Kitty is the actual frontend.
+2. **Set `CUE_KITTY=1` explicitly** so cue skips the probe and trusts the
+   signal:
    ```bash
-   # in ~/.bashrc
+   # in ~/.bashrc (set unconditionally if you primarily use Kitty)
    export CUE_KITTY=1
 
-   # also tell tmux to expose it to all panes (one-time)
+   # also tell tmux to expose it to existing panes
    tmux set-environment -g CUE_KITTY 1
    ```
+   If you also use non-Kitty terminals occasionally, override per-session
+   with `CUE_DISABLE_KITTY_IMAGES=1 claude` to force emoji fallback.
 
 If the wrapped passthrough sequence renders as garbage in your terminal, set
 `CUE_DISABLE_KITTY_IMAGES=1` to fall back to emoji icons.
