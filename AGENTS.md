@@ -6,10 +6,17 @@ If you are an AI coding agent (Claude Code, Codex, etc.) helping a human install
 
 ## What cue is
 
-A lean Claude Code setup:
-- `skills/` — 110+ installable skills (slash-commands + runnable docs)
-- `mcps/` — MCP server configs (gbrain, excel-mcp, word-mcp, plus snapshots)
+An agent profile manager for Claude Code and Codex: pick a profile, get the
+right skills, MCPs, and plugins materialized into an isolated config dir, and
+launch. Profiles live under `profiles/`; the runtime is built on-demand under
+`~/.config/cue/runtime/`.
+
+The repo also ships a library of pre-built resources:
+- `resources/skills/` — 110+ installable skills (slash-commands + runnable docs)
+- `resources/mcps/` — MCP server configs (gbrain, excel-mcp, word-mcp, plus snapshots)
 - `setup/` — per-OS phased install prompts
+
+See [docs/launch.md](./docs/launch.md) for the resolve → materialize → exec flow.
 
 The user can choose **direct shell install** (one block, runs end-to-end) or **agent-driven phased install** (you walk them through it, verifying each step). This document covers the agent-driven path.
 
@@ -83,10 +90,10 @@ If any of those fail, walk back to the relevant phase in the setup file and diag
 After the baseline lean stack is working, the user may want:
 - **Parallel-agents tier** — Colony MCP + gitguardex (`gx`). For running 2+ Codex/Claude windows on the same repo without stomp. Walk them through `setup/parallel-agents.md` only after they confirm they actually want concurrent agents. Linux/macOS/WSL2.
 - The claude-mem `--smol` patch (§7 in each setup file) — only if running 4+ concurrent sessions
-- More skills from `skills/skills/` — they all live in this repo and get picked up automatically once the symlinks are installed (`skills/scripts/install-claude.sh` and `install-codex.sh`)
-- The auto-sync workflow (`skills/scripts/sync-all.sh` + systemd timer or launchd agent) so updates land without manual `git pull`
+- More skills from `resources/skills/skills/` — they all live in this repo and get picked up automatically once the symlinks are installed (`resources/skills/scripts/install-claude.sh` and `install-codex.sh`)
+- The auto-sync workflow (`resources/skills/scripts/sync-all.sh` + systemd timer or launchd agent) so updates land without manual `git pull`
 
-Point them at the relevant `skills/scripts/` files when they ask, not before — keep the bootstrap minimal.
+Point them at the relevant `resources/skills/scripts/` files when they ask, not before — keep the bootstrap minimal.
 
 ---
 

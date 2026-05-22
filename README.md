@@ -110,6 +110,18 @@ Skip this tier if you only ever run one Claude Code window at a time — claude-
 
 ---
 
+## How it works
+
+Typing `claude` or `codex` in a repo where cue's shims are installed triggers the launch flow:
+
+1. **Resolve** — cue checks for a `.cue-profile` file in the current directory (or any parent up to `$HOME`). If none is found, it falls back to a repo-level default, a global default, or opens the TUI picker.
+2. **Materialize** — cue builds `~/.config/cue/runtime/<profile>/{claude,codex}/` with a content-addressed hash check. If the profile hasn't changed, this is a no-op.
+3. **Exec** — the real `claude` or `codex` binary is launched with `CLAUDE_CONFIG_DIR` (or `CODEX_HOME`) pointing at the materialized runtime tree.
+
+The shims are a one-time install: `cue shell install`. See **[docs/launch.md](./docs/launch.md)** for the full resolve-precedence rules and bypass paths.
+
+---
+
 ## Profiles
 
 Profiles keep each Claude Code or Codex session lean by materializing only the skills and MCPs needed for the current job.
