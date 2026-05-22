@@ -20,7 +20,7 @@ import { loadProfile, listProfiles } from "../lib/profile-loader";
 import { resolveProfileForCwd } from "../lib/cwd-resolver";
 import { runPicker, type PickerOption } from "../lib/picker";
 import { materializeRuntime } from "../lib/runtime-materializer";
-import { resolveLocalSkill } from "../lib/resolver-local";
+import { resolveLocalSkill, listAllSkillIds } from "../lib/resolver-local";
 
 // ---------------------------------------------------------------------------
 // Arg parsing
@@ -198,6 +198,17 @@ export async function run(args: string[]): Promise<number> {
   } catch (err) {
     process.stderr.write(`cue launch: ${(err as Error).message}\n`);
     return 1;
+  }
+
+  // Expand "*/*" wildcard to all valid skill IDs.
+  if (profile.skills.local.some((s) => s.id === "*/*")) {
+    const allIds = await listAllSkillIds();
+    const wildcard = profile.skills.local.find((s) => s.id === "*/*")!;
+    const existing = new Set(profile.skills.local.filter((s) => s.id !== "*/*").map((s) => s.id));
+    profile.skills.local = [
+      ...profile.skills.local.filter((s) => s.id !== "*/*"),
+      ...allIds.filter((id) => !existing.has(id)).map((id) => ({ ...wildcard, id })),
+    ];
   }
 
   const runtime = await materializeRuntime({

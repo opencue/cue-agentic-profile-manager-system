@@ -99,8 +99,20 @@ export async function resolveLocal(
 
   const plans: LinkPlan[] = [];
   for (const ref of refs) {
-    // ResolvedSkill is { id: string; agents?: AgentKind[] }; pass just the id.
     const id = ref.id;
+
+    // Wildcard: "*/*" means "all skills in all categories".
+    if (id === "*/*") {
+      for (const slug of allSlugs) {
+        try {
+          plans.push(await resolveOne(slug, root, categoryIndex, slugIndex, allSlugs));
+        } catch {
+          // Skip entries without SKILL.md (e.g. .omc/state)
+        }
+      }
+      continue;
+    }
+
     plans.push(await resolveOne(id, root, categoryIndex, slugIndex, allSlugs));
   }
   return plans;
@@ -300,4 +312,23 @@ export async function resolveLocalSkill(id: string): Promise<string> {
   const { categoryIndex, slugIndex, allSlugs } = await walk(root);
   const plan = await resolveOne(id, root, categoryIndex, slugIndex, allSlugs);
   return plan.source;
+}
+
+/**
+ * Return all valid `<category>/<slug>` skill IDs (those with a SKILL.md).
+ */
+export async function listAllSkillIds(): Promise<string[]> {
+  const skillsRoot = (process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT)
+    ? join((process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT)!, "resources", "skills", "skills")
+    : DEFAULT_SKILLS_ROOT;
+  const root = resolve(skillsRoot);
+  const { allSlugs } = await walk(root);
+  const valid: string[] = [];
+  for (const slug of allSlugs) {
+    try {
+      const st = await stat(join(root, slug, "SKILL.md"));
+      if (st.isFile()) valid.push(slug);
+    } catch {}
+  }
+  return valid;
 }

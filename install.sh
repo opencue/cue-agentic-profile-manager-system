@@ -84,7 +84,7 @@ say "${DIM}Installing from: $CUE_DIR${RESET}"
 say ""
 
 # 1. Required deps
-say "${DIM}Step 1/5 — checking dependencies${RESET}"
+say "${DIM}Step 1/6 — checking dependencies${RESET}"
 command -v git  >/dev/null || die "git not found. Install git first."
 ok "git ($(git --version | head -1))"
 command -v bun  >/dev/null || die "bun not found. Install from https://bun.sh and re-run."
@@ -92,20 +92,20 @@ ok "bun ($(bun --version))"
 
 # 2. JS dependencies in the repo
 say ""
-say "${DIM}Step 2/5 — installing JS dependencies${RESET}"
+say "${DIM}Step 2/6 — installing JS dependencies${RESET}"
 cd "$CUE_DIR"
 bun install --silent 2>&1 | tail -3
 ok "dependencies installed"
 
 # 3. Self-check the binary
 say ""
-say "${DIM}Step 3/5 — verifying cue binary${RESET}"
+say "${DIM}Step 3/6 — verifying cue binary${RESET}"
 "$CUE_DIR/bin/cue" --version >/dev/null || die "cue binary failed self-check"
 ok "cue $("$CUE_DIR/bin/cue" --version) works"
 
 # 4. Symlink cue into ~/.local/bin
 say ""
-say "${DIM}Step 4/5 — exposing cue on PATH${RESET}"
+say "${DIM}Step 4/6 — exposing cue on PATH${RESET}"
 mkdir -p "$SHIM_DIR"
 if [ -L "$SHIM_DIR/cue" ] && [ "$(readlink "$SHIM_DIR/cue")" = "$CUE_DIR/bin/cue" ]; then
   ok "$SHIM_DIR/cue already points at $CUE_DIR/bin/cue"
@@ -125,9 +125,24 @@ case ":$PATH:" in
     ;;
 esac
 
-# 5. Shims for claude and codex
+# 5. authmux (multi-account auth multiplexer)
 say ""
-say "${DIM}Step 5/5 — agent shims${RESET}"
+say "${DIM}Step 5/6 — authmux${RESET}"
+if command -v authmux >/dev/null 2>&1; then
+  ok "authmux $(authmux --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1) already installed"
+else
+  say "  Installing authmux globally…"
+  npm install -g authmux 2>&1 | tail -3
+  if command -v authmux >/dev/null 2>&1; then
+    ok "authmux installed"
+  else
+    warn "authmux install failed — install manually: npm install -g authmux"
+  fi
+fi
+
+# 6. Shims for claude and codex
+say ""
+say "${DIM}Step 6/6 — agent shims${RESET}"
 
 install_shim() {
   local agent="$1"
