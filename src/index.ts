@@ -1,11 +1,10 @@
 #!/usr/bin/env bun
 /**
- * soul CLI entrypoint.
+ * cue CLI entrypoint.
  *
  * Pure dispatch: parse the leading flags (--help, --version), pick a
  * subcommand from the registry in commands/_index.ts, and hand the rest of
- * argv to that command's `run(args)`. All real logic lives in command modules
- * (and the libraries owned by A5–A9).
+ * argv to that command's `run(args)`. All real logic lives in command modules.
  *
  * Exit codes:
  *   0  success
@@ -33,9 +32,9 @@ function readVersion(): string {
 
 function printHelp(): void {
   const lines: string[] = [];
-  lines.push("soul — profile-driven Claude Code / Codex setup");
+  lines.push("cue — agent profile manager for Claude Code and Codex");
   lines.push("");
-  lines.push("Usage: soul <command> [args...]");
+  lines.push("Usage: cue <command> [args...]");
   lines.push("");
   lines.push("Commands:");
   const width = Math.max(...Object.keys(COMMANDS).map((k) => k.length));
@@ -46,7 +45,7 @@ function printHelp(): void {
   lines.push("");
   lines.push("Global flags:");
   lines.push("  -h, --help       Show this help and exit");
-  lines.push("  -v, --version    Print soul version and exit");
+  lines.push("  -v, --version    Print cue version and exit");
   lines.push("");
   lines.push("Exit codes: 0 ok | 1 user error | 2 internal error");
   process.stdout.write(lines.join("\n") + "\n");
@@ -68,8 +67,8 @@ async function main(argv: string[]): Promise<number> {
   const name = args[0] as CommandName;
   const cmd = COMMANDS[name];
   if (!cmd) {
-    process.stderr.write(`soul: unknown command "${name}"\n`);
-    process.stderr.write(`run "soul --help" for the list of commands\n`);
+    process.stderr.write(`cue: unknown command "${name}"\n`);
+    process.stderr.write(`run "cue --help" for the list of commands\n`);
     return 1;
   }
 
@@ -78,7 +77,7 @@ async function main(argv: string[]): Promise<number> {
     return await mod.run(args.slice(1));
   } catch (err) {
     const msg = err instanceof Error ? err.stack ?? err.message : String(err);
-    process.stderr.write(`soul: internal error in "${name}": ${msg}\n`);
+    process.stderr.write(`cue: internal error in "${name}": ${msg}\n`);
     return 2;
   }
 }
@@ -86,7 +85,7 @@ async function main(argv: string[]): Promise<number> {
 main(process.argv).then(
   (code) => process.exit(code),
   (err) => {
-    process.stderr.write(`soul: fatal: ${err}\n`);
+    process.stderr.write(`cue: fatal: ${err}\n`);
     process.exit(2);
   },
 );

@@ -77,7 +77,7 @@ export async function run(args: string[]): Promise<number> {
     });
   }
   if (sub === "uninstall") return runUninstall({ homeDir: homedir() });
-  process.stderr.write("soul shell: usage: soul shell {install|uninstall}\n");
+  process.stderr.write("cue shell: usage: cue shell {install|uninstall}\n");
   return 1;
 }
 

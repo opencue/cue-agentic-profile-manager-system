@@ -1,5 +1,5 @@
 /**
- * `soul new <name>`
+ * `cue new <name>`
  *
  * Creates a schema-valid profile from an empty template, an existing seed, or
  * the scan/domain heuristic.
@@ -57,23 +57,23 @@ export async function run(args: string[]): Promise<number> {
   try {
     parsed = parseArgs(args);
   } catch (err) {
-    process.stderr.write(`soul new: ${messageOf(err)}\n`);
+    process.stderr.write(`cue new: ${messageOf(err)}\n`);
     return 1;
   }
 
   if (!parsed.name) {
-    process.stderr.write("soul new: missing profile name\n");
+    process.stderr.write("cue new: missing profile name\n");
     printHelp();
     return 1;
   }
   if (!validateProfileName(parsed.name)) {
     process.stderr.write(
-      `soul new: invalid profile name "${parsed.name}" (use lowercase kebab-case)\n`,
+      `cue new: invalid profile name "${parsed.name}" (use lowercase kebab-case)\n`,
     );
     return 1;
   }
   if (parsed.fromScan && parsed.seed) {
-    process.stderr.write("soul new: choose either --from-scan or --seed, not both\n");
+    process.stderr.write("cue new: choose either --from-scan or --seed, not both\n");
     return 1;
   }
 
@@ -87,10 +87,10 @@ export async function run(args: string[]): Promise<number> {
     return await createEmpty(parsed);
   } catch (err) {
     if (err instanceof ProfileAlreadyExists) {
-      process.stderr.write(`soul new: ${err.message}\n`);
+      process.stderr.write(`cue new: ${err.message}\n`);
       return 1;
     }
-    process.stderr.write(`soul new: ${messageOf(err)}\n`);
+    process.stderr.write(`cue new: ${messageOf(err)}\n`);
     return 1;
   }
 }
@@ -98,7 +98,7 @@ export async function run(args: string[]): Promise<number> {
 async function createFromScan(args: NewArgs): Promise<number> {
   if (!args.auto && !isInteractive()) {
     process.stderr.write(
-      "soul new: --from-scan needs a TTY for confirmation; pass --auto for CI\n",
+      "cue new: --from-scan needs a TTY for confirmation; pass --auto for CI\n",
     );
     return 1;
   }
@@ -141,7 +141,7 @@ async function createFromScan(args: NewArgs): Promise<number> {
 async function createFromSeed(args: NewArgs): Promise<number> {
   if (!args.auto && !isInteractive()) {
     process.stderr.write(
-      "soul new: --seed needs a TTY for modifications; pass --auto to copy unchanged\n",
+      "cue new: --seed needs a TTY for modifications; pass --auto to copy unchanged\n",
     );
     return 1;
   }
@@ -274,7 +274,7 @@ function messageOf(err: unknown): string {
 function printHelp(): void {
   process.stdout.write(
     [
-      "Usage: soul new <name> [--from-scan] [--seed <profile>] [--auto] [--force]",
+      "Usage: cue new <name> [--from-scan] [--seed <profile>] [--auto] [--force]",
       "",
       "Modes:",
       "  no flags             Create an empty schema-valid profile",

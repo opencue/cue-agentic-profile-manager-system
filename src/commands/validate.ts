@@ -1,5 +1,5 @@
 /**
- * `soul validate <profile>` — schema, resolver dry-runs, and lint checks.
+ * `cue validate <profile>` — schema, resolver dry-runs, and lint checks.
  */
 
 import {
@@ -51,18 +51,18 @@ export async function run(args: string[]): Promise<number> {
 }
 
 function parseArgs(args: string[]): ParsedArgs | "help" | string {
-  if (args.length === 0) return "soul validate: missing <profile> or --all";
+  if (args.length === 0) return "cue validate: missing <profile> or --all";
   if (args.includes("-h") || args.includes("--help")) return "help";
 
   const all = args.includes("--all");
   const positional = args.filter((arg) => !arg.startsWith("-"));
 
   if (all && positional.length > 0) {
-    return "soul validate: use either --all or <profile>, not both";
+    return "cue validate: use either --all or <profile>, not both";
   }
   if (all) return { all: true };
   if (positional.length !== 1) {
-    return "soul validate: expected exactly one <profile>";
+    return "cue validate: expected exactly one <profile>";
   }
   return { all: false, profile: positional[0] };
 }
@@ -71,8 +71,8 @@ function printHelp(stream: Pick<NodeJS.WriteStream, "write"> = process.stdout): 
   stream.write(
     [
       "Usage:",
-      "  soul validate <profile>",
-      "  soul validate --all",
+      "  cue validate <profile>",
+      "  cue validate --all",
       "",
       "Checks:",
       "  schema validity, inheritance, local/npx/plugin skill resolution, MCP registry resolution",
