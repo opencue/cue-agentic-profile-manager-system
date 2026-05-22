@@ -175,13 +175,14 @@ export async function run(args: string[]): Promise<number> {
 
   // Resolve profile.
   const cwd = process.cwd();
+  const isAccountAlias = !!process.env.CLAUDE_CONFIG_DIR && process.env.CLAUDE_CONFIG_DIR !== join(homedir(), ".claude");
   const existingResolved = await resolveProfileForCwd({
     cwd,
     homeDir: homedir(),
     configDir: configDir(),
     override: parsed.override,
   });
-  const resolved = parsed.forcePick ? { source: "none" as const } : existingResolved;
+  const resolved = (parsed.forcePick || isAccountAlias) ? { source: "none" as const } : existingResolved;
   const existingProfile = existingResolved.source !== "none"
     ? (existingResolved as { source: string; profile: string }).profile
     : undefined;
@@ -195,7 +196,7 @@ export async function run(args: string[]): Promise<number> {
       return 1;
     }
     const options = await listProfileOptions(existingProfile);
-    const picked = await runPicker({ cwd, options });
+    const picked = await runPicker({ cwd, options, noPin: isAccountAlias });
     profileName = picked.profile;
   } else {
     profileName = (resolved as { source: string; profile: string }).profile;
