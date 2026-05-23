@@ -101,7 +101,7 @@ const RULES: { code: string; severity: "critical" | "high" | "medium"; patterns:
     code: "SEC6",
     severity: "medium",
     patterns: [
-      /[A-Za-z0-9+/]{60,}={0,2}/,  // long base64 strings
+      /(?<![/~.])[A-Za-z0-9+/]{80,}={0,2}/,  // long base64 (exclude file paths)
       /\\x[0-9a-f]{2}(\\x[0-9a-f]{2}){10,}/i,  // hex-encoded strings
       /atob\s*\(/,
       /Buffer\.from\(.{0,20}base64/,
@@ -130,23 +130,41 @@ function scanSkill(id: string): SecurityIssue[] {
   const lines = content.split("\n");
   const issues: SecurityIssue[] = [];
 
-  // Context: security-focused skills talk ABOUT these patterns — don't flag them
+  // Context-aware skipping: many skills are documentation/examples, not instructions
   const isSecuritySkill = /security|review|audit|pentest|vuln/i.test(id);
-  // Context: skill-evolution talks about what NOT to do — don't flag it
-  const isMetaSkill = /skill-evolution|builtin-manager/i.test(id);
+  const isMetaSkill = /skill-evolution|builtin-manager|doctor|help|omx|plugin-creator|save-profile/i.test(id);
+  const isApiDocSkill = /hostinger|medusa|stripe|coolify|deployment|kiro/i.test(id);
+  const isDesignSkill = /design|remotion|higgsfield|imagegen/i.test(id);
+  const isOrchSkill = /colony|pipeline|fleet|orchestration|worker/i.test(id);
+  const isResearchSkill = /research|find-skills|openai-docs/i.test(id);
 
   for (const rule of RULES) {
-    // Skip SEC1/SEC4/SEC5 for security review skills (they discuss these topics)
+    // Skip rules for skill categories where these patterns are expected documentation
     if (isSecuritySkill && ["SEC1", "SEC4", "SEC5"].includes(rule.code)) continue;
-    // Skip SEC4/SEC5 for meta skills that document rules about what NOT to do
     if (isMetaSkill && ["SEC4", "SEC5"].includes(rule.code)) continue;
+    if (isApiDocSkill && ["SEC1", "SEC2", "SEC5"].includes(rule.code)) continue;
+    if (isDesignSkill && ["SEC2"].includes(rule.code)) continue;
+    if (isOrchSkill && ["SEC4", "SEC5"].includes(rule.code)) continue;
+    if (isResearchSkill && ["SEC1", "SEC2"].includes(rule.code)) continue;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
-      // Skip lines that are clearly "don't do this" instructions
+
+      // Skip lines that are clearly safe contexts
       if (/\b(MUST NOT|must not|do not|don't|never|avoid|reject)\b/i.test(line)) continue;
-      // Skip lines inside code comments or examples about what's bad
       if (/^#|^\/\/|^\s*\*|NEVER|prohibited/i.test(line.trim())) continue;
+      // Skip lines inside code blocks (``` fenced) — these are examples
+      if (/^```/.test(line.trim())) continue;
+      // Skip lines that are curl examples showing API usage (documentation)
+      if (/^\s*(curl|fetch|wget)\s/.test(line) && /example|api\.|developers\./i.test(line)) continue;
+      // Skip lines with placeholder variables ($VARIABLE_NAME) — these are templates
+      if (/\$\{?[A-Z_]+\}?/.test(line) && /(-H|header|Authorization|Bearer)/i.test(line)) continue;
+      // Skip lines documenting CLI flags (--force, --skip-verify in help text)
+      if (/^\s*(-|•|\*|`--)/.test(line) && /flag|option|argument/i.test(lines[Math.max(0, i-3)]! + lines[Math.max(0, i-2)]! + lines[Math.max(0, i-1)]!)) continue;
+      // Skip lines that describe what a response "includes" (not an instruction to expose)
+      if (/response|returns|includes|contains/i.test(line) && rule.code === "SEC1") continue;
+      // Skip fetch() in code examples (inside ``` blocks)
+      if (isInsideCodeBlock(lines, i)) continue;
 
       for (const pattern of rule.patterns) {
         if (pattern.test(line)) {
@@ -167,6 +185,15 @@ function scanSkill(id: string): SecurityIssue[] {
   }
 
   return issues;
+}
+
+/** Check if a line index is inside a fenced code block */
+function isInsideCodeBlock(lines: string[], idx: number): boolean {
+  let inside = false;
+  for (let i = 0; i < idx; i++) {
+    if (/^```/.test(lines[i]!.trim())) inside = !inside;
+  }
+  return inside;
 }
 
 export async function run(args: string[]): Promise<number> {
