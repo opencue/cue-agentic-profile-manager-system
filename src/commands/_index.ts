@@ -49,6 +49,10 @@ export const COMMANDS = {
     summary: "Resolve+materialize a profile then exec claude/codex (hot path)",
     load: () => import("./launch"),
   },
+  materialize: {
+    summary: "Write skills + MCPs for any agent (cursor, cline, gemini, copilot, etc.)",
+    load: () => import("./materialize"),
+  },
   quick: {
     summary: "One-shot bare launch — no profile, no skills, fastest cold start",
     load: () => import("./quick"),
