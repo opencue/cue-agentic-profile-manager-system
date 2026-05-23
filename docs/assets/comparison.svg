@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 660" fill="none" role="img" aria-label="how cue compares: feature matrix against other agent skill and profile tools">
+  <style>
+    .eyebrow   { font: 700 11px 'SF Mono', monospace; letter-spacing: 2px; fill: #f472b6; }
+    .h         { font: 700 26px -apple-system, system-ui, sans-serif; fill: #f1f5f9; }
+    .sub       { font: 13px -apple-system, system-ui, sans-serif; fill: #94a3b8; }
+    .col-lbl   { font: 700 10px 'SF Mono', monospace; letter-spacing: 1.5px; fill: #94a3b8; }
+    .tool      { font: 600 13px 'SF Mono', monospace; fill: #cbd5e1; }
+    .tool-cue  { font: 700 22px 'SF Mono', monospace; fill: #f1f5f9; }
+    .tool-tag  { font: 10px -apple-system, system-ui, sans-serif; fill: #64748b; }
+    .tool-tag-cue { font: 700 10px -apple-system, system-ui, sans-serif; fill: #f472b6; letter-spacing: 1.2px; }
+    .foot      { font: 11px -apple-system, system-ui, sans-serif; fill: #94a3b8; }
+    .badge-txt { font: 700 9px 'SF Mono', monospace; letter-spacing: 1.4px; fill: #fde68a; }
+  </style>
+  <defs>
+    <linearGradient id="cueBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#ec4899" stop-opacity="0.24"/>
+      <stop offset="50%"  stop-color="#a855f7" stop-opacity="0.17"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.10"/>
+    </linearGradient>
+    <linearGradient id="cueStroke" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <symbol id="yes" overflow="visible">
+      <circle r="11" fill="#22c55e" fill-opacity="0.16" stroke="#22c55e" stroke-opacity="0.8" stroke-width="1.3"/>
+      <path d="M -4.5,0 L -1,3.5 L 5.5,-3.5" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </symbol>
+    <symbol id="yes-glow" overflow="visible">
+      <circle r="13" fill="#22c55e" fill-opacity="0.10"/>
+      <circle r="11" fill="#22c55e" fill-opacity="0.22" stroke="#4ade80" stroke-opacity="0.95" stroke-width="1.4"/>
+      <path d="M -4.5,0 L -1,3.5 L 5.5,-3.5" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </symbol>
+    <symbol id="no" overflow="visible">
+      <circle r="11" fill="none" stroke="#334155" stroke-opacity="0.7" stroke-width="1"/>
+      <line x1="-5" y1="0" x2="5" y2="0" stroke="#475569" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="partial" overflow="visible">
+      <circle r="11" fill="none" stroke="#f59e0b" stroke-opacity="0.8" stroke-width="1.2"/>
+      <path d="M -11,0 A 11,11 0 0 1 11,0 Z" fill="#f59e0b" fill-opacity="0.55"/>
+    </symbol>
+  </defs>
+
+  <!-- Header -->
+  <text x="40" y="42" class="eyebrow">★ COMPARISON</text>
+  <text x="40" y="74" class="h">How cue compares</text>
+  <text x="40" y="98" class="sub">Other tools cover <tspan font-weight="700" fill="#cbd5e1">one slice</tspan>. <tspan font-weight="700" fill="#f472b6">cue</tspan> composes all three — skills · MCPs · plugins — into a directory-aware, inheritable profile system.</text>
+
+  <!-- Column headers -->
+  <g transform="translate(0,144)">
+    <text x="40"  y="0" class="col-lbl">TOOL</text>
+    <text x="247" y="0" class="col-lbl" text-anchor="middle">SKILLS</text>
+    <text x="341" y="0" class="col-lbl" text-anchor="middle">MCPs</text>
+    <text x="435" y="0" class="col-lbl" text-anchor="middle">PLUGINS</text>
+    <text x="529" y="0" class="col-lbl" text-anchor="middle">PROFILES</text>
+    <text x="623" y="0" class="col-lbl" text-anchor="middle">PER-DIR</text>
+    <text x="717" y="0" class="col-lbl" text-anchor="middle">ISOLATION</text>
+    <text x="811" y="0" class="col-lbl" text-anchor="middle">INHERIT</text>
+  </g>
+
+  <line x1="40" y1="158" x2="840" y2="158" stroke="#334155" stroke-opacity="0.5"/>
+
+  <!-- cue row (highlighted) -->
+  <g transform="translate(0,176)">
+    <rect x="20" y="0" width="840" height="64" rx="14" fill="url(#cueBg)" stroke="url(#cueStroke)" stroke-opacity="0.95" stroke-width="1.6"/>
+    <text x="40" y="34" class="tool-cue">cue</text>
+    <text x="40" y="52" class="tool-tag-cue">★ THE ONLY ONE WITH ALL SEVEN</text>
+
+    <use href="#yes-glow" x="247" y="32"/>
+    <use href="#yes-glow" x="341" y="32"/>
+    <use href="#yes-glow" x="435" y="32"/>
+    <use href="#yes-glow" x="529" y="32"/>
+    <use href="#yes-glow" x="623" y="32"/>
+    <use href="#yes-glow" x="717" y="32"/>
+    <use href="#yes-glow" x="811" y="32"/>
+  </g>
+
+  <!-- competitor rows -->
+  <g transform="translate(0,266)">
+    <text x="40" y="0" class="tool">claude-code-switcher</text>
+    <text x="40" y="16" class="tool-tag">MCP config + auth switcher</text>
+    <use href="#no"      x="247" y="2"/>
+    <use href="#yes"     x="341" y="2"/>
+    <use href="#no"      x="435" y="2"/>
+    <use href="#partial" x="529" y="2"/>
+    <use href="#no"      x="623" y="2"/>
+    <use href="#no"      x="717" y="2"/>
+    <use href="#no"      x="811" y="2"/>
+  </g>
+  <line x1="40" y1="300" x2="840" y2="300" stroke="#334155" stroke-opacity="0.3"/>
+
+  <g transform="translate(0,320)">
+    <text x="40" y="0" class="tool">skillport</text>
+    <text x="40" y="16" class="tool-tag">serves skills to any agent via CLI/MCP</text>
+    <use href="#yes" x="247" y="2"/>
+    <use href="#no"  x="341" y="2"/>
+    <use href="#no"  x="435" y="2"/>
+    <use href="#no"  x="529" y="2"/>
+    <use href="#no"  x="623" y="2"/>
+    <use href="#no"  x="717" y="2"/>
+    <use href="#no"  x="811" y="2"/>
+  </g>
+  <line x1="40" y1="354" x2="840" y2="354" stroke="#334155" stroke-opacity="0.3"/>
+
+  <g transform="translate(0,374)">
+    <text x="40" y="0" class="tool">agent-skills-cli</text>
+    <text x="40" y="16" class="tool-tag">browses 40k+ skills from SkillsMP</text>
+    <use href="#yes" x="247" y="2"/>
+    <use href="#no"  x="341" y="2"/>
+    <use href="#no"  x="435" y="2"/>
+    <use href="#no"  x="529" y="2"/>
+    <use href="#no"  x="623" y="2"/>
+    <use href="#no"  x="717" y="2"/>
+    <use href="#no"  x="811" y="2"/>
+  </g>
+  <line x1="40" y1="408" x2="840" y2="408" stroke="#334155" stroke-opacity="0.3"/>
+
+  <g transform="translate(0,428)">
+    <text x="40" y="0" class="tool">agent-skill-manager</text>
+    <text x="40" y="16" class="tool-tag">PyPI installer for AI agent skills</text>
+    <use href="#yes" x="247" y="2"/>
+    <use href="#no"  x="341" y="2"/>
+    <use href="#no"  x="435" y="2"/>
+    <use href="#no"  x="529" y="2"/>
+    <use href="#no"  x="623" y="2"/>
+    <use href="#no"  x="717" y="2"/>
+    <use href="#no"  x="811" y="2"/>
+  </g>
+  <line x1="40" y1="462" x2="840" y2="462" stroke="#334155" stroke-opacity="0.3"/>
+
+  <g transform="translate(0,482)">
+    <text x="40" y="0" class="tool">skillshub</text>
+    <text x="40" y="16" class="tool-tag">"Homebrew for AI Agent Skills"</text>
+    <use href="#yes" x="247" y="2"/>
+    <use href="#no"  x="341" y="2"/>
+    <use href="#no"  x="435" y="2"/>
+    <use href="#no"  x="529" y="2"/>
+    <use href="#no"  x="623" y="2"/>
+    <use href="#no"  x="717" y="2"/>
+    <use href="#no"  x="811" y="2"/>
+  </g>
+  <line x1="40" y1="516" x2="840" y2="516" stroke="#334155" stroke-opacity="0.3"/>
+
+  <g transform="translate(0,536)">
+    <text x="40" y="0" class="tool">add-skills</text>
+    <text x="40" y="16" class="tool-tag">Python CLI to add/remove skills</text>
+    <use href="#yes" x="247" y="2"/>
+    <use href="#no"  x="341" y="2"/>
+    <use href="#no"  x="435" y="2"/>
+    <use href="#no"  x="529" y="2"/>
+    <use href="#no"  x="623" y="2"/>
+    <use href="#no"  x="717" y="2"/>
+    <use href="#no"  x="811" y="2"/>
+  </g>
+  <line x1="40" y1="570" x2="840" y2="570" stroke="#334155" stroke-opacity="0.3"/>
+
+  <g transform="translate(0,590)">
+    <text x="40" y="0" class="tool">Kiro Powers</text>
+    <text x="40" y="16" class="tool-tag">context-aware MCPs inside Kiro IDE</text>
+    <use href="#yes"     x="247" y="2"/>
+    <use href="#yes"     x="341" y="2"/>
+    <use href="#no"      x="435" y="2"/>
+    <use href="#no"      x="529" y="2"/>
+    <use href="#partial" x="623" y="2"/>
+    <use href="#no"      x="717" y="2"/>
+    <use href="#no"      x="811" y="2"/>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(40,640)">
+    <use href="#yes" x="9" y="-4"/>
+    <text x="26" y="0" class="foot">supported</text>
+    <use href="#partial" x="112" y="-4"/>
+    <text x="129" y="0" class="foot">partial / IDE-locked</text>
+    <use href="#no" x="263" y="-4"/>
+    <text x="280" y="0" class="foot">not in scope</text>
+  </g>
+</svg>

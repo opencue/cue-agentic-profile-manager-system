@@ -165,6 +165,10 @@ export const COMMANDS = {
     summary: "Export a profile as portable YAML",
     load: () => import("./import-profile"),
   },
+  share: {
+    summary: "Publish & browse community profiles on the marketplace",
+    load: () => import("./share"),
+  },
   "colony-dispatch": {
     summary: "Resolve profile for a Colony task based on keywords",
     load: () => import("./colony-dispatch"),

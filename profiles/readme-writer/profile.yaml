@@ -5,6 +5,7 @@ inherits: core
 skills:
   local:
     - design/readme-svg-design
+    - design/headless-gif-demo
   npx:
     - repo: yizhiyanhua-ai/fireworks-tech-graph
       skills: [fireworks-tech-graph]

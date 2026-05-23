@@ -10,9 +10,11 @@
   <a href="./LICENSE"><img src="https://img.shields.io/github/license/recodeee/cue?style=flat-square&color=8b5cf6" alt="MIT license"></a>
 </p>
 
-# cue — Agent Profile Manager for Claude Code & Codex
+# cue — Agent Profile Manager for Claude Code, Codex & 8 more
 
 > Every `claude` session loads all **1,927** skills you've ever installed. Your model picks the wrong one. Your tokens evaporate. **cue fixes this in one command.**
+
+**Works with:** Claude Code · Codex · Cursor · Cline · Gemini · GitHub Copilot · Windsurf · Roo Code · Amp · Aider &nbsp;→ &nbsp; [jump to the full matrix ↓](#agents-cue-supports)
 
 ## ⚡ 60-second quickstart
 
@@ -36,6 +38,7 @@ That's it. `cd` into any other repo and `claude` will boot with that repo's prof
 - [Why a profile manager at all?](#why-a-profile-manager-at-all)
 - [How cue compares](#how-cue-compares)
 - [How it works](#how-it-works)
+- [Agents cue supports](#agents-cue-supports)
 - [`cue optimizer` — see every loadout at a glance](#cue-optimizer--see-every-loadout-at-a-glance)
 - [The 16-profile catalog](#the-16-profile-catalog)
 - [Install](#install)
@@ -50,6 +53,8 @@ That's it. `cd` into any other repo and `claude` will boot with that repo's prof
 ---
 
 ## Why a profile manager at all?
+
+> **TL;DR** — without cue, every `claude` session loads every skill, MCP, and plugin you've ever installed. cue scopes the loadout per-directory so each repo only sees what it actually needs.
 
 <p align="center">
   <img src="./docs/assets/isolation-comparison.svg" alt="Per-session loadout — without cue vs with cue" width="820">
@@ -66,17 +71,33 @@ That's it. `cd` into any other repo and `claude` will boot with that repo's prof
 
 ## How cue compares
 
+> **TL;DR** — `claude-code-switcher` swaps MCPs only; `skillport` / `skillshub` / `agent-skills-cli` / `agent-skill-manager` / `add-skills` deliver skills only; Kiro Powers is IDE-locked. **cue is the only tool that composes skills + MCPs + plugins together, per-directory, with inheritance and materialized isolation.**
+
+<p align="center">
+  <img src="./docs/assets/comparison.svg" alt="Feature matrix: cue is the only tool covering skills + MCPs + plugins + profiles + per-directory + isolation + inheritance" width="880">
+</p>
+
 Several tools touch parts of the problem — switching MCP configs, distributing skills, installing from marketplaces. **cue is the only one that treats the full agent loadout (skills + MCPs + plugins) as a composable, inheritable, directory-aware profile system.**
 
-| Tool | What it does | What cue does that it doesn't |
-|---|---|---|
-| [`claude-code-switcher`](https://github.com/search?q=claude-code-switcher) | Switches MCP configs + auth between Claude Code profiles | Skill scoping · profile inheritance · materialized isolated runtimes |
-| [`skillport`](https://github.com/search?q=skillport) | Serves skills to any agent via CLI/MCP | Per-directory `.cue-profile` pinning · profile system, not just skill delivery |
-| [`agent-skills-cli`](https://github.com/search?q=agent-skills-cli) | Browses 40k+ skills from the SkillsMP marketplace | Profile-level isolation · no all-or-nothing global install |
-| [`agent-skill-manager`](https://pypi.org/project/agent-skill-manager/) | PyPI installer for AI agent skills across platforms | Profile concept · directory-aware switching |
-| [`skillshub`](https://github.com/search?q=skillshub) | "Homebrew for AI Agent Skills" | Materialized per-profile runtimes · inheritance chains |
-| [`add-skills`](https://github.com/search?q=add-skills) | Python CLI for add/remove of skills | Multi-dimension loadout (skills + MCPs + plugins together) |
-| **Kiro Powers** | Context-aware MCP loading inside the Kiro IDE | Standalone CLI · works with **any** terminal, **any** project, both Claude Code & Codex |
+Quick links to each tool: [`claude-code-switcher`](https://github.com/search?q=claude-code-switcher) · [`skillport`](https://github.com/search?q=skillport) · [`agent-skills-cli`](https://github.com/search?q=agent-skills-cli) · [`agent-skill-manager`](https://pypi.org/project/agent-skill-manager/) · [`skillshub`](https://github.com/search?q=skillshub) · [`add-skills`](https://github.com/search?q=add-skills) · **Kiro Powers** (IDE-only).
+
+<details>
+<summary>📊 <b>Same matrix as a markdown table</b> (for screen readers / LLM ingestion)</summary>
+
+| Tool | skills | MCPs | plugins | profiles | per-dir | isolation | inherit |
+|---|---|---|---|---|---|---|---|
+| **cue** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| claude-code-switcher | — | ✅ | — | ◐ | — | — | — |
+| skillport | ✅ | — | — | — | — | — | — |
+| agent-skills-cli | ✅ | — | — | — | — | — | — |
+| agent-skill-manager | ✅ | — | — | — | — | — | — |
+| skillshub | ✅ | — | — | — | — | — | — |
+| add-skills | ✅ | — | — | — | — | — | — |
+| Kiro Powers | ✅ | ✅ | — | — | ◐ | — | — |
+
+Canonical source: [`docs/data/comparison.md`](./docs/data/comparison.md).
+
+</details>
 
 **Where cue is the only one:**
 
@@ -93,6 +114,8 @@ Several tools touch parts of the problem — switching MCP configs, distributing
 
 ## How it works
 
+> **TL;DR** — three steps on every `claude`/`codex` invocation: **resolve** the profile from `.cue-profile` (walks up to `$HOME`), **materialize** `~/.config/cue/runtime/<profile>/` if the content hash changed, then **exec** the real binary with `CLAUDE_CONFIG_DIR` / `CODEX_HOME` set.
+
 <p align="center">
   <img src="./docs/assets/architecture.svg" alt="Launch flow: resolve → materialize → exec" width="820">
 </p>
@@ -107,7 +130,40 @@ Full resolve-precedence rules and bypass paths: **[docs/launch.md](./docs/launch
 
 ---
 
+## Agents cue supports
+
+> **TL;DR** — **10 agents**: Claude Code, Codex, Cursor, Cline, Gemini CLI, GitHub Copilot, Windsurf, Roo Code, Sourcegraph Amp, Aider. One `profile.yaml` materializes into each agent's native format (`.cursorrules`, `.clinerules`, `~/.gemini/skills/*.md`, `.github/copilot-instructions.md`, etc.).
+
+Originally built for Claude Code & Codex — now **one profile, ten agents**. The same `profile.yaml` (skills + MCPs) materializes into the exact format each agent expects.
+
+```bash
+cue materialize cursor --profile backend     # → .cursorrules + .cursor/mcp.json
+cue materialize cline  --profile backend     # → .clinerules + cline_mcp_settings.json
+cue materialize --all  --profile backend     # → all agents in this profile
+```
+
+| Agent | `cue materialize` command | What gets written |
+|---|---|---|
+| **Claude Code** | (default — uses shim) | `~/.config/cue/runtime/<profile>/claude/` |
+| **OpenAI Codex** | (default — uses shim) | `~/.config/cue/runtime/<profile>/codex/` |
+| **Cursor** | `cue materialize cursor` | `.cursorrules` · `.cursor/mcp.json` |
+| **Cline** | `cue materialize cline` | `.clinerules` · `cline_mcp_settings.json` |
+| **Google Gemini CLI** | `cue materialize gemini` | `~/.gemini/skills/*.md` |
+| **GitHub Copilot** | `cue materialize copilot` | `.github/copilot-instructions.md` |
+| **Windsurf** | `cue materialize windsurf` | `.windsurfrules` · `.windsurf/mcp.json` |
+| **Roo Code** | `cue materialize roo` | `.roo/rules/*.md` · `.roo/mcp.json` |
+| **Sourcegraph Amp** | `cue materialize amp` | `AGENTS.md` · `.amp/mcp.json` |
+| **Aider** | `cue materialize aider` | `.aider.conventions.md` |
+
+Each adapter writes skills + MCPs in the precise format that agent expects — Cursor's `.cursorrules` syntax, Gemini's per-skill markdown, Copilot's instruction file, etc. **Same profiles, same skills, any agent.** Switch from Claude Code to Cursor on the same repo without touching a single skill definition.
+
+See [`src/commands/materialize.ts`](./src/commands/materialize.ts) for the full flag set (`--all`, `--profile`, `--dir`, dry-run).
+
+---
+
 ## `cue optimizer` — see every loadout at a glance
+
+> **TL;DR** — `cue optimizer` prints a visual audit of every profile: skills loaded, MCP servers, required CLIs (install status ✅/❌), GitHub sources, and per-skill usage bars computed from your local session transcripts. No telemetry.
 
 Run it once and you get a dashboard of every profile: skills (with per-session usage), MCP servers, required CLIs (with install status ✅/❌), GitHub sources, and brand icons.
 
@@ -129,6 +185,8 @@ What the optimizer scans for you:
   <img src="./docs/assets/terminal-optimizer.svg" alt="cue optimizer running in the terminal" width="820">
 </p>
 
+> 🐱 **Recommended terminal: [Kitty](https://sw.kovidgoyal.net/kitty/).** cue's optimizer renders bar charts, gradients, brand glyphs, and inline images via the Kitty graphics protocol. It also works in [WezTerm](https://wezfurlong.org/wezterm/) and [Ghostty](https://ghostty.org/) — but inside macOS Terminal or stock `gnome-terminal` you'll see the ASCII fallback (still readable, just less pretty).
+
 ```bash
 cue optimizer                 # all profiles
 cue optimizer backend         # just one
@@ -147,9 +205,37 @@ Each card shows what's actually loaded *plus* how often you've reached for each 
 
 ## The 16-profile catalog
 
+> **TL;DR** — 16 profiles ship with cue: `core`, `backend`, `frontend`, `marketing`, `medusa-dev`, `cybersecurity`, `nvidia`, `creative-media`, `docs-writer`, `caveman-quick`, `coolify`, `hostinger`, `fleet-control`, `readme-writer`, `full`, plus the per-OS `setup` profile. Switch with `cue use <name>`.
+
 <p align="center">
   <img src="./docs/assets/profiles-grid.svg" alt="The 16 profiles shipped with cue" width="820">
 </p>
+
+<details>
+<summary>📋 <b>All 16 profiles as a table</b> (for screen readers / LLM ingestion)</summary>
+
+| Profile | Domain |
+|---|---|
+| `core` | Baseline shared by every profile — claude-mem, caveman, RTK, gbrain. |
+| `backend` | APIs, webhooks, security review, CI, packaging, databases. |
+| `frontend` | UI implementation, redesign, screenshots, browser testing. |
+| `marketing` | Copywriting, SEO, CRO, growth, channels, brand. |
+| `medusa-dev` | Medusa v2 backend, storefront, admin, migration, shop setup. |
+| `cybersecurity` | 754 cybersecurity skills (red/blue team, forensics, DFIR). |
+| `nvidia` | NVIDIA cuOpt: routing, LP/MILP, GPU-accelerated optimization. |
+| `creative-media` | Image, video, product asset, brand, visual generation. |
+| `docs-writer` | Documentation, Markdown, PDF, Obsidian, structured writing. |
+| `readme-writer` | Beautiful README design with SVG diagrams. |
+| `caveman-quick` | Fast low-context edits, summaries, reviews, notes, commits. |
+| `coolify` | Coolify deploys, server config, app env vars, CI. |
+| `hostinger` | Hostinger DNS, domain, VPS, hosting management. |
+| `fleet-control` | Multi-agent orchestration, Colony coordination, OMX flows. |
+| `full` | Diagnostic fallback — loads every local skill and MCP. |
+| `setup` | Per-OS install assistant. |
+
+Canonical source: [`docs/data/profiles.md`](./docs/data/profiles.md).
+
+</details>
 
 ```bash
 cue list                      # show all
@@ -160,6 +246,8 @@ claude                        # launches with medusa-dev's loadout
 ---
 
 ## Install
+
+> **TL;DR** — `npm install -g cue-ai`, then `echo <profile> > .cue-profile` in any repo. Idempotent. No daemon. Uninstall with `install.sh --uninstall`.
 
 ```bash
 npm install -g cue-ai

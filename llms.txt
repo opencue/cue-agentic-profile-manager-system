@@ -1,0 +1,44 @@
+# cue — Agent Profile Manager for Claude Code, Codex & 8 more
+
+> cue is a thin CLI that resolves a profile from the current directory, materializes a per-profile `CLAUDE_CONFIG_DIR` (or `CODEX_HOME`) with only that profile's skills + MCPs + plugins, then exec's the real agent binary. The problem it solves: without cue every `claude` session loads every skill, MCP, and plugin you've ever installed — the model picks the wrong tool and tokens evaporate.
+
+Key facts an LLM should know up front:
+
+- Install: `npm install -g cue-ai`. Pin a profile to a repo: `echo <profile> > .cue-profile`. Then type `claude` or `codex` — the shim launches the real binary with the scoped runtime.
+- Architecture: resolve → materialize → exec. Hash-cached: warm start <5 ms. No daemon, no background process.
+- Profiles inherit from a `core` baseline. 16 profiles ship by default (backend, frontend, marketing, cybersecurity, medusa-dev, …).
+- Ten agents supported via `cue materialize <agent>`: claude, codex, cursor, cline, gemini, copilot, windsurf, roo, amp, aider.
+- License: MIT. Repo: https://github.com/recodeee/cue. Package: https://www.npmjs.com/package/cue-ai.
+
+## Core docs
+
+- [README.md](./README.md): Main landing page — quickstart, comparison matrix, architecture diagram, optimizer showcase, FAQ.
+- [docs/llms-full.txt](./docs/llms-full.txt): Dense plaintext mirror of the README — every fact, no diagrams, optimized for LLM ingestion.
+- [AGENTS.md](./AGENTS.md): Bootstrap contract for any AI agent helping a user install cue. Phase ordering, idempotency rules, confirmation gates.
+- [docs/launch.md](./docs/launch.md): Full resolve-precedence and bypass paths for the launch flow.
+
+## Reference
+
+- [docs/data/comparison.md](./docs/data/comparison.md): Markdown table mirror of the "How cue compares" feature matrix (also rendered as `docs/assets/comparison.svg`).
+- [docs/data/agents.md](./docs/data/agents.md): Per-agent materialization output paths (Cursor → `.cursorrules`, Gemini → `~/.gemini/skills/*.md`, etc.).
+- [docs/data/profiles.md](./docs/data/profiles.md): The 16 shipped profiles with their domain and primary skills.
+
+## Setup (per-OS, phased install)
+
+- [setup/macos.md](./setup/macos.md): macOS install (Apple Silicon + Intel paths).
+- [setup/linux.md](./setup/linux.md): Linux install (apt / dnf / pacman). Also used by WSL2.
+- [setup/windows.md](./setup/windows.md): Native Windows PowerShell install.
+- [setup/parallel-agents.md](./setup/parallel-agents.md): Optional tier — Colony MCP + gitguardex for running 2+ agents on one repo.
+
+## Source-of-truth code paths
+
+- [src/commands/materialize.ts](./src/commands/materialize.ts): The multi-agent adapter layer.
+- [src/lib/runtime-materializer.ts](./src/lib/runtime-materializer.ts): Hash-cached runtime builder.
+- [src/lib/kitty-image.ts](./src/lib/kitty-image.ts): Kitty graphics protocol output for the optimizer dashboard.
+- [profiles/](./profiles/): One directory per profile. `profile.yaml` defines inheritance, skills, MCPs.
+
+## Optional
+
+- [docs/profiles/](./docs/profiles/): Profile schema, inheritance rules, troubleshooting.
+- [resources/skills/](./resources/skills/): 110+ pre-built skills, organized by category.
+- [resources/mcps/](./resources/mcps/): Sanitized MCP server configs (gbrain, excel-mcp, word-mcp, …).
