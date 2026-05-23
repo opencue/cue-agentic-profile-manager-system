@@ -1,0 +1,19 @@
+name: threejs
+icon: "🎲"
+description: "Three.js 3D development — geometry, materials, shaders, animation, postprocessing, and interaction"
+inherits: core
+skills:
+  npx:
+    - repo: CloudAI-X/threejs-skills
+      skills:
+        - threejs-fundamentals
+        - threejs-geometry
+        - threejs-materials
+        - threejs-lighting
+        - threejs-textures
+        - threejs-animation
+        - threejs-loaders
+        - threejs-shaders
+        - threejs-postprocessing
+        - threejs-interaction
+mcps: []
