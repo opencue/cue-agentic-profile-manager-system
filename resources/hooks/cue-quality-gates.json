@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/cue-quality-gates-runner.sh",
+            "description": "Run every script under <runtime>/quality-gates/; veto Stop if any exits non-zero",
+            "id": "cue:stop:quality-gates"
+          }
+        ]
+      }
+    ]
+  }
+}

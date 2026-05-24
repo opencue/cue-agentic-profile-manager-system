@@ -109,6 +109,10 @@ export const COMMANDS = {
     summary: "Create a new profile.yaml from skills/MCPs (interactive or from agent skill)",
     load: () => import("./create-profile"),
   },
+  profile: {
+    summary: "Profile-scoped operations: `cue profile suggest` audits for regroupings",
+    load: () => import("./profile"),
+  },
   skills: {
     summary: "Manage skills: list, search, add/remove from profiles",
     load: () => import("./skills"),
@@ -156,6 +160,14 @@ export const COMMANDS = {
   "lint-skill": {
     summary: "Validate a SKILL.md against the skill spec (R001-R008); --fix to auto-correct",
     load: () => import("./lint-skill"),
+  },
+  "eval-behavior": {
+    summary: "Structural eval — does this profile have the skills/commands/playbooks/gates for its declared scenarios?",
+    load: () => import("./eval-behavior"),
+  },
+  failures: {
+    summary: "Review session-log.jsonl + transcripts for failure patterns per profile",
+    load: () => import("./failures"),
   },
   snapshot: {
     summary: "Export/restore current profile state as portable YAML",
@@ -273,6 +285,10 @@ export const COMMANDS = {
     summary: "Find hidden gem skill repos on GitHub and export docs/discovered.md",
     load: () => import("./discover"),
   },
+  evolve: {
+    summary: "Auto-evolve profiles: detect gaps, suggest skills, prune unused",
+    load: () => import("./evolve"),
+  },
   sponsor: {
     summary: "Star the repo / show support links",
     load: async () => ({
@@ -292,6 +308,14 @@ export const COMMANDS = {
   "migrate-symlinks": {
     summary: "Rewrite ~/.codex and ~/.claude-accounts symlinks from soul/ to cue/ to cue/",
     load: () => import("./migrate-symlinks"),
+  },
+  feedback: {
+    summary: "Share what's working / what's missing (local-only, opt-in to share as GitHub issue)",
+    load: () => import("./feedback"),
+  },
+  "submit-profile": {
+    summary: "Fork recodeee/cue, branch, commit your profile.yaml, open PR (community contribution)",
+    load: () => import("./submit-profile"),
   },
 } as const satisfies Record<string, Command>;
 

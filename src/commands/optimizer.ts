@@ -69,6 +69,7 @@ const KNOWN_CLIS = new Set([
   "release-plz", "typos", "cargo-chef", "cargo-msrv", "cargo-readme",
   "maturin", "napi", "uniffi-bindgen", "bindgen", "cbindgen",
   "probe-rs", "cargo-embed", "cargo-binutils", "chisel",
+  "chromium", "chrome", "google-chrome", "microsoft-edge",
   "openssl", "ssh", "ncat", "netcat", "socat",
   "splunk", "elastic", "kibana", "logstash",
   "peepdf", "pdfid", "pdf-parser", "olevba", "oletools",

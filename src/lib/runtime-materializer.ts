@@ -19,6 +19,8 @@ const REPO_ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), "..", "..
 const RESOURCES_RULES = join(REPO_ROOT, "resources", "rules");
 const RESOURCES_COMMANDS = join(REPO_ROOT, "resources", "commands");
 const RESOURCES_HOOKS = join(REPO_ROOT, "resources", "hooks");
+const RESOURCES_PLAYBOOKS = join(REPO_ROOT, "resources", "playbooks");
+const RESOURCES_QUALITY_GATES = join(REPO_ROOT, "resources", "quality-gates");
 
 function resolveResourcePath(ref: string, base: string): string {
   return isAbsolute(ref) ? ref : join(base, ref);
@@ -125,15 +127,30 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   await mkdir(dirname(runtimeDir), { recursive: true });
   const tmpDir = await mkdtemp(`${runtimeDir}.tmp.`);
 
-  // 1. Skills
+  // 1. Skills — missing refs are warned + skipped, not fatal. A profile that
+  // lists 20 skills and has 1 broken ref shouldn't crash the entire launch.
+  // `cue debug` and `cue validate` surface the broken ref clearly so the user
+  // can fix it. Behavior matches `cue debug`'s tolerance.
   const skillsDir = join(tmpDir, "skills");
   await mkdir(skillsDir, { recursive: true });
+  const skippedSkills: string[] = [];
   for (const skill of profile.skills.local) {
     if (!appliesToAgent(skill, agent)) continue;
-    const src = await input.skillSourceLookup(skill.id);
-    const target = join(skillsDir, skill.id);
-    await mkdir(dirname(target), { recursive: true });
-    await symlink(src, target);
+    try {
+      const src = await input.skillSourceLookup(skill.id);
+      const target = join(skillsDir, skill.id);
+      await mkdir(dirname(target), { recursive: true });
+      await symlink(src, target);
+    } catch (err) {
+      skippedSkills.push(skill.id);
+    }
+  }
+  if (skippedSkills.length > 0) {
+    process.stderr.write(
+      `[cue] skipped ${skippedSkills.length} missing skill(s): ${skippedSkills.slice(0, 5).join(", ")}` +
+      (skippedSkills.length > 5 ? `, +${skippedSkills.length - 5} more` : "") +
+      ` — run \`cue debug ${profile.name}\` for details\n`,
+    );
   }
 
   // Defensive defaults — older fixtures may not declare these arrays.
@@ -192,6 +209,37 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
     }
   }
 
+  // 1e. Playbooks (Phase 2) — symlink markdown protocols into playbooks/.
+  // Indexed in CLAUDE.md so Claude knows to consult them; bodies lazy-loaded.
+  const profilePlaybooks = (profile as any).playbooks ?? [];
+  if (profilePlaybooks.length > 0) {
+    const pbDir = join(tmpDir, "playbooks");
+    await mkdir(pbDir, { recursive: true });
+    for (const ref of profilePlaybooks) {
+      const src = resolveResourcePath(ref.endsWith(".md") ? ref : `${ref}.md`, RESOURCES_PLAYBOOKS);
+      try {
+        await lstat(src);
+        await symlink(src, join(pbDir, basename(src)));
+      } catch { /* missing source — skip */ }
+    }
+  }
+
+  // 1f. Quality gates (Phase 3) — symlink validator scripts into quality-gates/.
+  // The Stop hook (cue-quality-gates.sh, see resources/hooks/) iterates this
+  // directory and fails the session if any gate exits non-zero.
+  const profileGates = (profile as any).qualityGates ?? [];
+  if (agent === "claude-code" && profileGates.length > 0) {
+    const gDir = join(tmpDir, "quality-gates");
+    await mkdir(gDir, { recursive: true });
+    for (const ref of profileGates) {
+      const src = resolveResourcePath(ref, RESOURCES_QUALITY_GATES);
+      try {
+        await lstat(src);
+        await symlink(src, join(gDir, basename(src)));
+      } catch { /* missing source — skip */ }
+    }
+  }
+
   // 2. settings.json (Claude) or config.toml (Codex) — Claude-only first cut.
   // mcpServers was already collected above (used by both code paths).
   if (agent === "claude-code") {
@@ -213,6 +261,15 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   let stamp = `<!-- cue: profile=${profile.name} icon=${iconStr} -->\n` +
               `# Active Profile: ${iconStr ? iconStr + " " : ""}${profile.name}\n\n` +
               `> ${profile.description}\n\n`;
+
+  // Phase 1: Persona — multi-line role-priming defining who the agent IS.
+  // Goes above the mechanical "Your Role" block so it primes interpretation
+  // of everything that follows. Profiles without a persona keep the old
+  // generic block (backwards-compatible).
+  const profilePersona = (profile as any).persona ?? "";
+  if (profilePersona.trim()) {
+    stamp += `## Your Expertise\n\n${profilePersona.trim()}\n\n`;
+  }
 
   // Role identity — tell Claude what it is
   stamp += `## Your Role\n\n` +
@@ -288,6 +345,26 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   if (profileCommands.length > 0) {
     stamp += `## Available Commands\n\n` +
       profileCommands.map((c) => `- /${basename(c, ".md")}`).join("\n") + "\n\n";
+  }
+
+  // Playbooks (Phase 2) — proven step-by-step protocols for common tasks.
+  // Indexed only; bodies are read on demand when the matching task triggers.
+  if (profilePlaybooks.length > 0) {
+    stamp += `## Playbooks (${profilePlaybooks.length})\n\n` +
+      `Read on demand from \`playbooks/\` when the user's request matches:\n` +
+      profilePlaybooks.map((p: string) => {
+        const stem = basename(p, ".md");
+        return `- \`playbooks/${stem}.md\` — use when ${stem.replace(/-/g, " ")}`;
+      }).join("\n") + "\n\n" +
+      `**Following a playbook beats freestyling.** If a relevant playbook exists, read it first and step through it.\n\n`;
+  }
+
+  // Quality gates (Phase 3) — mention so Claude knows what'll be checked at Stop.
+  const profileGatesForStamp = (profile as any).qualityGates ?? [];
+  if (profileGatesForStamp.length > 0) {
+    stamp += `## Quality Gates\n\nBefore claiming this session complete, these checks run at Stop:\n` +
+      profileGatesForStamp.map((g: string) => `- \`${basename(g)}\``).join("\n") + "\n\n" +
+      `Don't claim "done" if you haven't met them — they'll fail you publicly.\n\n`;
   }
 
   stamp += `---\n*generated ${new Date().toISOString()} — do not hand-edit*\n\n`;

@@ -1,6 +1,22 @@
 name: core
 icon: "🐢"
 description: Baseline shared by every cue profile — essentials only
+persona: |
+  You're a careful, experienced collaborator. You operate by these defaults
+  every time, regardless of which specialized profile inherits from you:
+
+  - **State assumptions before acting.** If a request is ambiguous, name the
+    ambiguity and pick the reasonable interpretation rather than guessing
+    silently.
+  - **Minimum-viable change.** Touch only what the task requires. Don't refactor
+    adjacent code, don't add features that weren't asked for, don't introduce
+    abstractions for hypothetical futures.
+  - **Verify before claiming done.** Run the tests / lint / build / actual
+    behavior check that proves the change works. "Compiles" ≠ "done."
+  - **Tight loops over big patches.** Make a small change → verify → commit
+    incrementally. Don't accumulate a 400-line patch you can't bisect.
+  - **Voice: terse and specific.** Drop filler. Lead sentences with the verb
+    or the answer. Don't summarize what's visible in the diff.
 skills:
   local:
     # ── Built-in: shared by every cue profile via inheritance ──
@@ -14,6 +30,9 @@ skills:
     - caveman/caveman           # /caveman — terse output mode
     - caveman/caveman-commit    # /commit — Conventional Commits writer
     - meta/acpx                 # delegate to other coding agents over ACP (codex, claude, pi, ...)
+    - tools/ctx-upgrade               # context-mode: context window optimization for AI agents
+    - tools/context-mode-ops          # context-mode: sandbox tool output, 98% reduction
+    - tools/fallow                    # codebase intelligence: unused code, duplication, complexity, cleanup
     # Removed (followup #22 audit, 2026-05-24): nvidia/aiq-research (needs
     # NVIDIA AI-Q server infra), meta/kiro-powers (niche Kiro Powers interop).
     # Add back to a dedicated profile if needed — they don't belong in baseline.
@@ -34,6 +53,17 @@ commands:
   - code-review
   - checkpoint
   - cost-report
+  - cue
+playbooks:
+  # Phase 2: proven step-by-step protocols. Read on demand when the user's
+  # request matches. Profiles that inherit core get these for free.
+  - ship-feature
+  - triage-bug
+evals:
+  # Phase 4: structural eval scenarios. `cue eval-behavior core` checks
+  # whether core has the skills/commands/playbooks needed to handle these.
+  - feature-shipping
+  - bug-triage
 hooks:
   # Universal safety: block obviously destructive shell commands (rm -rf /, fork bombs, dd to /dev/sd*, etc.).
   # Every profile inherits core, so every cue user gets this for free.
@@ -45,3 +75,11 @@ hooks:
   - secrets-guard.json
   # Reject low-effort `git commit -m "wip"` / "fix" / "update" messages.
   - commit-message-guard.json
+  # Stop hook: scan the full transcript and emit one skill_hit event per
+  # unique skill referenced. Replaces the 50KB regex scrape with a full scan.
+  # Feeds `cue profile evolve` with accurate per-skill firing data.
+  - skill-fire-tracker.json
+  # UserPromptSubmit hook: on the FIRST prompt of a session, save it to
+  # ~/.config/cue/first-prompts/<cwd-hash>.json so the next `cue launch`
+  # in the same cwd with CUE_SMART_SUBSET=1 can auto-trigger smart-subset.
+  - first-prompt-capture.json
