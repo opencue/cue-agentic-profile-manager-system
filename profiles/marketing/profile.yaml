@@ -1,6 +1,6 @@
 name: marketing
 icon: "🦜"
-description: Marketing — copywriting, SEO, CRO, growth, channels, brand, awesome-list outreach, X/Twitter, Reddit, paid ads audit
+description: Marketing — copywriting, SEO, CRO, growth, channels, brand, awesome-list outreach, X/Twitter, Reddit, paid ads audit, AI video
 inherits: core
 skills:
   local:
@@ -9,6 +9,9 @@ skills:
     - design/high-end-visual-design
     - design/imagegen-frontend-web
     - meta/awesome-list-submit
+    - higgsfield/higgsfield-generate
+    - higgsfield/higgsfield-product-photoshoot
+    - higgsfield/higgsfield-marketplace-cards
   npx:
     - repo: AgriciDaniel/claude-ads
       skills: [claude-ads]
@@ -16,5 +19,6 @@ mcps:
   - x-api
   - reddit
   - google-ads-mcp
+  - Higgsfield
 plugins:
   - marketing-skills@claude-code-skills
