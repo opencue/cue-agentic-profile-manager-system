@@ -26,7 +26,7 @@ let configsRoot: string;
 let npxRepoRoot: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "soul-profile-linter-"));
+  root = await mkdtemp(join(tmpdir(), "cue-profile-linter-"));
   profilesDir = join(root, "profiles");
   skillsRoot = join(root, "skills", "skills");
   pluginsRoot = join(root, "plugins");

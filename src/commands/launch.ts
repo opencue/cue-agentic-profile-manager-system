@@ -1,5 +1,5 @@
 /**
- * `soul launch <agent>` — the hot path.
+ * `cue launch <agent>` — the hot path.
  *
  * Flow: resolve(cwd) → if none, runPicker() → materializeRuntime() → exec.
  *

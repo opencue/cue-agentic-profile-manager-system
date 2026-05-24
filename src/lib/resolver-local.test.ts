@@ -67,7 +67,7 @@ function profile(local: string[]): ResolvedProfile {
 }
 
 beforeEach(async () => {
-  rootDir = await mkdtemp(join(tmpdir(), "soul-resolver-local-"));
+  rootDir = await mkdtemp(join(tmpdir(), "cue-resolver-local-"));
   skillsRoot = join(rootDir, "skills", "skills");
   await mkdir(skillsRoot, { recursive: true });
   await buildTree();

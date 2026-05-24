@@ -11,10 +11,10 @@ count="$(profile_count "$repo")"
 [ "$count" -ge "15" ] || fail "expected 15+ shipped profiles, found $count"
 
 output="$SOUL_E2E_WORK/01-list.txt"
-soul "$repo" list > "$output"
+cue "$repo" list > "$output"
 
 for profile in $EXPECTED_PROFILES; do
-  grep -F "$profile" "$output" >/dev/null || fail "soul list did not include $profile"
+  grep -F "$profile" "$output" >/dev/null || fail "cue list did not include $profile"
 done
 
 log "fresh install lists all shipped profiles"

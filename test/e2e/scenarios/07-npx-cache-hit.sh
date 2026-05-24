@@ -17,7 +17,7 @@ name: npx-cache-e2e
 description: E2E-only profile for proving npx cache hits
 skills:
   npx:
-    - repo: recodeee/soul-e2e-skills
+    - repo: recodeee/cue-e2e-skills
       pin: tag@v0.0.1
       skills:
         - e2e-npx-skill
@@ -56,7 +56,7 @@ mkdir -p "$PWD/$skill"
 cat > "$PWD/$skill/SKILL.md" <<EOF
 ---
 name: $skill
-description: Mock npx skill for soul e2e.
+description: Mock npx skill for cue e2e.
 ---
 # $skill
 EOF
@@ -66,15 +66,15 @@ chmod +x "$mock_bin/npx"
 export PATH="$mock_bin:$PATH"
 export SOUL_E2E_NPX_LOG="$log_file"
 
-soul "$repo" use "$profile"
+cue "$repo" use "$profile"
 first_calls="$(wc -l < "$log_file" | tr -d ' ')"
-[ "$first_calls" -gt 0 ] || fail "first soul use did not populate npx cache through mock npx"
+[ "$first_calls" -gt 0 ] || fail "first cue use did not populate npx cache through mock npx"
 
 : > "$log_file"
 export SOUL_E2E_NPX_FAIL_ON_CALL=1
-soul "$repo" use "$profile"
+cue "$repo" use "$profile"
 
 second_calls="$(wc -l < "$log_file" | tr -d ' ')"
-[ "$second_calls" = "0" ] || fail "second soul use made $second_calls npx call(s)"
+[ "$second_calls" = "0" ] || fail "second cue use made $second_calls npx call(s)"
 
-log "second soul use of $profile reuses the npx cache"
+log "second cue use of $profile reuses the npx cache"

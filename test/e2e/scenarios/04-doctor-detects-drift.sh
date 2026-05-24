@@ -8,20 +8,20 @@ repo="$(fresh_repo 04-doctor-detects-drift)"
 install_deps "$repo"
 require_profile "$repo" "medusa-dev"
 
-soul "$repo" use medusa-dev --global
+cue "$repo" use medusa-dev --global
 
 skills_dir="$HOME/.claude/skills"
 broken="$(first_symlink_under "$skills_dir")"
 [ -n "$broken" ] || fail "expected a materialized global skill symlink"
 
 rm "$broken"
-ln -s "__missing_soul_e2e_target__" "$broken"
+ln -s "__missing_cue_e2e_target__" "$broken"
 
-if soul "$repo" doctor > "$SOUL_E2E_WORK/04-doctor.out" 2>&1; then
-  fail "soul doctor should exit non-zero for a broken symlink"
+if cue "$repo" doctor > "$SOUL_E2E_WORK/04-doctor.out" 2>&1; then
+  fail "cue doctor should exit non-zero for a broken symlink"
 fi
 
-soul "$repo" doctor --fix
+cue "$repo" doctor --fix
 [ -e "$broken" ] || fail "doctor --fix did not repair $broken"
 assert_symlink_tree_ok "$skills_dir"
 

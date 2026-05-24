@@ -1,5 +1,5 @@
 /**
- * `soul use <profile>` — stub.
+ * `cue use <profile>` — stub.
  * Real implementation belongs to agent A14 (materializer driver).
  */
 export async function run(_args: string[]): Promise<number> {

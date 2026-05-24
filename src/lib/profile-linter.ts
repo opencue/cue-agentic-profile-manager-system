@@ -1,5 +1,5 @@
 /**
- * Profile linter for `soul validate`.
+ * Profile linter for `cue validate`.
  *
  * The rules below are intentionally numbered and centralized so a later
  * suppression pass can key off stable ids such as `# lint: ignore W1`.
@@ -520,7 +520,7 @@ async function resolveOneNpxSkill(
     }
   }
 
-  const tempRepo = await mkdtemp(join(tmpdir(), "soul-validate-npx-"));
+  const tempRepo = await mkdtemp(join(tmpdir(), "cue-validate-npx-"));
   try {
     await mkdir(join(tempRepo, "profiles", "_cache", "npx"), { recursive: true });
     await resolveNpxDetailed(single, {

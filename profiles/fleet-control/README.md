@@ -26,7 +26,7 @@ Fleet Control is for coordinated agent runs, Colony state, OMX workflows, guarde
 
 - `claude-mem`
 - `colony`
-- `soul-skills`
+- `cue-skills`
 
 ## Sample Tasks
 

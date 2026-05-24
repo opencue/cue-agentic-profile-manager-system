@@ -23,7 +23,7 @@ import {
 let root: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "soul-resolver-plugins-"));
+  root = await mkdtemp(join(tmpdir(), "cue-resolver-plugins-"));
 });
 
 afterEach(async () => {

@@ -7,6 +7,6 @@ ensure_temp_home
 repo="$(fresh_repo 05-validate-all)"
 install_deps "$repo"
 
-soul "$repo" validate --all
+cue "$repo" validate --all
 
 log "all shipped profiles validate"

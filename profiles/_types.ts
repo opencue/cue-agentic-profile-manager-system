@@ -1,5 +1,5 @@
 /**
- * Types for the soul profile system. Mirror of profiles/schema.json.
+ * Types for the cue profile system. Mirror of profiles/schema.json.
  *
  * Consumed by bin/cli/* via:
  *   import type { Profile, NpxSkillRef, MCPRef, SkillRef } from "../../profiles/_types";

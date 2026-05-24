@@ -1,7 +1,7 @@
 /**
  * Subcommand registry.
  *
- * Each entry declares a one-line summary (for `soul --help`) and a lazy
+ * Each entry declares a one-line summary (for `cue --help`) and a lazy
  * loader that returns the command module. Lazy loading keeps cold start
  * fast — only the command actually invoked is imported.
  *
@@ -10,7 +10,7 @@
  */
 
 export interface Command {
-  /** One-line description shown by `soul --help`. */
+  /** One-line description shown by `cue --help`. */
   summary: string;
   /** Lazy import of the command module. Must export `run(args): Promise<number>`. */
   load: () => Promise<{ run: (args: string[]) => Promise<number> }>;
@@ -270,7 +270,7 @@ export const COMMANDS = {
     }),
   },
   "migrate-symlinks": {
-    summary: "Rewrite ~/.codex and ~/.claude-accounts symlinks from soul/ to cue/",
+    summary: "Rewrite ~/.codex and ~/.claude-accounts symlinks from soul/ to cue/ to cue/",
     load: () => import("./migrate-symlinks"),
   },
 } as const satisfies Record<string, Command>;

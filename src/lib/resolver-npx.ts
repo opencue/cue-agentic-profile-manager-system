@@ -156,7 +156,7 @@ export interface ResolveNpxOptions {
 
 export interface ResolveNpxResult {
   plans: LinkPlan[];
-  /** Per-entry cache key — useful for debugging / `soul doctor`. */
+  /** Per-entry cache key — useful for debugging / `cue doctor`. */
   keys: Record<string, string>;
 }
 
@@ -263,7 +263,7 @@ async function fetchInto(
   // If the slot already exists (partial-hit repair), we merge skill subdirs
   // into the existing slot rather than nuking it; this keeps already-good
   // skills warm.
-  const staging = mkdtempSync(join(tmpdir(), "soul-npx-"));
+  const staging = mkdtempSync(join(tmpdir(), "cue-npx-"));
   try {
     for (const skill of skills) {
       await fetcher(entry.repo, entry.pin, skill, staging);

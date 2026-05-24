@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/recodeee/soul/profiles/schema.json",
+  "$id": "https://github.com/recodeee/cue/profiles/schema.json",
   "title": "Soul Profile",
   "description": "Schema for profiles/<name>/profile.yaml — bundles skills, MCPs, and env for a Claude Code or Codex session.",
   "type": "object",
@@ -16,7 +16,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "description": "One-line description shown in `soul list` and embedded in the materialized CLAUDE.md stamp."
+      "description": "One-line description shown in `cue list` and embedded in the materialized CLAUDE.md stamp."
     },
     "icon": {
       "type": "string",
@@ -50,7 +50,7 @@
               { "$ref": "#/$defs/AgentScopedRef" }
             ]
           },
-          "description": "Paths relative to soul/skills/ (e.g. 'medusa/building-with-medusa')."
+          "description": "Paths relative to cue/skills/ (e.g. 'medusa/building-with-medusa')."
         },
         "npx": {
           "type": "array",
@@ -67,7 +67,7 @@
         ]
       },
       "default": [],
-      "description": "MCP server IDs that must exist in soul/mcps/configs/. Accepts plain string or {id, agents} object."
+      "description": "MCP server IDs that must exist in cue/mcps/configs/. Accepts plain string or {id, agents} object."
     },
     "plugins": {
       "type": "array",

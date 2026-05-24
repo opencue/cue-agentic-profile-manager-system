@@ -30,14 +30,14 @@ env:
 | Field         | Type                                                          | Required | Default | Notes                                                                                              |
 |---------------|---------------------------------------------------------------|----------|---------|----------------------------------------------------------------------------------------------------|
 | `name`        | string (kebab-case, `[a-z][a-z0-9-]{1,63}`)                   | yes      | —       | Must equal the dirname `profiles/<name>/`.                                                         |
-| `description` | string (one-line, < 200 chars)                                | yes      | —       | Shown by `soul list` and embedded in the materialized `CLAUDE.md` stamp.                           |
+| `description` | string (one-line, < 200 chars)                                | yes      | —       | Shown by `cue list` and embedded in the materialized `CLAUDE.md` stamp.                           |
 | `agents`      | array of `"claude-code" \| "codex"`                           | no       | `[claude-code, codex]` | Restricts which agent runtimes this profile materializes for.                          |
 | `inherits`    | string (name of another profile)                              | no       | —       | Single parent. Depth ≤ 3. Cycles are an error.                                                     |
 | `skills`      | object (see below)                                            | no       | `{}`    | At least one of `local`, `npx`, `plugins` should appear in a useful profile.                       |
-| `skills.local`| array of strings (paths relative to `soul/skills/`)           | no       | `[]`    | E.g. `medusa/building-with-medusa` → resolves to `soul/skills/skills/medusa/building-with-medusa/`. |
+| `skills.local`| array of strings (paths relative to `cue/skills/`)           | no       | `[]`    | E.g. `medusa/building-with-medusa` → resolves to `cue/skills/skills/medusa/building-with-medusa/`. |
 | `skills.npx`  | array of `NpxSkillRef`                                        | no       | `[]`    | See "NpxSkillRef" below.                                                                           |
 | `skills.plugins` | array of strings (Claude Code plugin names)                | no       | `[]`    | Resolved from `~/.claude/plugins/<name>/skills/`. Targets are namespaced as `<plugin>:<skill>`.    |
-| `mcps`        | array of strings (MCP server IDs)                             | no       | `[]`    | Must match a key in `soul/mcps/configs/claude.sanitized.json` (or the codex counterpart).          |
+| `mcps`        | array of strings (MCP server IDs)                             | no       | `[]`    | Must match a key in `cue/mcps/configs/claude.sanitized.json` (or the codex counterpart).          |
 | `env`         | map<string, string>                                           | no       | `{}`    | Plain string values. Placeholders like `"${HOSTINGER_API_TOKEN}"` are substituted at materialize-time. |
 
 ## NpxSkillRef

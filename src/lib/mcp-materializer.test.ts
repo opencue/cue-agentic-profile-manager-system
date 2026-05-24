@@ -115,7 +115,7 @@ function makeProfile(
 // ---------------------------------------------------------------------------
 
 beforeEach(async () => {
-  configsRoot = await mkdtemp(join(tmpdir(), "soul-mcp-mat-"));
+  configsRoot = await mkdtemp(join(tmpdir(), "cue-mcp-mat-"));
   await mkdir(configsRoot, { recursive: true });
   await writeFixtures(configsRoot);
 });

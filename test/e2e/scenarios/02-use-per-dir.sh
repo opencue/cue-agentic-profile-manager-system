@@ -9,7 +9,7 @@ install_deps "$repo"
 require_profile "$repo" "medusa-dev"
 
 # Skip if 'use' is not yet implemented
-output="$(soul "$repo" use medusa-dev 2>&1)" || true
+output="$(cue "$repo" use medusa-dev 2>&1)" || true
 if echo "$output" | grep -q "not yet implemented"; then
   log "SKIP: 'use' command not yet implemented"
   exit 0

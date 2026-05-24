@@ -1,5 +1,5 @@
 /**
- * `soul scan`
+ * `cue scan`
  *
  * Runs the available scanner modules (A10/A11 when present) plus a local
  * fallback scanner, then prints a domain-grouped tree.
@@ -41,7 +41,7 @@ export async function run(args: string[]): Promise<number> {
 function printHelp(): void {
   process.stdout.write(
     [
-      "Usage: soul scan [--json]",
+      "Usage: cue scan [--json]",
       "",
       "Discovers local skills, npx-installed skills, and Claude Code plugin",
       "skills, then groups them by inferred domain.",

@@ -22,7 +22,7 @@ Full is a diagnostic / fallback only profile. It is intentionally expensive beca
 - `polymarket-live`
 - `recodee`
 - `ruflo`
-- `soul-skills`
+- `cue-skills`
 
 ## Sample Tasks
 

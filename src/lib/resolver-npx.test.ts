@@ -29,7 +29,7 @@ let repoRoot: string;
 let calls: Array<{ repo: string; pin: string | undefined; skill: string; destDir: string }>;
 
 beforeEach(() => {
-  repoRoot = mkdtempSync(join(tmpdir(), "soul-test-"));
+  repoRoot = mkdtempSync(join(tmpdir(), "cue-test-"));
   // The resolver writes under <repoRoot>/profiles/_cache/npx/<key>/, so make
   // sure the parent dirs exist — cache.cachePut calls mkdirSync recursive.
   mkdirSync(join(repoRoot, "profiles", "_cache", "npx"), { recursive: true });

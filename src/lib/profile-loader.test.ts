@@ -34,7 +34,7 @@ let scratchRoot: string;
 let priorEnv: string | undefined;
 
 beforeEach(async () => {
-  scratchRoot = await mkdtemp(join(tmpdir(), "soul-profile-loader-"));
+  scratchRoot = await mkdtemp(join(tmpdir(), "cue-profile-loader-"));
   priorEnv = process.env.CUE_PROFILES_DIR;
   process.env.CUE_PROFILES_DIR = scratchRoot;
 });

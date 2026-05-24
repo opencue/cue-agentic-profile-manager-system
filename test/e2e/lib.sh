@@ -2,13 +2,13 @@
 set -euo pipefail
 
 if [ "${BASH_VERSION:-}" = "" ]; then
-  echo "soul e2e: bash is required" >&2
+  echo "cue e2e: bash is required" >&2
   exit 2
 fi
 
 SOUL_E2E_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOUL_E2E_ROOT="${SOUL_E2E_ROOT:-$(cd "$SOUL_E2E_LIB_DIR/../.." && pwd)}"
-SOUL_E2E_WORK="${SOUL_E2E_WORK:-$(mktemp -d "${TMPDIR:-/tmp}/soul-e2e.XXXXXX")}"
+SOUL_E2E_WORK="${SOUL_E2E_WORK:-$(mktemp -d "${TMPDIR:-/tmp}/cue-e2e.XXXXXX")}"
 SOUL_E2E_NPX_CACHE="${SOUL_E2E_NPX_CACHE:-$SOUL_E2E_ROOT/profiles/_cache/npx}"
 BUN_INSTALL_CACHE_DIR="${BUN_INSTALL_CACHE_DIR:-$SOUL_E2E_ROOT/profiles/_cache/bun}"
 
@@ -17,7 +17,7 @@ export SOUL_E2E_WORK
 export SOUL_E2E_NPX_CACHE
 export BUN_INSTALL_CACHE_DIR
 
-EXPECTED_PROFILES="core medusa-dev fleet-control creative-media caveman-quick docs-writer research frontend backend full coolify hostinger nvidia marketing readme-writer-svg"
+EXPECTED_PROFILES="core medusa-dev fleet-control creative-media caveman-quick docs-writer research frontend backend full coolify hostinger nvidia marketing readme-writer"
 
 log() {
   printf '[e2e] %s\n' "$*"
@@ -97,7 +97,7 @@ install_deps() {
   (cd "$repo" && bun install)
 }
 
-soul() {
+cue() {
   local repo="$1"
   shift
   (cd "$repo" && "$repo/bin/cue" "$@")

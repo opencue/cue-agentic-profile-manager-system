@@ -181,7 +181,7 @@ async function createFromSeed(args: NewArgs): Promise<number> {
 }
 
 async function createEmpty(args: NewArgs): Promise<number> {
-  const description = `Custom soul profile ${args.name}`;
+  const description = `Custom cue profile ${args.name}`;
   const generated = {
     profile: { name: args.name!, description, agents: ["claude-code", "codex"] },
     yaml: [

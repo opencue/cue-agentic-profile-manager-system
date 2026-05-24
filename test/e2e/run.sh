@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-WORK="${SOUL_E2E_WORK:-$(mktemp -d "${TMPDIR:-/tmp}/soul-e2e.XXXXXX")}"
+WORK="${SOUL_E2E_WORK:-$(mktemp -d "${TMPDIR:-/tmp}/cue-e2e.XXXXXX")}"
 
 export SOUL_E2E_ROOT="$ROOT"
 export SOUL_E2E_WORK="$WORK"

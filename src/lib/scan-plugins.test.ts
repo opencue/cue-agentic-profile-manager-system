@@ -10,7 +10,7 @@ let pluginsRoot: string;
 let configPath: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "soul-scan-plugins-"));
+  root = await mkdtemp(join(tmpdir(), "cue-scan-plugins-"));
   pluginsRoot = join(root, "plugins");
   configPath = join(root, "claude.json");
   await mkdir(pluginsRoot, { recursive: true });

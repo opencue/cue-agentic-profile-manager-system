@@ -20,7 +20,7 @@ let profilesRoot: string;
 let priorProfilesDir: string | undefined;
 
 beforeEach(async () => {
-  scratchRoot = await mkdtemp(join(tmpdir(), "soul-profile-generator-"));
+  scratchRoot = await mkdtemp(join(tmpdir(), "cue-profile-generator-"));
   profilesRoot = join(scratchRoot, "profiles");
   priorProfilesDir = process.env.CUE_PROFILES_DIR;
   process.env.CUE_PROFILES_DIR = profilesRoot;

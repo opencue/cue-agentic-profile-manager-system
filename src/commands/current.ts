@@ -1,5 +1,5 @@
 /**
- * `soul current` — print the active profile and resolved capability list.
+ * `cue current` — print the active profile and resolved capability list.
  *
  * Reads .cue-profile / repo-default / global-default via cwd-resolver.
  * Outputs profile name, source, skill count, MCP count, plugin count, and runtime dir.

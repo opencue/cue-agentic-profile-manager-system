@@ -7,10 +7,10 @@ ensure_temp_home
 repo="$(fresh_repo 03-scan-and-new)"
 install_deps "$repo"
 
-soul "$repo" scan > "$SOUL_E2E_WORK/03-scan.txt"
-soul "$repo" new test-gen --from-scan --auto
+cue "$repo" scan > "$SOUL_E2E_WORK/03-scan.txt"
+cue "$repo" new test-gen --from-scan --auto
 
 assert_file "$repo/profiles/test-gen/profile.yaml"
-soul "$repo" validate test-gen
+cue "$repo" validate test-gen
 
 log "scan succeeds and generated profile validates"

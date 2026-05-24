@@ -12,7 +12,7 @@ Creative Media covers generated images, Higgsfield product shots, marketplace ca
 - `higgsfield/higgsfield-generate`
 - `higgsfield/higgsfield-product-photoshoot`
 - `higgsfield/higgsfield-marketplace-cards`
-- `higgsfield/higgsfield-soul-id`
+- `higgsfield/higgsfield-cue-id`
 - `design/brandkit`
 - `design/kitty-visualize`
 - `design/remotion-best-practices`

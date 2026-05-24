@@ -21,14 +21,14 @@ terminal.
 
 ---
 
-## 1. Symlink migration (only if upgrading from soul)
+## 1. Symlink migration (only if upgrading from cue)
 
-If you were previously running `soul`, run the migrate-symlinks command to update
-any existing symlinks that still point into the old `soul/` directory tree:
+If you were previously running `cue`, run the migrate-symlinks command to update
+any existing symlinks that still point into the old `cue/` directory tree:
 
 ```bash
 cue migrate-symlinks \
-  --map "$HOME/Documents/soul=$HOME/Documents/cue" \
+  --map "$HOME/Documents/cue=$HOME/Documents/cue" \
   --map "$HOME/Documents/cue/skills=$HOME/Documents/cue/resources/skills" \
   --map "$HOME/Documents/cue/mcps=$HOME/Documents/cue/resources/mcps"
 ```
@@ -37,7 +37,7 @@ This is a dry run by default. Inspect the printed list. If it looks correct, app
 
 ```bash
 cue migrate-symlinks \
-  --map "$HOME/Documents/soul=$HOME/Documents/cue" \
+  --map "$HOME/Documents/cue=$HOME/Documents/cue" \
   --map "$HOME/Documents/cue/skills=$HOME/Documents/cue/resources/skills" \
   --map "$HOME/Documents/cue/mcps=$HOME/Documents/cue/resources/mcps" \
   --apply
