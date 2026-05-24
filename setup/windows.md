@@ -283,6 +283,27 @@ If you run **4+ Claude Code sessions concurrently**, apply this after `/plugin i
 
 ---
 
+## 7.5 Profile hooks — WSL2 only
+
+The hook scripts shipped with cue's bundled profiles (`bash-quality-preflight`,
+`secrets-guard`, `session-summary`, `commit-message-guard`) are POSIX shell
+scripts that call `python3`. They run when Claude Code spawns them at
+PreToolUse/Stop events.
+
+- **Inside WSL2**: they work — every distro has `bash` and `python3`.
+- **Native PowerShell**: Claude Code will try to run `bash …/hooks/*.sh`. If
+  no `bash` is on PATH the hook silently fails (Claude Code logs the exit
+  code but the model isn't notified), so the **safety guards do not protect
+  the agent on native PowerShell**.
+
+If you're on native PowerShell and want the guards, either:
+1. Run cue inside WSL2 (recommended — single setup for everything), or
+2. Install Git for Windows (ships `bash.exe`) and add it to PATH so the hook
+   shebang resolves, plus install Python 3 from the Microsoft Store.
+
+A future cue release may ship `.ps1` equivalents; for now, WSL2 is the
+sanctioned path.
+
 ## 8. Troubleshooting
 
 | Symptom | Likely cause | Fix |

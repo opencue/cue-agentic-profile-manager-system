@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/commit-message-guard.sh",
+            "description": "Reject weak `git commit -m` messages (one-word, wip, fix, etc.)",
+            "id": "cue:pre:bash:commit-message-guard"
+          }
+        ]
+      }
+    ]
+  }
+}

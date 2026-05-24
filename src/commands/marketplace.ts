@@ -11,7 +11,7 @@
  *   list-tools [connection]  — list tools from connected MCPs
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, existsSync } from "node:fs";
@@ -296,72 +296,724 @@ async function cmdFindTools(query: string, json: boolean): Promise<number> {
 // Router
 // ---------------------------------------------------------------------------
 
-async function cmdDiscover(profileFilter: string, json: boolean): Promise<number> {
-  const profile = profileFilter || (await resolveProfileForCwd(process.cwd()).catch(() => null));
+// ---------------------------------------------------------------------------
+// discover — uses GitHub Code Search to find repos containing SKILL.md files.
+// Previously used loose text search ("claude skill agent"), which surfaced
+// awesome-lists and meta-repos that don't actually contain SKILL.md.
+// ---------------------------------------------------------------------------
 
-  process.stderr.write("🔍 Discovering popular skills on GitHub...\n\n");
+interface SkillRepo {
+  repo: string;                 // owner/name
+  paths: string[];              // SKILL.md paths inside the repo (from code search)
+  stars: number;                // populated by enrichStars
+  description: string;          // populated by enrichStars
+  // populated when --cli-aware fetches body content
+  meta?: { description: string; domain: string; tags: string[]; categories: string[]; name: string };
+}
 
-  // Search GitHub for claude-code skills repos with high stars
-  const searches = [
-    "claude-code skill SKILL.md",
-    "claude skill agent",
-    "claude-code-skills",
+// Words that aren't useful as profile-match keywords.
+const STOPWORDS = new Set([
+  "the","a","an","and","or","but","for","with","of","to","in","on","by","from",
+  "is","are","was","were","be","been","being","this","that","these","those",
+  "it","its","as","at","if","not","no","do","does","cli","tool","tools",
+  "skill","skills","claude","anthropic","code","using","run","runs","make",
+  "your","you","get","one","two","three","new","use","build","build-",
+]);
+
+function tokenize(s: string): string[] {
+  return s
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length >= 3 && !STOPWORDS.has(w));
+}
+
+/**
+ * Categories inferred from SKILL.md paths inside the repo. The directory
+ * name immediately containing the SKILL.md file is usually a category tag
+ * (e.g. `skills/marketing/seo-audit/SKILL.md` → "marketing", "seo-audit").
+ */
+function categoriesFromPaths(paths: string[]): string[] {
+  const seen = new Set<string>();
+  for (const p of paths) {
+    const parts = p.split("/").filter(Boolean);
+    for (const part of parts) {
+      const lower = part.toLowerCase();
+      if (lower === "skill.md" || lower === "skills" || lower === "src" || lower === "docs") continue;
+      if (!STOPWORDS.has(lower)) seen.add(lower);
+    }
+  }
+  return [...seen];
+}
+
+/**
+ * Build a keyword index for each cue profile. The keywords come from the
+ * profile name, its `inherits` ancestor names, and the first path-segment
+ * of every local skill (e.g. "security", "marketing", "medusa").
+ */
+async function buildProfileKeywordIndex(): Promise<Map<string, Set<string>>> {
+  const { loadProfile, listProfiles } = await import("../lib/profile-loader");
+  const out = new Map<string, Set<string>>();
+  for (const name of await listProfiles()) {
+    try {
+      const p = await loadProfile(name);
+      const kw = new Set<string>();
+      kw.add(name.toLowerCase());
+      for (const t of tokenize(p.description ?? "")) kw.add(t);
+      for (const s of p.skills.local) {
+        const seg = s.id.split("/")[0];
+        if (seg && seg !== "*") kw.add(seg.toLowerCase());
+      }
+      for (const m of p.mcps) kw.add(m.id.toLowerCase());
+      out.set(name, kw);
+    } catch {}
+  }
+  return out;
+}
+
+interface ProfileFit { profile: string; score: number }
+
+/** Score a repo's keyword set against each profile; return top matches. */
+function findBestProfiles(repoKeywords: Set<string>, index: Map<string, Set<string>>, top = 2): ProfileFit[] {
+  const fits: ProfileFit[] = [];
+  for (const [profile, kw] of index) {
+    let score = 0;
+    for (const w of repoKeywords) if (kw.has(w)) score++;
+    if (score > 0) fits.push({ profile, score });
+  }
+  fits.sort((a, b) => b.score - a.score);
+  return fits.slice(0, top);
+}
+
+/** Async spawn → Promise<{ stdout, status }>. Lets us run gh calls in parallel. */
+function ghAsync(args: string[], timeoutMs = 8000): Promise<{ stdout: string; status: number }> {
+  return new Promise((resolve) => {
+    const child = spawn("gh", args, { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let resolved = false;
+    const done = (status: number) => { if (!resolved) { resolved = true; resolve({ stdout, status }); } };
+    child.stdout.on("data", (c) => { stdout += c.toString(); });
+    child.on("close", (code) => done(code ?? 1));
+    child.on("error", () => done(1));
+    setTimeout(() => { try { child.kill("SIGKILL"); } catch {} done(124); }, timeoutMs);
+  });
+}
+
+/** Run async tasks with a concurrency cap. */
+async function pMap<T, R>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      out[i] = await fn(items[i]!, i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return out;
+}
+
+/**
+ * Find repos that demonstrably contain at least one SKILL.md file. Returns
+ * a map keyed by `owner/name` with the file paths discovered per repo.
+ * Higher `searchLimit` = more raw file matches = more unique repos found.
+ */
+async function discoverSkillReposViaCodeSearch(searchLimit: number): Promise<Map<string, SkillRepo>> {
+  const queries = [
+    ["--filename", "SKILL.md"],
+    ["claude", "--filename", "SKILL.md"],
+    ["anthropic", "--filename", "SKILL.md"],
   ];
 
-  const seen = new Set<string>();
-  const results: { repo: string; stars: number; description: string }[] = [];
-
-  for (const q of searches) {
-    const res = spawnSync("gh", [
-      "search", "repos", q,
-      "--sort", "stars", "--limit", "10",
-      "--json", "fullName,stargazersCount,description",
-    ], { encoding: "utf8", timeout: 15000 });
-
-    if (res.status !== 0) continue;
+  const byRepo = new Map<string, SkillRepo>();
+  for (const extra of queries) {
+    const res = await ghAsync(
+      ["search", "code", ...extra, "--limit", String(searchLimit), "--json", "path,repository"],
+      30000,
+    );
+    if (res.status !== 0 || !res.stdout) continue;
     try {
-      const repos = JSON.parse(res.stdout) as { fullName: string; stargazersCount: number; description: string }[];
-      for (const r of repos) {
-        if (seen.has(r.fullName)) continue;
-        if (r.stargazersCount < 50) continue;
-        seen.add(r.fullName);
-        results.push({ repo: r.fullName, stars: r.stargazersCount, description: r.description ?? "" });
+      const matches = JSON.parse(res.stdout) as Array<{ path: string; repository: { nameWithOwner: string } }>;
+      for (const m of matches) {
+        const repo = m.repository?.nameWithOwner;
+        if (!repo) continue;
+        const entry = byRepo.get(repo) ?? { repo, paths: [], stars: 0, description: "" };
+        if (m.path.endsWith("SKILL.md") && !entry.paths.includes(m.path)) entry.paths.push(m.path);
+        byRepo.set(repo, entry);
       }
     } catch { /* skip */ }
   }
+  return byRepo;
+}
 
-  results.sort((a, b) => b.stars - a.stars);
-  const top = results.slice(0, 15);
+/** Fill in stars + description via repo metadata API. Concurrent. */
+async function enrichStars(repos: SkillRepo[], concurrency = 6): Promise<void> {
+  await pMap(repos, concurrency, async (r) => {
+    const res = await ghAsync(
+      ["api", `repos/${r.repo}`, "--jq", "{stars: .stargazers_count, description}"],
+      5000,
+    );
+    if (res.status === 0) {
+      try {
+        const meta = JSON.parse(res.stdout) as { stars?: number; description?: string };
+        r.stars = meta.stars ?? 0;
+        r.description = meta.description ?? "";
+      } catch {}
+    }
+  });
+}
 
-  if (json) {
-    process.stdout.write(JSON.stringify(top, null, 2) + "\n");
+/** Fetch and concatenate up to N SKILL.md bodies from a repo (paths already known). */
+async function fetchSkillContents(repo: string, paths: string[], cap = 8): Promise<string> {
+  const slice = paths.slice(0, cap);
+  const results = await pMap(slice, 4, async (path) => {
+    const res = await ghAsync(
+      ["api", `repos/${repo}/contents/${path}`, "-H", "Accept: application/vnd.github.raw"],
+      5000,
+    );
+    return res.status === 0 ? res.stdout : "";
+  });
+  return results.filter(Boolean).join("\n\n");
+}
+
+// ---------------------------------------------------------------------------
+// open-pr — actually post a meaningful PR to a target repo. Safe-by-default:
+// dry-run unless --post, interactive confirmation unless --yes, and every
+// preflight check (throttle, opt-out, daily cap) runs *before* any GitHub
+// mutation. Caps at 1 repo per invocation so a typo can't mass-spam.
+// ---------------------------------------------------------------------------
+
+async function cmdOpenPr(repo: string, json: boolean, post: boolean, yes: boolean, optInOnly: boolean): Promise<number> {
+  if (!repo) {
+    process.stderr.write("Usage: cue marketplace open-pr <owner/name> [--post] [--yes] [--opt-in-only]\n");
+    return 1;
+  }
+
+  const { lint, applyFixes, buildPrBody } = await import("../lib/skill-linter");
+  const throttle = await import("../lib/pr-throttle");
+  const poster = await import("../lib/pr-poster");
+
+  // Preflight #0: gh CLI authenticated? Bail loudly before doing anything else.
+  if (post) {
+    const auth = await poster.defaultRunner.run("gh", ["auth", "status"], { timeoutMs: 5000 });
+    if (auth.status !== 0) {
+      process.stderr.write(`\n${red("✗ gh not authenticated")}\n`);
+      process.stderr.write(`  Run ${bold("gh auth login")} first, then retry.\n\n`);
+      return 1;
+    }
+  }
+
+  let db = throttle.loadDb();
+
+  // Preflight #1: per-repo cooldown / opt-out cache
+  const throttleReason = throttle.isThrottled(db, repo);
+  if (throttleReason) {
+    if (json) process.stdout.write(JSON.stringify({ skipped: true, reason: throttleReason }) + "\n");
+    else process.stderr.write(`\n${red("skipped:")} ${repo} — ${throttleReason}\n`);
     return 0;
   }
 
-  // Check which ones we already have
+  // Preflight #2: daily cap
+  const cap = throttle.canPostMore(db);
+  if (!cap.ok) {
+    process.stderr.write(`\n${red("daily cap reached")}: ${cap.cap - cap.remaining}/${cap.cap} PRs in last 24h\n`);
+    return 1;
+  }
+
+  // Preflight #3: opt-out / opt-in marker check (network)
+  // - Default: post unless README has the opt-out marker.
+  // - --opt-in-only: only post if README has the opt-in marker. The opt-out
+  //   marker still wins if present (a repo with both is treated as opted-out).
+  process.stderr.write(`🔎 Checking ${repo} README for cue markers (mode=${optInOnly ? "opt-in-only" : "default"})...\n`);
+  const optedOut = await poster.checkOptOutMarker(poster.defaultRunner, repo, throttle.OPT_OUT_MARKER);
+  if (optedOut === true) {
+    db = throttle.recordOptOut(db, repo);
+    throttle.saveDb(db);
+    if (json) process.stdout.write(JSON.stringify({ skipped: true, reason: "opt-out marker found" }) + "\n");
+    else process.stderr.write(`  ${yellow("opted out")}: README has ${throttle.OPT_OUT_MARKER} — recorded permanently.\n`);
+    return 0;
+  }
+  if (optInOnly) {
+    const optedIn = await poster.checkOptOutMarker(poster.defaultRunner, repo, throttle.OPT_IN_MARKER);
+    if (optedIn !== true) {
+      db = throttle.recordSkipped(db, repo, `--opt-in-only mode: README missing ${throttle.OPT_IN_MARKER}`);
+      throttle.saveDb(db);
+      if (json) process.stdout.write(JSON.stringify({ skipped: true, reason: "no opt-in marker" }) + "\n");
+      else process.stderr.write(`  ${dim("skipped")}: --opt-in-only is set and ${repo} hasn't opted in.\n`);
+      return 0;
+    }
+  }
+  if (optedOut === null) {
+    process.stderr.write(`  ${dim("(could not fetch README — continuing)")}\n`);
+  }
+
+  // Fetch SKILL.md files
+  process.stderr.write(`🔎 Fetching SKILL.md files from ${repo}...\n`);
+  const tree = await ghAsync(
+    ["api", `repos/${repo}/git/trees/HEAD?recursive=1`, "--jq", '.tree[] | select(.path | endswith("SKILL.md")) | .path'],
+    10000,
+  );
+  if (tree.status !== 0) {
+    process.stderr.write(`  could not list tree — is repo public + gh authed?\n`);
+    return 1;
+  }
+  const paths = tree.stdout.split("\n").filter(Boolean).slice(0, 8);
+  if (paths.length === 0) {
+    process.stderr.write(`  no SKILL.md files found\n`);
+    return 1;
+  }
+
+  // Lint + collect changes
+  const changes: poster.FileChange[] = [];
+  const allFixedRules = new Set<string>();
+  const allLeftover: Array<{ rule: string; severity: string; message: string }> = [];
+
+  for (const path of paths) {
+    const r = await ghAsync(["api", `repos/${repo}/contents/${path}`, "-H", "Accept: application/vnd.github.raw"], 5000);
+    if (r.status !== 0) continue;
+    const before = r.stdout;
+    const { fixed, applied } = applyFixes(before);
+    if (before !== fixed) {
+      changes.push({ path, before, after: fixed });
+      const beforeDiags = lint(before).diagnostics;
+      for (const rule of applied) {
+        if (beforeDiags.some((d) => d.rule === rule)) allFixedRules.add(rule);
+      }
+    }
+    for (const d of lint(fixed).diagnostics) allLeftover.push({ rule: d.rule, severity: d.severity, message: d.message });
+  }
+
+  if (changes.length === 0) {
+    db = throttle.recordSkipped(db, repo, "no auto-fixable issues found");
+    throttle.saveDb(db);
+    if (json) process.stdout.write(JSON.stringify({ skipped: true, reason: "no auto-fixable issues" }) + "\n");
+    else process.stderr.write(`\n${dim("nothing to fix")} — every SKILL.md is already clean (or only has non-fixable flags). Recorded as skipped so we won't recheck soon.\n`);
+    return 0;
+  }
+
+  // Build PR body using the first changed file as exemplar
+  const primary = changes[0]!;
+  const fixedDiags = lint(primary.before).diagnostics.filter((d) => [...allFixedRules].includes(d.rule));
+  const leftoverDiags = lint(primary.after).diagnostics;
+  const { title, body } = buildPrBody({
+    repo,
+    files: changes.map((c) => ({ path: c.path, before: c.before, after: c.after, fixedRules: [...allFixedRules] })),
+    diagnosticsFixed: fixedDiags,
+    diagnosticsLeft: leftoverDiags,
+  });
+
+  if (json && !post) {
+    process.stdout.write(JSON.stringify({ dryRun: true, repo, title, body, files: changes.map((c) => c.path), fixedRules: [...allFixedRules] }, null, 2) + "\n");
+    return 0;
+  }
+
+  process.stdout.write(`\n${bold("Repo:")} ${repo}\n`);
+  process.stdout.write(`${bold("Files cue would change:")} ${changes.length}/${paths.length}\n`);
+  for (const c of changes) process.stdout.write(`  ${green("✓")} ${c.path}\n`);
+  process.stdout.write(`${bold("Rules auto-fixed:")} ${[...allFixedRules].join(", ")}\n\n`);
+  process.stdout.write(`${bold("PR title:")} ${title}\n`);
+  process.stdout.write(`${bold("PR body preview (first 60 lines):")}\n${dim("─".repeat(72))}\n`);
+  const bodyLines = body.split("\n").slice(0, 60);
+  process.stdout.write(bodyLines.join("\n") + (body.split("\n").length > 60 ? "\n... [body truncated]" : "") + "\n");
+  process.stdout.write(`${dim("─".repeat(72))}\n\n`);
+
+  if (!post) {
+    process.stdout.write(`${yellow("[dry-run]")} no PR posted. Re-run with ${bold("--post --yes")} to actually open it.\n`);
+    process.stdout.write(`${dim(`Daily cap: ${cap.remaining}/${cap.cap} PRs remaining today.`)}\n\n`);
+    return 0;
+  }
+
+  // Interactive confirm unless --yes
+  if (!yes) {
+    process.stdout.write(`Post this PR to ${bold(repo)}? [y/N] `);
+    const answer = await readLine();
+    if (!/^y(es)?$/i.test(answer.trim())) {
+      process.stdout.write(`${dim("aborted (not recorded).")}\n`);
+      return 0;
+    }
+  }
+
+  process.stderr.write(`\n${bold("→")} Forking, branching, pushing, and opening PR...\n\n`);
+  const result = await poster.postPrToRepo({
+    upstream: repo,
+    changes,
+    prTitle: title,
+    prBody: body,
+  });
+
+  if (!result.ok) {
+    process.stderr.write(`${red("✗ failed at step:")} ${result.step} — ${result.error}\n`);
+    if (result.fork) process.stderr.write(`  ${dim("(fork at " + result.fork + " left in place for inspection)")}\n`);
+    return 1;
+  }
+
+  db = throttle.recordOpened(db, {
+    repo,
+    rulesFixed: [...allFixedRules],
+    prNumber: result.prNumber,
+    prUrl: result.prUrl,
+    fork: result.fork,
+    branch: result.branch,
+  });
+  throttle.saveDb(db);
+
+  process.stdout.write(`\n${green("✓ PR opened:")} ${result.prUrl}\n`);
+  process.stdout.write(`  fork: ${result.fork}\n  branch: ${result.branch}\n  files: ${result.filesChanged.join(", ")}\n`);
+  process.stdout.write(`\n${dim(`Daily count: ${throttle.todayCount(db)}/${throttle.canPostMore(db).cap}.`)}\n\n`);
+  return 0;
+}
+
+/** Minimal stdin line reader for the confirm prompt. */
+function readLine(): Promise<string> {
+  return new Promise((resolve) => {
+    let buf = "";
+    const onData = (chunk: Buffer) => {
+      buf += chunk.toString();
+      if (buf.includes("\n")) {
+        process.stdin.removeListener("data", onData);
+        process.stdin.pause();
+        resolve(buf.split("\n")[0]!);
+      }
+    };
+    process.stdin.resume();
+    process.stdin.on("data", onData);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// cleanup-forks — poll PR state for everything we've ever opened; delete the
+// fork once the PR is merged or closed.
+// ---------------------------------------------------------------------------
+
+async function cmdCleanupForks(json: boolean, dryRun: boolean): Promise<number> {
+  const throttle = await import("../lib/pr-throttle");
+  const poster = await import("../lib/pr-poster");
+
+  let db = throttle.loadDb();
+  // Candidates: entries we opened (have a prNumber) that still claim "open" state
+  // OR were already marked merged/closed but still have a fork to delete.
+  const candidates = db.history.filter((e) => e.fork && !e.cleanedAt && e.prNumber);
+
+  if (candidates.length === 0) {
+    if (json) process.stdout.write("[]\n");
+    else process.stdout.write("  no forks to consider for cleanup.\n");
+    return 0;
+  }
+
+  process.stderr.write(`🧹 Checking PR state for ${candidates.length} fork(s)...\n`);
+
+  const results: Array<{ repo: string; fork: string; prNumber: number; state: string; action: string; error?: string }> = [];
+  for (const e of candidates) {
+    const state = await poster.fetchPrState(poster.defaultRunner, e.repo, e.prNumber!);
+    let action = "skip";
+    let error: string | undefined;
+    if (state === "merged" || state === "closed") {
+      if (dryRun) {
+        action = "would-delete";
+      } else {
+        const del = await poster.deleteFork(poster.defaultRunner, e.fork!);
+        if ("error" in del) {
+          action = "delete-failed";
+          error = del.error;
+        } else {
+          action = "deleted";
+          db = throttle.updateEntryState(db, { repo: e.repo, prNumber: e.prNumber }, state, {
+            fork: undefined,
+            cleanedAt: new Date().toISOString(),
+          });
+        }
+      }
+    } else if (state === "open") {
+      action = "still-open";
+    } else {
+      action = "unknown-state";
+    }
+    results.push({ repo: e.repo, fork: e.fork!, prNumber: e.prNumber!, state, action, error });
+  }
+
+  if (!dryRun) throttle.saveDb(db);
+
+  if (json) {
+    process.stdout.write(JSON.stringify(results, null, 2) + "\n");
+    return 0;
+  }
+
+  const counts = { deleted: 0, wouldDelete: 0, stillOpen: 0, failed: 0, other: 0 };
+  for (const r of results) {
+    const col = r.action === "deleted" ? green : r.action === "delete-failed" ? red : r.action === "still-open" ? dim : yellow;
+    process.stdout.write(`  ${col(r.action.padEnd(15))} ${r.repo.padEnd(40)} PR #${r.prNumber}  ${dim(`(${r.state})`)}\n`);
+    if (r.error) process.stdout.write(`    ${red("error:")} ${r.error}\n`);
+    if (r.action === "deleted") counts.deleted++;
+    else if (r.action === "would-delete") counts.wouldDelete++;
+    else if (r.action === "still-open") counts.stillOpen++;
+    else if (r.action === "delete-failed") counts.failed++;
+    else counts.other++;
+  }
+  process.stdout.write(`\n  ${bold("Summary:")} ${counts.deleted} deleted, ${counts.wouldDelete} would-delete, ${counts.stillOpen} still-open, ${counts.failed} failed.\n`);
+  if (dryRun) process.stdout.write(`  ${dim("(--dry-run — no forks were actually deleted; rerun without --dry-run to clean up)")}\n`);
+  process.stdout.write("\n");
+  return 0;
+}
+
+/**
+ * Preview the PR cue would open against `repo`. Fetches every SKILL.md from
+ * the repo (tree-based, like discover does), lints + auto-fixes locally, and
+ * emits the PR title + body without touching anything on GitHub.
+ *
+ * No fork. No branch. No push. No PR. Safe to run on strangers' repos.
+ */
+async function cmdPrPreview(repo: string, json: boolean): Promise<number> {
+  const { lint, applyFixes, buildPrBody } = await import("../lib/skill-linter");
+
+  process.stderr.write(`🔎 Fetching SKILL.md files from ${repo}...\n`);
+  const tree = await ghAsync(
+    ["api", `repos/${repo}/git/trees/HEAD?recursive=1`, "--jq", '.tree[] | select(.path | endswith("SKILL.md")) | .path'],
+    10000,
+  );
+  if (tree.status !== 0) {
+    process.stderr.write(`  Could not list ${repo} (is the repo public? is gh authed?)\n`);
+    return 1;
+  }
+  const paths = tree.stdout.split("\n").filter(Boolean).slice(0, 8);
+  if (paths.length === 0) {
+    process.stderr.write(`  No SKILL.md files found in ${repo}.\n`);
+    return 1;
+  }
+  process.stderr.write(`  Found ${paths.length} SKILL.md file(s). Linting + computing fixes locally...\n`);
+
+  // Fetch + lint each file in parallel, collect diff + diagnostics
+  interface FileReport {
+    path: string;
+    before: string;
+    after: string;
+    fixedRules: string[];
+    leftover: ReturnType<typeof lint>["diagnostics"];
+  }
+  const reports: FileReport[] = await pMap(paths, 4, async (path): Promise<FileReport> => {
+    const res = await ghAsync(
+      ["api", `repos/${repo}/contents/${path}`, "-H", "Accept: application/vnd.github.raw"],
+      5000,
+    );
+    const before = res.status === 0 ? res.stdout : "";
+    const beforeDiags = lint(before).diagnostics;
+    const { fixed, applied } = applyFixes(before);
+    const afterDiags = lint(fixed).diagnostics;
+    const fixedRules = [...new Set(applied)].filter((r) => beforeDiags.some((d) => d.rule === r));
+    return { path, before, after: fixed, fixedRules, leftover: afterDiags };
+  });
+
+  // Build one combined PR body (per-file sections)
+  const allFixed = reports.flatMap((r) => r.fixedRules.map((rule) => ({ path: r.path, rule })));
+  const allLeftover = reports.flatMap((r) => r.leftover.map((d) => ({ path: r.path, ...d })));
+
+  // PR body: passes every file so the diff blocks come out per-file.
+  const primary = reports.find((r) => r.fixedRules.length > 0) ?? reports[0]!;
+  const allFixedRulesPrev = [...new Set(reports.flatMap((r) => r.fixedRules))];
+  const { title, body } = buildPrBody({
+    repo,
+    files: reports.map((r) => ({ path: r.path, before: r.before, after: r.after, fixedRules: r.fixedRules })),
+    diagnosticsFixed: lint(primary.before).diagnostics.filter((d) => allFixedRulesPrev.includes(d.rule)),
+    diagnosticsLeft: primary.leftover,
+  });
+
+  if (json) {
+    process.stdout.write(JSON.stringify({
+      repo,
+      paths,
+      title,
+      body,
+      files: reports.map((r) => ({
+        path: r.path,
+        wouldChange: r.before !== r.after,
+        fixedRules: r.fixedRules,
+        leftover: r.leftover.map((d) => ({ rule: d.rule, severity: d.severity, message: d.message })),
+      })),
+    }, null, 2) + "\n");
+    return 0;
+  }
+
+  process.stdout.write(`\n${bold("Repo:")} ${repo}\n${bold("Files scanned:")} ${paths.length}\n\n`);
+
+  // Per-file diff summary
+  for (const r of reports) {
+    const changed = r.before !== r.after;
+    const marker = changed ? green("✓") : dim("·");
+    process.stdout.write(`  ${marker} ${r.path}\n`);
+    if (r.fixedRules.length > 0) {
+      process.stdout.write(`     ${green(`would fix: ${r.fixedRules.join(", ")}`)}\n`);
+    }
+    for (const d of r.leftover.slice(0, 3)) {
+      const sev = d.severity === "error" ? red(d.rule) : d.severity === "warning" ? yellow(d.rule) : dim(d.rule);
+      process.stdout.write(`     ${dim("→")} ${sev} ${d.message.slice(0, 80)}${d.message.length > 80 ? "…" : ""}\n`);
+    }
+  }
+
+  process.stdout.write(`\n${bold("PR title:")}\n  ${title}\n\n${bold("PR body preview:")}\n${"─".repeat(72)}\n${body}\n${"─".repeat(72)}\n`);
+  process.stdout.write(`\n${yellow("[preview only]")} No fork, branch, push, or PR was created.\n`);
+  process.stdout.write(`To actually post a PR you'd need: ${dim("gh repo fork " + repo + " --remote=false")}, then commit the after-text and ${dim("gh pr create")}.\n`);
+  process.stdout.write(`That flow is deliberately not automated yet — auto-posting needs throttling + an opt-out registry.\n\n`);
+  return 0;
+}
+
+// Small color helpers reused from earlier blocks (re-declared to keep
+// cmdPrPreview self-contained at the top of the file).
+const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
+const green = (s: string) => `\x1b[32m${s}\x1b[0m`;
+const red = (s: string) => `\x1b[31m${s}\x1b[0m`;
+const yellow = (s: string) => `\x1b[33m${s}\x1b[0m`;
+const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
+
+async function cmdDiscover(
+  profileFilter: string,
+  json: boolean,
+  cliAware: boolean,
+  limit: number,
+  includeEmpty: boolean,
+): Promise<number> {
+  void profileFilter; // currently unused; reserved for per-profile install hints
+
+  process.stderr.write("🔍 Searching GitHub Code Search for repos containing SKILL.md...\n");
+
+  // Cast a wide net via code search (per-query limit), then trim by sort + limit.
+  const searchLimit = Math.max(100, limit * 4);
+  const byRepo = await discoverSkillReposViaCodeSearch(searchLimit);
+  if (byRepo.size === 0) {
+    process.stderr.write("  No SKILL.md files found via code search. Is `gh` authed?\n");
+    return 1;
+  }
+
+  // Filter to repos that have at least one direct SKILL.md path (drops noise
+  // where code search matched a substring elsewhere).
+  let candidates = [...byRepo.values()].filter((r) => includeEmpty || r.paths.length > 0);
+  process.stderr.write(`  Found ${candidates.length} unique repos with SKILL.md files.\n`);
+
+  // Sort first by # of SKILL.md files (lots = real skill collection), then truncate
+  // before enriching stars so we don't fetch metadata for everything.
+  candidates.sort((a, b) => b.paths.length - a.paths.length);
+  candidates = candidates.slice(0, limit);
+
+  process.stderr.write(`  Enriching star counts for top ${candidates.length}...\n`);
+  await enrichStars(candidates);
+  candidates.sort((a, b) => b.paths.length - a.paths.length || b.stars - a.stars);
+
+  // Which ones do we already have wired into a profile?
   const { loadProfile, listProfiles } = await import("../lib/profile-loader");
-  const allProfiles = await listProfiles();
   const allNpxRepos = new Set<string>();
-  for (const name of allProfiles) {
+  for (const name of await listProfiles()) {
     try {
       const p = await loadProfile(name);
-      for (const n of p.skills.npx) allNpxRepos.add((n as any).source?.repo ?? "");
+      for (const n of p.skills.npx) allNpxRepos.add((n as any).source?.repo ?? n.repo ?? "");
     } catch {}
   }
 
-  process.stdout.write("  ⭐  Repository                              Description\n");
-  process.stdout.write("  ──  ────────────────────────────────────────  ───────────\n");
+  // Build profile keyword index for "best fit" matching (cheap, local).
+  const profileIndex = await buildProfileKeywordIndex();
+  const fitsByRepo = new Map<string, ProfileFit[]>();
 
-  for (const r of top) {
-    const installed = allNpxRepos.has(r.repo) ? " ✓" : "  ";
+  // --cli-aware: fetch each repo's SKILL.md content, parse CLIs + metadata.
+  // Metadata (tags/domain/description) enriches the profile-match keyword set
+  // and powers the "what it does" column.
+  const cliInfo = new Map<string, { needed: string[]; missing: string[] }>();
+  if (cliAware) {
+    const { parseCLIsFromContent, parseMetadataFromContent } = await import("./optimizer");
+    process.stderr.write(`  Fetching SKILL.md bodies from ${candidates.length} repos (concurrent)...\n`);
+    let done = 0;
+    await pMap(candidates, 5, async (r) => {
+      const content = await fetchSkillContents(r.repo, r.paths);
+      const needed = content ? parseCLIsFromContent(content) : [];
+      const missing = needed.filter((cli) => spawnSync("which", [cli], { stdio: "ignore", timeout: 500 }).status !== 0);
+      cliInfo.set(r.repo, { needed, missing });
+      // Pull a description/tags/domain from the first parsed SKILL.md (best effort).
+      const meta = content ? parseMetadataFromContent(content) : { description: "", domain: "", tags: [], category: "", name: "" };
+      r.meta = {
+        description: meta.description,
+        domain: meta.domain,
+        tags: meta.tags,
+        categories: [...new Set([meta.domain, meta.category, ...meta.tags].filter(Boolean).map((s) => s.toLowerCase()))],
+        name: meta.name,
+      };
+      done++;
+      if (done % 5 === 0 || done === candidates.length) {
+        process.stderr.write(`    [${done}/${candidates.length}] fetched\n`);
+      }
+    });
+  }
+
+  // Build the keyword set per repo: path-derived categories + (when present) metadata.
+  for (const r of candidates) {
+    const kw = new Set<string>(categoriesFromPaths(r.paths));
+    // Also seed from the repo name itself ("openclaw-security-watchdog" → security, watchdog).
+    for (const t of tokenize(r.repo.split("/").pop() ?? "")) kw.add(t);
+    if (r.meta) {
+      for (const t of r.meta.categories) kw.add(t);
+      for (const t of tokenize(r.meta.description)) kw.add(t);
+    }
+    fitsByRepo.set(r.repo, findBestProfiles(kw, profileIndex, 2));
+  }
+
+  if (json) {
+    const out = candidates.map((r) => ({
+      repo: r.repo,
+      stars: r.stars,
+      description: r.description,
+      skillCount: r.paths.length,
+      paths: r.paths,
+      installed: allNpxRepos.has(r.repo),
+      bestFitProfiles: fitsByRepo.get(r.repo) ?? [],
+      keywords: categoriesFromPaths(r.paths).slice(0, 6),
+      meta: r.meta ?? null,
+      ...(cliAware ? { cli: cliInfo.get(r.repo) ?? { needed: [], missing: [] } } : {}),
+    }));
+    process.stdout.write(JSON.stringify(out, null, 2) + "\n");
+    return 0;
+  }
+
+  process.stdout.write(`\n  ${candidates.length} repos with SKILL.md files (sorted by skill count, then stars)\n\n`);
+
+  // Two-line-per-repo layout — the table got too wide once we added fit + keywords + CLI.
+  // Line 1: status, skills, stars, repo, best-fit profiles
+  // Line 2 (indented, dim): keywords (path-derived) and either CLI status or description
+  for (const r of candidates) {
+    const installed = allNpxRepos.has(r.repo) ? "\x1b[32madded\x1b[0m " : "      ";
+    const skillCount = String(r.paths.length).padStart(3);
     const stars = String(r.stars).padStart(5);
-    const name = r.repo.padEnd(40);
-    const desc = r.description.slice(0, 60);
-    process.stdout.write(`${installed} ${stars}  ${name}  ${desc}\n`);
+    const name = r.repo.padEnd(42);
+    const fits = fitsByRepo.get(r.repo) ?? [];
+    const fitStr = fits.length > 0
+      ? `\x1b[36m→ ${fits.map((f) => f.profile).join(", ")}\x1b[0m`
+      : "\x1b[2m→ (no profile match)\x1b[0m";
+
+    process.stdout.write(`  ${installed} ${skillCount} skills  ${stars} ★  ${name}  ${fitStr}\n`);
+
+    // Second line: keywords + CLI status (or description in non-cli-aware mode).
+    const keywords = [...new Set([...categoriesFromPaths(r.paths), ...(r.meta?.tags ?? [])])].slice(0, 5);
+    const kwStr = keywords.length > 0 ? `\x1b[2mkeywords:\x1b[0m ${keywords.join(", ")}` : "";
+    let info = "";
+    if (cliAware) {
+      const ci = cliInfo.get(r.repo) ?? { needed: [], missing: [] };
+      if (ci.needed.length === 0) {
+        info = ""; // no extra cli line; the metadata description below will show it
+      } else if (ci.missing.length === 0) {
+        info = `\x1b[32m✓ no new CLI installs\x1b[0m (${ci.needed.length})`;
+      } else {
+        info = `\x1b[33m⚠ ${ci.missing.length}/${ci.needed.length} CLIs missing\x1b[0m: ${ci.missing.slice(0, 4).join(", ")}${ci.missing.length > 4 ? "…" : ""}`;
+      }
+    }
+    const desc = r.meta?.description || r.description || "";
+    const descStr = desc ? `\x1b[2m"${desc.slice(0, 90)}${desc.length > 90 ? "…" : ""}"\x1b[0m` : "";
+
+    if (kwStr || info || descStr) {
+      const parts = [kwStr, info, descStr].filter(Boolean).join("  ·  ");
+      process.stdout.write(`            ${parts}\n`);
+    }
+    process.stdout.write("\n");
   }
 
   process.stdout.write(`\n  Install: cue marketplace install-skill <repo>\n`);
-  process.stdout.write(`  Example: cue marketplace install-skill AgriciDaniel/claude-ads\n\n`);
+  if (!cliAware) {
+    process.stdout.write(`  ${"\x1b[2mAdd --cli-aware to flag repos whose CLIs you already have installed.\x1b[0m"}\n`);
+  }
+  process.stdout.write(`  ${"\x1b[2m--limit <n> (default 30) to fetch more results; --include-empty to keep edge cases.\x1b[0m"}\n\n`);
   return 0;
 }
 
@@ -375,7 +1027,18 @@ Subcommands:
   search <query>         Search MCPs (Smithery) + skills
   search-mcps <query>    Search MCPs only
   search-skills <query>  Search skills only
-  discover [profile]     Find popular GitHub skills not yet in your profiles
+  discover [profile]     Find GitHub repos with SKILL.md files via code search.
+                         Flags: --limit N (default 30), --cli-aware (annotate
+                         each with CLI requirements + missing-on-host),
+                         --include-empty (keep candidates that lack direct
+                         SKILL.md path matches), --pr-preview <repo> (show
+                         the PR cue would post without touching GitHub)
+  open-pr <repo>         Actually post a SKILL.md quality-fix PR. Safe by
+                         default (dry-run); use --post --yes to execute.
+                         Honors throttle DB, opt-out marker, and 25/day cap.
+                         --opt-in-only: require <!-- cue: ok --> in README.
+  cleanup-forks          Delete cue's forks for PRs that are merged/closed.
+                         Use --dry-run to see what would be deleted.
   install-mcp <id>       Install MCP via Smithery
   install-skill <repo>   Install skill from GitHub
   list-mcps              List connected Smithery MCPs
@@ -411,8 +1074,34 @@ Examples:
       return cmdListTools(rest[1] ?? "", json);
     case "find-tools":
       return cmdFindTools(rest.slice(1).join(" ") || "", json);
-    case "discover":
-      return cmdDiscover(rest[1] ?? "", json);
+    case "discover": {
+      const previewIdx = rest.indexOf("--pr-preview");
+      if (previewIdx >= 0) {
+        const repo = rest[previewIdx + 1];
+        if (!repo || repo.startsWith("-")) {
+          process.stderr.write("Usage: cue marketplace discover --pr-preview <owner/name>\n");
+          return 1;
+        }
+        return cmdPrPreview(repo, json);
+      }
+      const positional = rest.slice(1).filter((a, i) => !a.startsWith("-") && rest[i] !== "--pr-preview");
+      const cliAware = rest.includes("--cli-aware");
+      const includeEmpty = rest.includes("--include-empty");
+      const limitIdx = rest.indexOf("--limit");
+      const limit = limitIdx >= 0 && rest[limitIdx + 1] ? Math.max(1, parseInt(rest[limitIdx + 1]!, 10) || 30) : 30;
+      return cmdDiscover(positional[0] ?? "", json, cliAware, limit, includeEmpty);
+    }
+    case "open-pr": {
+      const repo = rest[1] ?? "";
+      const post = rest.includes("--post");
+      const yes = rest.includes("--yes") || rest.includes("-y");
+      const optInOnly = rest.includes("--opt-in-only");
+      return cmdOpenPr(repo, json, post, yes, optInOnly);
+    }
+    case "cleanup-forks": {
+      const dryRun = rest.includes("--dry-run");
+      return cmdCleanupForks(json, dryRun);
+    }
     default:
       // If no subcommand matches, treat as search query
       return cmdSearch(rest.join(" "), json);

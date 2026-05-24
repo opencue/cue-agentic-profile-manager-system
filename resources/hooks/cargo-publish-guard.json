@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/cargo-publish-guard.sh",
+            "description": "Block cargo publish / cargo release publish / release-plz publish until user confirms — crates.io releases are irreversible",
+            "id": "cue:pre:bash:cargo-publish-guard"
+          }
+        ]
+      }
+    ]
+  }
+}

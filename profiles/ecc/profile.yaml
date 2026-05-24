@@ -22,3 +22,4 @@ commands:
   - build-fix
   - cost-report
   - aside
+# hooks: inherited from core — bash-quality-preflight + session-summary

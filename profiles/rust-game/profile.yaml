@@ -1,0 +1,11 @@
+name: rust-game
+icon: "🎮"
+description: Rust game / simulation development — Bevy ECS, perf profiling, asset pipelines
+inherits: rust-core
+skills:
+  local:
+    - rust/bevy
+    - rust/cargo-flamegraph      # perf is the whole game
+    - rust/cross-compile         # ship for win/mac/linux + wasm
+    - rust/wasm-rust             # browser builds via wasm-bindgen
+mcps: []

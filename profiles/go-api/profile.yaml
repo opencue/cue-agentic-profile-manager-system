@@ -5,4 +5,5 @@ inherits: core
 skills:
   local:
     - review/code-review
+    - rust/chisel-tool           # Chisel — agent precision file edits (recipe + pointer guide)
 mcps: []

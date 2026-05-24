@@ -1,0 +1,13 @@
+name: rust-ffi
+icon: "🔗"
+description: Rust foreign-function interface — Python (pyo3), Node (napi-rs), Kotlin/Swift (uniffi), C (bindgen/cbindgen)
+inherits: rust-core
+skills:
+  local:
+    - rust/pyo3
+    - rust/napi-rs
+    - rust/uniffi
+    - rust/bindgen               # C → Rust
+    - rust/cbindgen              # Rust → C
+    - rust/cross-compile         # FFI almost always means multi-platform
+mcps: []

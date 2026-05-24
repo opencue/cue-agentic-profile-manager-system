@@ -1,0 +1,11 @@
+name: rust-wasm
+icon: "🕸️"
+description: Rust → WebAssembly — wasm-pack libraries, Trunk/Dioxus SPAs, no_std considerations
+inherits: rust-core
+skills:
+  local:
+    - rust/wasm-rust             # wasm-pack + trunk + dioxus
+    - rust/no-std                # wasm32-unknown-unknown is effectively std-free
+    - rust/serde
+    - rust/typos-spellcheck
+mcps: []

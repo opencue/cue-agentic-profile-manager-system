@@ -20,6 +20,7 @@ mcps:
   - reddit
   - google-ads-mcp
   - meta-ads
+  - mapi-devdocs
   - Higgsfield
 plugins:
   - marketing-skills@claude-code-skills

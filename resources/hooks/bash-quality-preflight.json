@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/bash-quality-preflight.sh",
+            "description": "Block obviously destructive bash commands",
+            "id": "cue:pre:bash:quality-preflight"
+          }
+        ]
+      }
+    ]
+  }
+}

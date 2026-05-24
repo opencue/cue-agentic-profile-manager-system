@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "offensive-osint": {
+      "source": "elementalsouls/Claude-OSINT",
+      "sourceType": "github",
+      "skillPath": "skills/offensive-osint/SKILL.md",
+      "computedHash": "4087febda9dfaf663d7d1f44617595b1ad10dbf2104a93a2d1a993cee66656b6"
+    },
+    "osint-methodology": {
+      "source": "elementalsouls/Claude-OSINT",
+      "sourceType": "github",
+      "skillPath": "skills/osint-methodology/SKILL.md",
+      "computedHash": "d4c435710fe1ba71750c469279b9f024d05d8557a6cfd86ee1a52a2a2c197417"
+    }
+  }
+}

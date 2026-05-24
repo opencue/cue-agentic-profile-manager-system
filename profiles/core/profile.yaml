@@ -3,16 +3,45 @@ icon: "🐢"
 description: Baseline shared by every cue profile — essentials only
 skills:
   local:
-    - nvidia/aiq-research
-    # ── Built-in (shared across ALL profiles) ──
-    - nvidia/skill-evolution
-    - meta/analyze
-    - meta/cue-usage
-    - meta/builtin-manager
-    - meta/kiro-powers
-    - caveman/caveman
-    - caveman/caveman-commit
+    # ── Built-in: shared by every cue profile via inheritance ──
+    # Universal, triggered by common words or explicit slash commands.
+    # Anything special-purpose belongs in a domain profile, not here.
+    - meta/analyze              # investigation: "analyze", "why does", "what's causing"
+    - meta/cue-usage            # cue CLI guidance
+    - meta/builtin-manager      # manage built-in promotion
+    - meta/profile-fit-monitor  # notice profile mismatch + suggest switch
+    - nvidia/skill-evolution    # propose skill updates after solving problems
+    - caveman/caveman           # /caveman — terse output mode
+    - caveman/caveman-commit    # /commit — Conventional Commits writer
+    - meta/acpx                 # delegate to other coding agents over ACP (codex, claude, pi, ...)
+    # Removed (followup #22 audit, 2026-05-24): nvidia/aiq-research (needs
+    # NVIDIA AI-Q server infra), meta/kiro-powers (niche Kiro Powers interop).
+    # Add back to a dedicated profile if needed — they don't belong in baseline.
+    #
+    # Also removed 2026-05-24: Deliberation-Loop (no SKILL.md anywhere),
+    # the-council (exists in ~/.claude/skills/ but cue's local resolver only
+    # reads from resources/skills/skills/ — wire via skills.npx or symlink
+    # into resources/skills/skills/<category>/ to re-enable), and a stray
+    # `wedding-invitation-skill` token left inside a comment.
 mcps:
   - cue-tty-watch    # Claude's eyes inside X displays / tmux panes (screenshot, capture-pane, send-keys)
 plugins:
   - claude-mem@thedotmack
+# Universal commands: useful in every profile, not domain-specific.
+# Bodies are lazy-loaded (only when the user types /name), so per-message cost
+# is just the entry in CLAUDE.md's "Available Commands" list (~25 tokens).
+commands:
+  - code-review
+  - checkpoint
+  - cost-report
+hooks:
+  # Universal safety: block obviously destructive shell commands (rm -rf /, fork bombs, dd to /dev/sd*, etc.).
+  # Every profile inherits core, so every cue user gets this for free.
+  - bash-quality-preflight.json
+  # Universal analytics: append one line per session-end to ~/.config/cue/session-log.jsonl
+  # so `cue eval` sees real usage data for every profile, not just ecc.
+  - session-summary.json
+  # Refuse writes to .env, id_rsa, credentials.json, .pem/.key, ~/.ssh, ~/.aws, etc.
+  - secrets-guard.json
+  # Reject low-effort `git commit -m "wip"` / "fix" / "update" messages.
+  - commit-message-guard.json

@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/session-summary.sh",
+            "description": "Append a session-end record to ~/.config/cue/session-log.jsonl",
+            "id": "cue:stop:session-summary"
+          }
+        ]
+      }
+    ]
+  }
+}

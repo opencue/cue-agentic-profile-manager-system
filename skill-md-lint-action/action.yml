@@ -1,0 +1,137 @@
+name: 'cue SKILL.md Linter'
+description: 'Validate every SKILL.md against the spec — auto-fixable issues + flagged warnings, no PRs needed.'
+author: 'recodeee'
+branding:
+  icon: 'check-square'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Path to lint. Defaults to the whole repo (recursive scan for SKILL.md files).'
+    required: false
+    default: '.'
+  fix:
+    description: 'If true, auto-fix issues and commit the result to the same branch.'
+    required: false
+    default: 'false'
+  fail-on:
+    description: 'Lowest severity that fails the action: error | warning | info.'
+    required: false
+    default: 'error'
+  comment-pr:
+    description: 'Post the lint report as a PR comment (requires pull_request trigger + permissions: pull-requests:write).'
+    required: false
+    default: 'true'
+
+outputs:
+  diagnostics-json:
+    description: 'JSON-encoded diagnostics array (one entry per file scanned).'
+    value: ${{ steps.run.outputs.diagnostics-json }}
+  error-count:
+    description: 'Number of error-severity diagnostics found.'
+    value: ${{ steps.run.outputs.error-count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install cue (from this repo at v0)
+      shell: bash
+      run: |
+        # Clone a shallow copy of cue into a sibling dir, install deps once.
+        if [ ! -d "${RUNNER_TEMP}/cue" ]; then
+          git clone --depth 1 https://github.com/recodeee/cue "${RUNNER_TEMP}/cue"
+          (cd "${RUNNER_TEMP}/cue" && bun install --frozen-lockfile)
+        fi
+        echo "CUE_DIR=${RUNNER_TEMP}/cue" >> "$GITHUB_ENV"
+
+    - name: Run cue lint-skill
+      id: run
+      shell: bash
+      run: |
+        cd "$GITHUB_WORKSPACE"
+        REPORT_FILE="${RUNNER_TEMP}/lint-report.json"
+
+        # Lint (in --fix mode if requested). Always emit JSON so we can post comments + set outputs.
+        if [ "${{ inputs.fix }}" = "true" ]; then
+          bun "$CUE_DIR/src/index.ts" lint-skill "${{ inputs.path }}" --fix --json > "$REPORT_FILE" || true
+        else
+          bun "$CUE_DIR/src/index.ts" lint-skill "${{ inputs.path }}" --json > "$REPORT_FILE" || true
+        fi
+
+        echo "diagnostics-json<<EOF" >> "$GITHUB_OUTPUT"
+        cat "$REPORT_FILE" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
+
+        # Count errors / warnings via jq (jq ships on GitHub runners)
+        ERR=$(jq '[.[].diagnostics[] | select(.severity == "error")] | length' "$REPORT_FILE")
+        WARN=$(jq '[.[].diagnostics[] | select(.severity == "warning")] | length' "$REPORT_FILE")
+        echo "error-count=$ERR" >> "$GITHUB_OUTPUT"
+        echo "warning-count=$WARN" >> "$GITHUB_OUTPUT"
+
+        echo "::group::Lint report"
+        bun "$CUE_DIR/src/index.ts" lint-skill "${{ inputs.path }}" || true
+        echo "::endgroup::"
+
+        # Honor fail-on threshold
+        case "${{ inputs.fail-on }}" in
+          error)   [ "$ERR" -gt 0 ] && exit 1 ;;
+          warning) [ "$ERR" -gt 0 ] || [ "$WARN" -gt 0 ] && exit 1 ;;
+          info)    if [ "$(jq 'length' "$REPORT_FILE")" -gt 0 ]; then exit 1; fi ;;
+        esac
+        exit 0
+
+    - name: Commit auto-fixes (if --fix produced changes)
+      if: ${{ inputs.fix == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      run: |
+        cd "$GITHUB_WORKSPACE"
+        if git diff --quiet; then
+          echo "No changes to commit."
+          exit 0
+        fi
+        git config user.email "cue-bot@users.noreply.github.com"
+        git config user.name "cue-bot"
+        git add -A
+        git commit -m "cue: auto-fix SKILL.md spec issues"
+        git push
+
+    - name: Comment on PR
+      if: ${{ inputs.comment-pr == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + '/lint-report.json', 'utf8'));
+          const total = report.reduce((s, r) => s + r.diagnostics.length, 0);
+          if (total === 0) {
+            console.log('No diagnostics — skipping PR comment.');
+            return;
+          }
+          const errCount = report.flatMap(r => r.diagnostics).filter(d => d.severity === 'error').length;
+          const lines = [];
+          lines.push('## 🔍 SKILL.md lint report (via [cue](https://github.com/recodeee/cue))');
+          lines.push('');
+          lines.push(`**${errCount} errors**, **${total - errCount} warnings/info** across ${report.length} SKILL.md file(s).`);
+          lines.push('');
+          for (const r of report) {
+            if (r.diagnostics.length === 0) continue;
+            lines.push(`### \`${r.path}\``);
+            for (const d of r.diagnostics) {
+              const icon = d.severity === 'error' ? '🔴' : d.severity === 'warning' ? '🟡' : '🔵';
+              lines.push(`- ${icon} **${d.rule}** — ${d.message}${d.fixable ? ' _(auto-fixable)_' : ''}`);
+            }
+            lines.push('');
+          }
+          lines.push('---');
+          lines.push('_Run `bunx cue lint-skill <path> --fix` locally to auto-fix what\'s fixable._');
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: lines.join('\n'),
+          });

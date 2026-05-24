@@ -13,6 +13,39 @@ const ANALYTICS_PATH = join(
   "analytics.jsonl",
 );
 
+/**
+ * Session-summary hook (resources/hooks/session-summary.sh) appends one line
+ * per session end here. Read it as a secondary source for sessions counts so
+ * usage stats reflect real hook data, not just the launch-time analytics path.
+ */
+const SESSION_LOG_PATH = join(
+  process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
+  "cue",
+  "session-log.jsonl",
+);
+
+interface SessionLogEntry {
+  ts: string;
+  cwd: string;
+  profile: string;
+  session_id: string;
+}
+
+function readSessionLog(since?: Date): SessionLogEntry[] {
+  if (!existsSync(SESSION_LOG_PATH)) return [];
+  const out: SessionLogEntry[] = [];
+  for (const line of readFileSync(SESSION_LOG_PATH, "utf8").split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const e = JSON.parse(line) as SessionLogEntry;
+      if (!e.profile) continue;
+      if (since && new Date(e.ts) < since) continue;
+      out.push(e);
+    } catch { /* skip malformed */ }
+  }
+  return out;
+}
+
 export interface SessionEvent {
   ts: string;
   event: "start" | "end" | "skill_hit";
@@ -100,11 +133,24 @@ export interface ProfileStats {
 
 export function computeStats(since?: Date): ProfileStats[] {
   const events = readEvents(since);
-  const map = new Map<string, { sessions: number; total_s: number; last: string }>();
+  const map = new Map<string, { sessions: number; total_s: number; last: string; seenIds: Set<string> }>();
 
   for (const e of events) {
     if (e.event !== "start") continue;
-    const entry = map.get(e.profile) ?? { sessions: 0, total_s: 0, last: "" };
+    const entry = map.get(e.profile) ?? { sessions: 0, total_s: 0, last: "", seenIds: new Set<string>() };
+    entry.sessions++;
+    if (e.ts > entry.last) entry.last = e.ts;
+    map.set(e.profile, entry);
+  }
+
+  // Fold in hook-emitted session-log entries (Stop hook). Dedupe by session_id
+  // so a session that fires both the launch-time analytics and the Stop hook
+  // doesn't double-count. Entries without an id fall through as best-effort.
+  for (const e of readSessionLog(since)) {
+    const entry = map.get(e.profile) ?? { sessions: 0, total_s: 0, last: "", seenIds: new Set<string>() };
+    const key = e.session_id || `${e.ts}|${e.cwd}`;
+    if (entry.seenIds.has(key)) continue;
+    entry.seenIds.add(key);
     entry.sessions++;
     if (e.ts > entry.last) entry.last = e.ts;
     map.set(e.profile, entry);

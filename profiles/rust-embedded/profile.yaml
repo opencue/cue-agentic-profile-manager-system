@@ -1,0 +1,11 @@
+name: rust-embedded
+icon: "📟"
+description: Rust on microcontrollers — probe-rs, embassy async, no_std patterns, cross-compile to ARM/RISC-V
+inherits: rust-core
+skills:
+  local:
+    - rust/embedded              # probe-rs + cargo-embed + defmt
+    - rust/no-std                # std-free patterns
+    - rust/async-tokio           # transferable concepts for embassy
+    - rust/cross-compile
+mcps: []

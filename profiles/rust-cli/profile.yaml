@@ -1,0 +1,14 @@
+name: rust-cli
+icon: "⌨️"
+description: Rust command-line tools — clap, ratatui TUIs, snapshot testing, cross-platform releases
+inherits: rust-core
+skills:
+  local:
+    - rust/clap-cli
+    - rust/ratatui-tui
+    - rust/snapshot-testing      # the killer feature for CLI output tests
+    - rust/cross-compile         # ship binaries for every target
+    - rust/serde
+    - rust/release-plz           # tagged releases + crates.io
+    - rust/typos-spellcheck
+mcps: []

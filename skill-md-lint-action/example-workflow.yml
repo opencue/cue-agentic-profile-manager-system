@@ -1,0 +1,30 @@
+# Copy this to .github/workflows/lint-skill-md.yml in your skill repo.
+# Then push and watch the next PR — you'll get a lint report comment for free.
+
+name: Lint SKILL.md
+
+on:
+  pull_request:
+    paths:
+      - '**/SKILL.md'
+      - '**/skill.md'
+      - '.github/workflows/lint-skill-md.yml'
+  push:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # remove if comment-pr: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: recodeee/cue/skill-md-lint-action@main
+        with:
+          # Optional — defaults shown.
+          path: '.'                # lint everything; set to 'skills/marketing' to scope
+          fix: false               # set true to auto-commit fixes on PRs
+          fail-on: error           # error | warning | info
+          comment-pr: true         # post lint report as PR comment

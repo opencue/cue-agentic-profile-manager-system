@@ -46,6 +46,21 @@ export interface Profile {
   rules?: string[];
   commands?: string[];
   hooks?: string[];
+  // Phase 1: Persona — multi-line role-priming text injected at the top of
+  // CLAUDE.md. Defines who the agent IS, not just what tools it has.
+  persona?: string;
+  // Phase 2: Playbooks — markdown files under resources/playbooks/ with
+  // proven step-by-step protocols for common tasks ("ship-feature",
+  // "triage-bug"). Symlinked into runtime, indexed in CLAUDE.md.
+  playbooks?: string[];
+  // Phase 3: Quality gates — script refs under resources/quality-gates/
+  // that run as Stop hooks. Veto "done" claims if the work doesn't meet
+  // the profile's bar (tests pass, lint clean, etc.).
+  qualityGates?: string[];
+  // Phase 4: Evals — scenario refs under resources/evals/ that declare
+  // "for task X this profile should be able to handle it". `cue eval-behavior`
+  // checks structural fit.
+  evals?: string[];
 }
 
 // In the resolved (post-inherit) form every ref is normalized to its object shape.
@@ -65,6 +80,10 @@ export interface ResolvedProfile extends Omit<Profile, "skills" | "mcps" | "plug
   rules: string[];
   commands: string[];
   hooks: string[];
+  persona: string;        // empty string when not declared
+  playbooks: string[];
+  qualityGates: string[];
+  evals: string[];
   inheritanceChain: string[];
 }
 

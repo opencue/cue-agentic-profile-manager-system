@@ -4,13 +4,14 @@
  * The rules below are intentionally numbered and centralized so a later
  * suppression pass can key off stable ids such as `# lint: ignore W1`.
  *
- * W1: profile declares more than 25 skills.
+ * W1: profile declares more than 40 skills.
  * W2: profile declares more than 5 MCP servers.
  * W3: inheritance chain depth is greater than 2.
  * W4: a skill slug appears in both `skills.local` and `skills.npx`.
+ * W5: a referenced plugin is not installed locally (environmental, not a profile bug).
  * E1: profile `name:` collides with another profile.
  * E2: inheritance chain contains a cycle.
- * E3: referenced skill, MCP, or plugin cannot be resolved.
+ * E3: referenced skill or MCP cannot be resolved.
  */
 
 import { mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
@@ -38,15 +39,18 @@ import {
   resolveNpxDetailed,
   type NpxFetchFn,
 } from "./resolver-npx";
-import { resolvePlugins } from "./resolver-plugins";
+import { PluginNotInstalled, resolvePlugins } from "./resolver-plugins";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(HERE, "..", "..");
 const DEFAULT_PROFILES_DIR = join(REPO_ROOT, "profiles");
 const DEFAULT_SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 const DEFAULT_CONFIGS_ROOT = join(REPO_ROOT, "resources", "mcps", "configs");
+const DEFAULT_RULES_ROOT = join(REPO_ROOT, "resources", "rules");
+const DEFAULT_COMMANDS_ROOT = join(REPO_ROOT, "resources", "commands");
+const DEFAULT_HOOKS_ROOT = join(REPO_ROOT, "resources", "hooks");
 
-export type LintRuleId = "W1" | "W2" | "W3" | "W4" | "E1" | "E2" | "E3";
+export type LintRuleId = "W1" | "W2" | "W3" | "W4" | "W5" | "E1" | "E2" | "E3";
 export type DiagnosticRuleId = LintRuleId | "SCHEMA" | "LOAD";
 export type LintSeverity = "warning" | "error";
 
@@ -60,7 +64,7 @@ export const PROFILE_LINT_RULES: Record<LintRuleId, RuleDoc> = {
   W1: {
     severity: "warning",
     title: "too many skills",
-    description: "Profile declares more than 25 skills; this can bloat prompt tokens.",
+    description: "Profile declares more than 40 skills; this can bloat prompt tokens.",
   },
   W2: {
     severity: "warning",
@@ -76,6 +80,11 @@ export const PROFILE_LINT_RULES: Record<LintRuleId, RuleDoc> = {
     severity: "warning",
     title: "ambiguous skill source",
     description: "A skill slug appears in both local and npx sources.",
+  },
+  W5: {
+    severity: "warning",
+    title: "plugin not installed locally",
+    description: "A referenced plugin is not installed under ~/.claude/plugins (environmental — install with `/plugin marketplace add <name>`).",
   },
   E1: {
     severity: "error",
@@ -201,8 +210,49 @@ export async function lintProfile(
   await checkNpxSkills(resolved, result, opts);
   await checkPlugins(resolved, result, opts);
   await checkMcps(resolved, result, opts);
+  await checkResourceRefs(resolved, result, opts);
 
   return result;
+}
+
+async function checkResourceRefs(
+  profile: ResolvedProfile,
+  result: ProfileLintResult,
+  _opts: ProfileLinterOptions,
+): Promise<void> {
+  const { access } = await import("node:fs/promises");
+  const { isAbsolute } = await import("node:path");
+
+  const buckets: { label: string; refs: string[]; root: string; addExt: boolean }[] = [
+    { label: "rules",    refs: profile.rules,    root: DEFAULT_RULES_ROOT,    addExt: true },
+    { label: "commands", refs: profile.commands, root: DEFAULT_COMMANDS_ROOT, addExt: true },
+    { label: "hooks",    refs: profile.hooks,    root: DEFAULT_HOOKS_ROOT,    addExt: false },
+  ];
+
+  for (const { label, refs, root, addExt } of buckets) {
+    if (refs.length === 0) {
+      addCheck(result, label, `no ${label} declared`);
+      continue;
+    }
+    let ok = 0;
+    for (const ref of refs) {
+      const withExt = addExt && !ref.endsWith(".md") ? `${ref}.md` : ref;
+      const full = isAbsolute(withExt) ? withExt : join(root, withExt);
+      try {
+        await access(full);
+        ok++;
+      } catch {
+        addIssue(
+          result,
+          "E3",
+          "error",
+          `${label} reference "${ref}" not found at ${full}`,
+          { subject: ref },
+        );
+      }
+    }
+    if (ok === refs.length) addCheck(result, label, `${ok} resolved`);
+  }
 }
 
 async function withProfilesDir<T>(
@@ -359,7 +409,7 @@ function checkStaticRules(
   result: ProfileLintResult,
 ): void {
   const skillCount = declaredSkillCount(profile);
-  if (skillCount > 25) {
+  if (skillCount > 40) {
     addIssue(
       result,
       "W1",
@@ -595,6 +645,19 @@ function addResolverIssue(
   ref: string,
   err: unknown,
 ): void {
+  // Plugin-not-installed is environmental state (the profile is correct, the
+  // user's machine just doesn't have the plugin yet) — demote to W5 warning
+  // rather than failing validation with E3.
+  if (err instanceof PluginNotInstalled) {
+    addIssue(
+      result,
+      "W5",
+      "warning",
+      `plugin "${ref}" is not installed locally — run /plugin marketplace add ${ref.split("@")[0]}`,
+      { subject: ref },
+    );
+    return;
+  }
   addIssue(
     result,
     "E3",

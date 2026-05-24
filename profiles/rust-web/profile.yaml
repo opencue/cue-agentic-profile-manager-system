@@ -1,0 +1,17 @@
+name: rust-web
+icon: "🕸️"
+description: Rust web services — axum HTTP APIs, reqwest, sqlx, serde, tracing, container deploys
+inherits: rust-core
+skills:
+  local:
+    - rust/axum-api
+    - rust/reqwest
+    - rust/serde
+    - rust/tracing
+    - rust/sqlx-cli
+    - rust/snapshot-testing      # API response snapshots
+    - rust/release-plz
+    - rust/cargo-chef            # Docker layer caching
+    - rust/typos-spellcheck
+    - rust/async-tokio
+mcps: []

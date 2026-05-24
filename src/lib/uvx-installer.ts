@@ -25,11 +25,24 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { cpSync, existsSync, mkdtempSync, realpathSync, rmSync, readdirSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
 import type { McpServerConfig } from "./runtime-materializer";
+
+/**
+ * Repo-root assets to seed into the venv's site-packages after `uv tool install`.
+ *
+ * Some upstream packages (e.g. TrendRadar) ship runtime config at the repo root
+ * rather than inside the python package. `uv tool install` only copies the
+ * package, so the binary then fails at startup looking for `<site-packages>/X/`.
+ * For each known git URL, we sparse-clone the listed top-level dirs and copy
+ * them next to the installed package. Idempotent: skipped if target exists.
+ */
+const REPO_ROOT_ASSETS: Record<string, string[]> = {
+  "git+https://github.com/sansan0/TrendRadar.git": ["config"],
+};
 
 export interface NormalizeReport {
   /** Entries we just installed via `uv tool install` and rewrote. */
@@ -38,6 +51,8 @@ export interface NormalizeReport {
   reused: string[];
   /** Entries we left alone, with why. */
   skipped: { id: string; reason: "uv-missing" | "install-failed" }[];
+  /** Entries whose repo-root assets we just seeded into site-packages. */
+  seeded: { id: string; assets: string[] }[];
 }
 
 interface ParsedUvxGit {
@@ -91,11 +106,89 @@ function installBinaryDefault(
   return { ok: false, stderr: (res.stderr ?? "").toString().trim() };
 }
 
+/**
+ * Default seeder: sparse-clones `gitUrl` and copies each repo-root `asset` dir
+ * into the site-packages of the venv that owns `binary`. No-op for any asset
+ * already present. Returns the list of asset names actually copied.
+ */
+function seedRepoRootAssetsDefault(
+  gitUrl: string,
+  binary: string,
+  assets: string[],
+): string[] {
+  const seeded: string[] = [];
+  const sitePackages = resolveSitePackages(binary);
+  if (!sitePackages) return seeded;
+
+  const missing = assets.filter((a) => !existsSync(join(sitePackages, a)));
+  if (missing.length === 0) return seeded;
+
+  const cloneUrl = gitUrl.startsWith("git+") ? gitUrl.slice("git+".length) : gitUrl;
+  const tmp = mkdtempSync(join(tmpdir(), "cue-uvx-seed-"));
+  try {
+    const clone = spawnSync(
+      "git",
+      ["clone", "--depth=1", "--filter=blob:none", "--sparse", cloneUrl, "repo"],
+      { cwd: tmp, stdio: ["ignore", "ignore", "pipe"], encoding: "utf8", timeout: 120_000 },
+    );
+    if (clone.status !== 0) return seeded;
+
+    const sparse = spawnSync(
+      "git",
+      ["-C", "repo", "sparse-checkout", "set", ...missing],
+      { cwd: tmp, stdio: ["ignore", "ignore", "pipe"], encoding: "utf8", timeout: 60_000 },
+    );
+    if (sparse.status !== 0) return seeded;
+
+    for (const asset of missing) {
+      const src = join(tmp, "repo", asset);
+      if (!existsSync(src)) continue;
+      cpSync(src, join(sitePackages, asset), { recursive: true });
+      seeded.push(asset);
+    }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+  return seeded;
+}
+
+/**
+ * Find the site-packages dir for a `uv tool install`-ed binary by resolving the
+ * symlink at ~/.local/bin/<binary> and walking up to the venv's
+ * lib/python<X.Y>/site-packages/. Returns null if anything is off.
+ */
+function resolveSitePackages(binary: string): string | null {
+  const linkPath = localBinPath(binary);
+  if (!existsSync(linkPath)) return null;
+  let real: string;
+  try {
+    real = realpathSync(linkPath);
+  } catch {
+    return null;
+  }
+  // real = <venv>/bin/<binary> → venv root is two dirs up.
+  const venvRoot = dirname(dirname(real));
+  const libDir = join(venvRoot, "lib");
+  if (!existsSync(libDir)) return null;
+  let entries: string[];
+  try {
+    entries = readdirSync(libDir);
+  } catch {
+    return null;
+  }
+  const pyDir = entries.find((e) => e.startsWith("python"));
+  if (!pyDir) return null;
+  const sp = join(libDir, pyDir, "site-packages");
+  return existsSync(sp) ? sp : null;
+}
+
 export interface NormalizeOptions {
   install?: (gitUrl: string, binary: string) => { ok: boolean; stderr: string };
   binExists?: (binary: string) => boolean;
   uvOnPath?: () => boolean;
   warn?: (msg: string) => void;
+  /** Seed repo-root assets into the venv's site-packages. Returns names copied. */
+  seedAssets?: (gitUrl: string, binary: string, assets: string[]) => string[];
 }
 
 /**
@@ -112,9 +205,17 @@ export function normalizeUvxGitServers(
   const binExists = opts.binExists ?? ((b) => existsSync(localBinPath(b)));
   const uvOnPath = opts.uvOnPath ?? uvOnPathDefault;
   const warn = opts.warn ?? ((m) => process.stderr.write(`[cue] ${m}\n`));
+  const seedAssets = opts.seedAssets ?? seedRepoRootAssetsDefault;
 
-  const report: NormalizeReport = { installed: [], reused: [], skipped: [] };
+  const report: NormalizeReport = { installed: [], reused: [], skipped: [], seeded: [] };
   const normalized: Record<string, McpServerConfig> = {};
+
+  const trySeed = (id: string, gitUrl: string, binary: string): void => {
+    const assets = REPO_ROOT_ASSETS[gitUrl];
+    if (!assets || assets.length === 0) return;
+    const copied = seedAssets(gitUrl, binary, assets);
+    if (copied.length > 0) report.seeded.push({ id, assets: copied });
+  };
 
   let uvCache: boolean | null = null;
   const checkUv = () => {
@@ -139,6 +240,7 @@ export function normalizeUvxGitServers(
 
     if (binExists(binary)) {
       report.reused.push(id);
+      trySeed(id, gitUrl, binary);
       normalized[id] = rewrite();
       continue;
     }
@@ -158,7 +260,7 @@ export function normalizeUvxGitServers(
     const { ok, stderr } = install(gitUrl, binary);
     if (!ok) {
       warn(
-        `MCP "${id}": \`uv tool install --from ${gitUrl} ${binary}\` failed.\n  ${
+        `MCP "${id}": \`uv tool install ${gitUrl}\` failed (looking for binary "${binary}").\n  ${
           stderr || "(no stderr)"
         }\nLeaving entry as raw \`uvx --from git+...\`.`,
       );
@@ -168,6 +270,7 @@ export function normalizeUvxGitServers(
     }
 
     report.installed.push(id);
+    trySeed(id, gitUrl, binary);
     normalized[id] = rewrite();
   }
 

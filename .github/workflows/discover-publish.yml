@@ -1,0 +1,81 @@
+# Nightly GitHub discovery → per-profile SEO-friendly pages published to GitHub Pages.
+#
+# Why: cue scans GitHub Code Search for `filename:SKILL.md` repos, scores each
+# by recency + signal quality + engagement, and emits one canonical page per
+# profile. Each per-profile page targets long-tail queries ("Claude Code skills
+# for cybersecurity", "for marketing", etc.) and ships JSON-LD schema so AI
+# search engines (ChatGPT, Perplexity, Google AI Overviews) can cite individual
+# repos by name.
+#
+# Side effects per discovered repo:
+#   - Backlink from cue.dev/discovered/<profile>.html  → good for the repo's SEO
+#   - cue gets indexed for the long-tail query         → good for cue's SEO
+#   - JSON-LD ItemList entry                            → good for AI citation
+#
+# Authors can opt out with `<!-- cue: ignore -->` in their README.
+
+name: Discover & Publish Skills
+
+on:
+  schedule:
+    - cron: '17 4 * * *'   # 04:17 UTC daily (off-peak vs typical CI schedules)
+  workflow_dispatch:       # manual trigger from Actions tab
+
+permissions:
+  contents: write          # commit generated pages back to docs/discovered/
+  pages: write             # deploy to Pages
+  id-token: write          # OIDC for Pages deploy
+
+concurrency:
+  group: discover-publish
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install cue deps
+        run: bun install --frozen-lockfile
+
+      - name: Discover skills via GitHub Code Search
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bun src/index.ts discover search --limit 100 --min-score 3
+
+      - name: Export per-profile pages (Markdown + HTML + JSON-LD)
+        run: |
+          bun src/index.ts discover --export docs/discovered --site --html
+
+      - name: Commit refreshed pages
+        run: |
+          git config user.email "cue-bot@users.noreply.github.com"
+          git config user.name "cue-bot"
+          git add docs/discovered
+          if git diff --cached --quiet; then
+            echo "No changes — nothing to commit."
+          else
+            git commit -m "discover: nightly refresh (auto)"
+            git push
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/discovered
+
+  deploy:
+    needs: discover
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

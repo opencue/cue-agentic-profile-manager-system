@@ -197,21 +197,49 @@ async function listProfileOptions(pinnedProfile?: string): Promise<PickerOption[
 }
 
 async function loadMcpRegistry(agent: "claude-code" | "codex"): Promise<Record<string, unknown>> {
-  const file = agent === "claude-code" ? "claude.sanitized.json" : "codex.sanitized.json";
   const root = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(
     new URL(import.meta.url).pathname,
     "..",
     "..",
     "..",
   );
-  const path = join(root, "resources", "mcps", "configs", file);
-  try {
-    const text = await readFile(path, "utf8");
-    const raw = JSON.parse(text) as { servers?: Record<string, unknown> };
-    return raw.servers ?? {};
-  } catch {
-    return {};
+  // Files to merge, in priority order. The master `claude.sanitized.json` wins
+  // on key collisions; `claude_runtime.sanitized.json` is the live snapshot
+  // captured from the user's actual `~/.claude.json` (covers servers
+  // registered at runtime but not yet promoted to the master registry).
+  // Without this merge, profiles like `marketing` that reference
+  // `reddit`/`google-ads-mcp`/`meta-ads`/`Higgsfield` (runtime-only entries)
+  // would silently drop those MCPs at materialize time.
+  const files = agent === "claude-code"
+    ? ["claude_runtime.sanitized.json", "claude.sanitized.json"]
+    : ["codex.sanitized.json"];
+
+  const merged: Record<string, unknown> = {};
+  for (const file of files) {
+    const path = join(root, "resources", "mcps", "configs", file);
+    try {
+      const text = await readFile(path, "utf8");
+      const raw = JSON.parse(text) as { servers?: Record<string, unknown> };
+      for (const [k, v] of Object.entries(raw.servers ?? {})) {
+        // First file wins (claude_runtime first, then claude master).
+        // We want master to win, so only set if not already present.
+        if (!(k in merged)) merged[k] = v;
+      }
+    } catch { /* file missing — skip */ }
   }
+  // Second pass: let the master registry override the runtime snapshot
+  // (master is the curated source of truth; runtime is just a fallback).
+  const masterPath = join(root, "resources", "mcps", "configs",
+    agent === "claude-code" ? "claude.sanitized.json" : "codex.sanitized.json");
+  try {
+    const text = await readFile(masterPath, "utf8");
+    const raw = JSON.parse(text) as { servers?: Record<string, unknown> };
+    for (const [k, v] of Object.entries(raw.servers ?? {})) {
+      merged[k] = v;
+    }
+  } catch { /* master missing — keep runtime fallbacks */ }
+
+  return merged;
 }
 
 async function readSharedClaudeMd(profile?: { name: string; inheritanceChain?: string[] }): Promise<string> {

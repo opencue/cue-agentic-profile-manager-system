@@ -376,6 +376,12 @@ function foldChain(chain: Profile[]): ResolvedProfile {
       rules: dedupePrimitiveArray(acc.rules, child.rules),
       commands: dedupePrimitiveArray(acc.commands, child.commands),
       hooks: dedupePrimitiveArray(acc.hooks, child.hooks),
+      // Persona is leaf-wins (child overrides parent fully). Concatenating
+      // would produce awkward "you are X. ALSO you are Y" priming.
+      persona: child.persona ?? acc.persona,
+      playbooks: dedupePrimitiveArray(acc.playbooks, child.playbooks),
+      qualityGates: dedupePrimitiveArray(acc.qualityGates, child.qualityGates),
+      evals: dedupePrimitiveArray(acc.evals, child.evals),
       inheritanceChain: [...acc.inheritanceChain, child.name],
     };
   }
@@ -407,6 +413,10 @@ function normalizeToResolved(p: Profile, chain: string[]): ResolvedProfile {
     rules: [...(p.rules ?? [])],
     commands: [...(p.commands ?? [])],
     hooks: [...(p.hooks ?? [])],
+    persona: p.persona ?? "",
+    playbooks: [...(p.playbooks ?? [])],
+    qualityGates: [...(p.qualityGates ?? [])],
+    evals: [...(p.evals ?? [])],
     inheritanceChain: chain,
   };
 }

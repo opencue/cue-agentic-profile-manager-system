@@ -105,6 +105,28 @@
       "items": { "type": "string", "minLength": 1 },
       "default": [],
       "description": "Hook scripts (relative to resources/hooks/) activated for this profile. Lifecycle: PreToolUse, PostToolUse, SessionStart, SessionEnd, Stop."
+    },
+    "persona": {
+      "type": "string",
+      "description": "Phase 1: multi-line role-priming text injected at the top of CLAUDE.md. Defines who the agent IS (a senior Rust engineer who defaults to safety), not just what tools it has."
+    },
+    "playbooks": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": [],
+      "description": "Phase 2: markdown playbooks (relative to resources/playbooks/) — proven step-by-step protocols for common tasks (ship-feature, triage-bug). Symlinked into runtime, indexed in CLAUDE.md."
+    },
+    "qualityGates": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": [],
+      "description": "Phase 3: Stop-hook validator scripts (relative to resources/quality-gates/) that veto 'done' if work doesn't meet the profile's bar (tests pass, lint clean, etc.)."
+    },
+    "evals": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": [],
+      "description": "Phase 4: eval scenario refs (relative to resources/evals/) declaring 'for task X this profile should be able to handle it'. `cue eval-behavior` runs structural checks."
     }
   },
   "$defs": {

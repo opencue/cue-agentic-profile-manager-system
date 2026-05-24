@@ -39,6 +39,34 @@ env:
 | `skills.plugins` | array of strings (Claude Code plugin names)                | no       | `[]`    | Resolved from `~/.claude/plugins/<name>/skills/`. Targets are namespaced as `<plugin>:<skill>`.    |
 | `mcps`        | array of strings (MCP server IDs)                             | no       | `[]`    | Must match a key in `cue/mcps/configs/claude.sanitized.json` (or the codex counterpart).          |
 | `env`         | map<string, string>                                           | no       | `{}`    | Plain string values. Placeholders like `"${HOSTINGER_API_TOKEN}"` are substituted at materialize-time. |
+| `rules`       | array of strings                                              | no       | `[]`    | Markdown rule files under `resources/rules/` (or absolute paths). Symlinked into `<runtime>/rules/` and indexed in CLAUDE.md — Claude reads on demand, no full-body inline. |
+| `commands`    | array of strings                                              | no       | `[]`    | Slash-command markdown files under `resources/commands/`. Symlinked into `<runtime>/commands/` so the user can invoke `/<name>`. Listed in CLAUDE.md's "Available Commands" section. |
+| `hooks`       | array of strings                                              | no       | `[]`    | Hook bundle JSON files under `resources/hooks/`. Each declares `{ "hooks": { "PreToolUse": [...], "Stop": [...], ... } }` — merged into `settings.json` so hooks run per Claude Code's lifecycle. Sibling `.sh`/`.py` scripts are symlinked into `<runtime>/hooks/` and invoked via `${CLAUDE_CONFIG_DIR}/hooks/...`. |
+
+### rules / commands / hooks example
+
+```yaml
+# profiles/my-backend/profile.yaml
+name: my-backend
+inherits: core
+rules:
+  - common/security        # → resources/rules/common/security.md
+  - typescript/patterns    # → resources/rules/typescript/patterns.md
+commands:
+  - code-review            # → resources/commands/code-review.md, invoked as /code-review
+  - checkpoint
+hooks:
+  - secrets-guard.json     # → resources/hooks/secrets-guard.json (+ secrets-guard.sh)
+```
+
+Path resolution: refs starting with `/` are taken as absolute; otherwise resolved
+relative to `resources/{rules,commands,hooks}/`. `.md` is auto-appended for
+rules/commands if the ref doesn't already end in `.md`. Hooks are taken
+verbatim (need the explicit `.json`). Missing refs are skipped at materialize
+time and reported as `E3` by `cue validate`.
+
+Inheritance merges all three with `concat + dedupe`; a child can't remove a
+parent's entry — fork the parent if you need a smaller set.
 
 ## NpxSkillRef
 

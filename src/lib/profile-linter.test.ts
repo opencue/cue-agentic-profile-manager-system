@@ -132,7 +132,7 @@ describe("lintProfile", () => {
 
   test("reports W1, W2, W3, and W4 warnings", async () => {
     const localRefs: string[] = [];
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 41; i++) {
       const ref = `bulk/skill-${i}`;
       localRefs.push(ref);
       await writeLocalSkill(ref);
@@ -217,7 +217,10 @@ describe("lintProfile", () => {
     );
 
     const messages = result.issues.map((issue) => issue.message).join("\n");
-    expect(rules(result).filter((rule) => rule === "E3")).toHaveLength(4);
+    // Plugin-not-installed is demoted to W5 (environmental), so the three
+    // genuine resolver errors stay as E3 and the plugin shows up as W5.
+    expect(rules(result).filter((rule) => rule === "E3")).toHaveLength(3);
+    expect(rules(result).filter((rule) => rule === "W5")).toHaveLength(1);
     expect(messages).toContain("local skill");
     expect(messages).toContain("npx skill");
     expect(messages).toContain("plugin");

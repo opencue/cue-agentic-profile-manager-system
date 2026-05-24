@@ -76,7 +76,7 @@ function printHelp(stream: Pick<NodeJS.WriteStream, "write"> = process.stdout): 
       "",
       "Checks:",
       "  schema validity, inheritance, local/npx/plugin skill resolution, MCP registry resolution",
-      "  W1-W4 warnings and E1-E3 lint errors",
+      "  W1-W5 warnings and E1-E3 lint errors",
       "",
     ].join("\n"),
   );

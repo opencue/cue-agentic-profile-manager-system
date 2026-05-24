@@ -11,10 +11,12 @@ const stubs = (overrides: {
   binExists?: (b: string) => boolean;
   uvOnPath?: () => boolean;
   install?: (gitUrl: string, binary: string) => { ok: boolean; stderr: string };
+  seedAssets?: (gitUrl: string, binary: string, assets: string[]) => string[];
 }) => ({
   binExists: overrides.binExists ?? (() => false),
   uvOnPath: overrides.uvOnPath ?? (() => true),
   install: overrides.install ?? (() => ({ ok: true, stderr: "" })),
+  seedAssets: overrides.seedAssets ?? (() => []),
   warn: () => { /* swallow */ },
 });
 
@@ -26,7 +28,7 @@ describe("normalizeUvxGitServers", () => {
     };
     const { normalized, report } = normalizeUvxGitServers(servers, stubs({}));
     expect(normalized).toEqual(servers);
-    expect(report).toEqual({ installed: [], reused: [], skipped: [] });
+    expect(report).toEqual({ installed: [], reused: [], skipped: [], seeded: [] });
   });
 
   test("passes uvx entries without git+ source through unchanged", () => {
@@ -137,6 +139,75 @@ describe("normalizeUvxGitServers", () => {
     expect(normalized.x.command).toBe(localBin("x-mcp"));
     // Pre-`--from` and post-binary args are preserved (order: pre then post).
     expect(normalized.x.args).toEqual(["--python", "3.12", "--verbose"]);
+  });
+
+  test("seeds repo-root assets after fresh install for known git URLs", () => {
+    const servers: Record<string, McpServerConfig> = {
+      trendradar: {
+        command: "uvx",
+        args: ["--from", "git+https://github.com/sansan0/TrendRadar.git", "trendradar-mcp"],
+      },
+    };
+    const seedCalls: { gitUrl: string; binary: string; assets: string[] }[] = [];
+    const { report } = normalizeUvxGitServers(servers, stubs({
+      binExists: () => false,
+      install: () => ({ ok: true, stderr: "" }),
+      seedAssets: (gitUrl, binary, assets) => {
+        seedCalls.push({ gitUrl, binary, assets });
+        return assets; // pretend we copied all of them
+      },
+    }));
+    expect(seedCalls).toEqual([{
+      gitUrl: "git+https://github.com/sansan0/TrendRadar.git",
+      binary: "trendradar-mcp",
+      assets: ["config"],
+    }]);
+    expect(report.seeded).toEqual([{ id: "trendradar", assets: ["config"] }]);
+  });
+
+  test("heals existing install missing repo-root assets on reuse path", () => {
+    const servers: Record<string, McpServerConfig> = {
+      trendradar: {
+        command: "uvx",
+        args: ["--from", "git+https://github.com/sansan0/TrendRadar.git", "trendradar-mcp"],
+      },
+    };
+    const { report } = normalizeUvxGitServers(servers, stubs({
+      binExists: () => true, // binary already on disk
+      seedAssets: (_gitUrl, _binary, assets) => assets, // assets were missing, now copied
+    }));
+    expect(report.reused).toEqual(["trendradar"]);
+    expect(report.seeded).toEqual([{ id: "trendradar", assets: ["config"] }]);
+  });
+
+  test("does not seed when git URL is not in the asset table", () => {
+    const servers: Record<string, McpServerConfig> = {
+      other: {
+        command: "uvx",
+        args: ["--from", "git+https://example.com/other.git", "other-mcp"],
+      },
+    };
+    let seedCalled = false;
+    const { report } = normalizeUvxGitServers(servers, stubs({
+      binExists: () => true,
+      seedAssets: () => { seedCalled = true; return []; },
+    }));
+    expect(seedCalled).toBe(false);
+    expect(report.seeded).toEqual([]);
+  });
+
+  test("does not record seed when seeder copies nothing (assets already present)", () => {
+    const servers: Record<string, McpServerConfig> = {
+      trendradar: {
+        command: "uvx",
+        args: ["--from", "git+https://github.com/sansan0/TrendRadar.git", "trendradar-mcp"],
+      },
+    };
+    const { report } = normalizeUvxGitServers(servers, stubs({
+      binExists: () => true,
+      seedAssets: () => [], // nothing copied — already healthy
+    }));
+    expect(report.seeded).toEqual([]);
   });
 
   test("only spawns uv once for many git+ entries", () => {

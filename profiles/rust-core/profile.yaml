@@ -1,0 +1,35 @@
+name: rust-core
+icon: "🦀"
+description: Foundation shared by every rust sub-profile — toolchain essentials, gates, discovery
+inherits: core
+skills:
+  local:
+    - review/code-review
+    - research/awesome-rust-search   # crate discovery against awesome-rust catalog
+    # Toolchain essentials — everyone needs these
+    - rust/cargo-basics
+    - rust/clippy-and-fmt
+    - rust/cargo-nextest
+    - rust/bacon-watch
+    - rust/cargo-edit
+    - rust/cargo-expand
+    - rust/sccache
+    # Always-on safety + ergonomics
+    - rust/cargo-audit
+    - rust/error-handling
+    - rust/just-runner
+    - rust/chisel-tool           # Chisel — agent precision file edits (recipe + pointer guide)
+rules:
+  - rust/coding-style
+  - rust/patterns
+  - rust/security
+  - rust/testing
+  - rust/hooks
+commands:
+  - rust-preflight     # /rust-preflight — fmt + clippy + test + audit aggregator
+  - rust-build         # /rust-build — fix build errors incrementally
+  - rust-review        # /rust-review — deep code review
+  - rust-test          # /rust-test — TDD enforcement
+hooks:
+  - cargo-publish-guard.json   # block `cargo publish` without explicit user OK
+mcps: []

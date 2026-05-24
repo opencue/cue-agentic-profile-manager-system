@@ -298,6 +298,92 @@ export function tierColorFor(score: number): string {
   return ANSI.gray;
 }
 
+/**
+ * Scan all profile.yaml files for a skill ref matching the gem's name or
+ * `owner/name` slug. Returns the list of profiles that already include it.
+ * Cheap enough to call per-gem (cached once per session via the closure pattern
+ * in renderers).
+ */
+export function getInstalledIn(gem: GemRepo, profilesDir = join(REPO_ROOT, "profiles")): string[] {
+  if (!existsSync(profilesDir)) return [];
+  const hits: string[] = [];
+  const slugs = [gem.name.toLowerCase(), gem.full_name.toLowerCase()];
+  try {
+    const profiles = require("node:fs").readdirSync(profilesDir);
+    for (const p of profiles) {
+      if (p.startsWith("_") || p.startsWith(".")) continue;
+      const yaml = join(profilesDir, p, "profile.yaml");
+      if (!existsSync(yaml)) continue;
+      const content = readFileSync(yaml, "utf8").toLowerCase();
+      if (slugs.some(s => content.includes(s))) hits.push(p);
+    }
+  } catch { /* ignore */ }
+  return hits;
+}
+
+/** Detect active profile from cwd (`.cue-profile` file). Returns undefined if none. */
+export function getActiveProfile(cwd: string = process.cwd()): string | undefined {
+  const f = join(cwd, ".cue-profile");
+  if (!existsSync(f)) return undefined;
+  try {
+    const s = readFileSync(f, "utf8").trim();
+    return s || undefined;
+  } catch { return undefined; }
+}
+
+// ---------------------------------------------------------------------------
+// Filters — `cue discover` supports many slicing dimensions over GemRepo[]
+// ---------------------------------------------------------------------------
+
+export interface GemFilter {
+  minStars?: number;
+  maxStars?: number;
+  freshDays?: number;       // pushed within last N days
+  staleDays?: number;       // pushed more than N days ago
+  hasMcp?: boolean;
+  hasSkillMd?: boolean;
+  hasClaudeDir?: boolean;
+  language?: string;        // case-insensitive
+  topic?: string;           // case-insensitive substring
+  owner?: string;
+  excludeOwner?: string;
+  tier?: Set<"premium" | "strong" | "worth" | "tail">;
+  profile?: string;         // gem suggested_profiles includes this
+  installed?: boolean;      // gem is referenced by some profile.yaml
+  notInstalled?: boolean;
+}
+
+export function applyFilters(gems: GemRepo[], f: GemFilter): GemRepo[] {
+  if (!Object.keys(f).length) return gems;
+  return gems.filter(g => {
+    if (f.minStars !== undefined && g.stars < f.minStars) return false;
+    if (f.maxStars !== undefined && g.stars > f.maxStars) return false;
+    if (f.freshDays !== undefined) {
+      const days = (Date.now() - new Date(g.pushed_at || 0).getTime()) / 86400000;
+      if (days > f.freshDays) return false;
+    }
+    if (f.staleDays !== undefined) {
+      const days = (Date.now() - new Date(g.pushed_at || 0).getTime()) / 86400000;
+      if (days < f.staleDays) return false;
+    }
+    if (f.hasMcp && !(g.has_mcp_sdk || g.topics.includes("mcp-server"))) return false;
+    if (f.hasSkillMd && !g.has_skill_md) return false;
+    if (f.hasClaudeDir && !g.has_claude_dir) return false;
+    if (f.language && (g.language || "").toLowerCase() !== f.language.toLowerCase()) return false;
+    if (f.topic && !g.topics.some(t => t.toLowerCase().includes(f.topic!.toLowerCase()))) return false;
+    if (f.owner && g.owner.toLowerCase() !== f.owner.toLowerCase()) return false;
+    if (f.excludeOwner && g.owner.toLowerCase() === f.excludeOwner.toLowerCase()) return false;
+    if (f.tier && !f.tier.has(tierName(g.gem_score) as any)) return false;
+    if (f.profile && !g.suggested_profiles.includes(f.profile)) return false;
+    if (f.installed || f.notInstalled) {
+      const isIn = getInstalledIn(g).length > 0;
+      if (f.installed && !isIn) return false;
+      if (f.notInstalled && isIn) return false;
+    }
+    return true;
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Profile suggestion (keyword matching)
 // ---------------------------------------------------------------------------

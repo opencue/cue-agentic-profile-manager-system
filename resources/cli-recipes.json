@@ -1,0 +1,137 @@
+{
+  "$schema-comment": "Per-tool install recipes. Each tool may declare: apt (Debian/Ubuntu), brew (macOS), dnf (Fedora), pacman (Arch), winget (Windows), pip (Python pkg), npm (Node pkg), pipx (isolated Python tool), script (one-line bash installer), manual (URL — needs human intervention), needs (free-text caveat). The cli installer tries package managers first in OS-appropriate order, then falls back to pip/npm if declared, then prints the manual hint.",
+
+  "acpx":         { "npm": "acpx@latest", "needs": "Headless ACP client — delegate to other coding agents (codex, claude, pi, etc.) instead of PTY scraping. Session state lives in ~/.acpx/" },
+
+  "nmap":         { "apt": "nmap", "brew": "nmap", "pacman": "nmap", "dnf": "nmap" },
+  "tcpdump":      { "apt": "tcpdump", "brew": "tcpdump", "pacman": "tcpdump", "dnf": "tcpdump" },
+  "wireshark":    { "apt": "wireshark", "brew": "wireshark", "pacman": "wireshark-qt", "dnf": "wireshark", "needs": "after install: sudo usermod -aG wireshark $USER; relogin" },
+  "tshark":       { "apt": "tshark", "brew": "wireshark", "pacman": "wireshark-cli", "dnf": "wireshark-cli" },
+  "nikto":        { "apt": "nikto", "brew": "nikto", "pacman": "nikto", "dnf": "nikto" },
+  "sqlmap":       { "apt": "sqlmap", "brew": "sqlmap", "pacman": "sqlmap", "dnf": "sqlmap" },
+  "ffuf":         { "apt": "ffuf", "brew": "ffuf", "pacman": "ffuf", "manual": "go install github.com/ffuf/ffuf/v2@latest" },
+  "gobuster":     { "apt": "gobuster", "brew": "gobuster", "pacman": "gobuster", "manual": "go install github.com/OJ/gobuster/v3@latest" },
+  "hashcat":      { "apt": "hashcat", "brew": "hashcat", "pacman": "hashcat", "dnf": "hashcat" },
+  "john":         { "apt": "john", "brew": "john", "pacman": "john", "dnf": "john" },
+  "aircrack-ng":  { "apt": "aircrack-ng", "brew": "aircrack-ng", "pacman": "aircrack-ng", "dnf": "aircrack-ng" },
+  "kismet":       { "apt": "kismet", "brew": "kismet", "pacman": "kismet" },
+  "wifite":       { "apt": "wifite", "pacman": "wifite", "needs": "Kali/security distro; on Ubuntu use pip3 install --user wifite2" },
+
+  "amass":        { "apt": "amass", "brew": "amass", "pacman": "amass" },
+  "subfinder":    { "brew": "subfinder", "pacman": "subfinder", "manual": "go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest" },
+  "httpx":        { "brew": "httpx", "pacman": "httpx", "manual": "go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest" },
+  "nuclei":       { "brew": "nuclei", "pacman": "nuclei", "manual": "go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest" },
+
+  "yara":         { "apt": "yara", "brew": "yara", "pacman": "yara", "dnf": "yara" },
+  "suricata":     { "apt": "suricata", "brew": "suricata", "pacman": "suricata", "dnf": "suricata" },
+  "snort":        { "apt": "snort", "brew": "snort", "pacman": "snort", "dnf": "snort" },
+  "zeek":         { "brew": "zeek", "pacman": "zeek", "manual": "Not in default apt — needs OpenSUSE Build Service repo. See https://docs.zeek.org/en/master/install.html" },
+
+  "scapy":        { "pip": "scapy", "apt": "python3-scapy" },
+  "frida":        { "pip": "frida-tools" },
+  "objection":    { "pip": "objection" },
+  "volatility":   { "pip": "volatility3", "needs": "imports as `vol`; binary is `vol.py` or `vol`" },
+  "shodan":       { "pip": "shodan", "needs": "set API key: shodan init <key>" },
+  "censys":       { "pip": "censys", "needs": "set API key: censys config" },
+  "androguard":   { "pip": "androguard" },
+  "oletools":     { "pip": "oletools" },
+  "peepdf":       { "pip": "peepdf" },
+  "pdfid":        { "pip": "pdfid" },
+  "pdf-parser":   { "pip": "pdf-parser" },
+  "floss":        { "pip": "flare-floss" },
+
+  "binwalk":      { "apt": "binwalk", "brew": "binwalk", "pacman": "binwalk", "dnf": "binwalk" },
+  "foremost":     { "apt": "foremost", "brew": "foremost", "pacman": "foremost", "dnf": "foremost" },
+  "scalpel":      { "apt": "scalpel", "pacman": "scalpel" },
+  "dcfldd":       { "apt": "dcfldd", "brew": "dcfldd", "pacman": "dcfldd" },
+  "radare2":      { "apt": "radare2", "brew": "radare2", "pacman": "radare2", "dnf": "radare2" },
+  "ltrace":       { "apt": "ltrace", "pacman": "ltrace", "dnf": "ltrace" },
+  "apktool":      { "apt": "apktool", "brew": "apktool", "pacman": "apktool" },
+  "jadx":         { "brew": "jadx", "pacman": "jadx", "manual": "Not in Ubuntu apt. Download from https://github.com/skylot/jadx/releases or use snap (3rd-party): sudo snap install jadx-android-decompiler" },
+
+  "testssl":      { "apt": "testssl.sh", "brew": "testssl", "pacman": "testssl.sh", "manual": "git clone --depth 1 https://github.com/drwetter/testssl.sh.git" },
+  "zap":          { "brew": "zap", "manual": "OWASP ZAP — https://www.zaproxy.org/download/" },
+
+  "kubectl":      { "snap": "kubectl", "brew": "kubectl", "pacman": "kubectl", "dnf": "kubectl", "needs": "Default Ubuntu apt has no kubectl — using snap. For apt: see https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/" },
+  "helm":         { "snap": "helm", "brew": "helm", "pacman": "helm", "script": "curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash", "needs": "Default Ubuntu apt has no helm — using snap" },
+  "terraform":    { "snap": "terraform", "brew": "terraform", "pacman": "terraform", "needs": "Default Ubuntu apt has no terraform — using snap. For apt: https://developer.hashicorp.com/terraform/install" },
+  "ansible":      { "apt": "ansible", "brew": "ansible", "pacman": "ansible", "dnf": "ansible", "pip": "ansible" },
+
+  "gcloud":       { "manual": "Google Cloud SDK — https://cloud.google.com/sdk/docs/install" },
+  "az":           { "manual": "Azure CLI — https://learn.microsoft.com/cli/azure/install-azure-cli" },
+
+  "xvfb":         { "apt": "xvfb", "pacman": "xorg-server-xvfb", "dnf": "xorg-x11-server-Xvfb" },
+
+  "elastic":      { "manual": "Elastic Stack is multi-component — https://www.elastic.co/downloads" },
+  "kibana":       { "manual": "Part of Elastic Stack — install elasticsearch first" },
+  "splunk":       { "manual": "Commercial install — https://www.splunk.com/en_us/download.html" },
+  "ghidra":       { "manual": "Java app, no package — https://ghidra-sre.org" },
+  "metasploit":   { "script": "curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > /tmp/msfinstall && sudo bash /tmp/msfinstall", "needs": "Large download (~2GB)" },
+  "autopsy":      { "manual": "Java GUI app — https://www.sleuthkit.org/autopsy/download.php" },
+  "maltego":      { "manual": "Paid GUI app — https://www.maltego.com/downloads/" },
+  "cuckoo":       { "manual": "Sandbox — needs full setup; pip3 install -U cuckoo or use Cuckoo3 fork" },
+
+  "rustup":           { "script": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y", "brew": "rustup", "pacman": "rustup", "needs": "After install: source $HOME/.cargo/env or open a new shell so PATH picks up ~/.cargo/bin" },
+  "cargo":            { "script": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y", "brew": "rustup", "pacman": "rustup", "needs": "Ships with rustup — installing rustup also installs cargo, rustc, clippy, rustfmt" },
+  "rustc":            { "script": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y", "brew": "rustup", "pacman": "rustup", "needs": "Ships with rustup" },
+  "clippy":           { "script": "rustup component add clippy", "needs": "Invoked as `cargo clippy`. Requires rustup to be installed first" },
+  "rustfmt":          { "script": "rustup component add rustfmt", "needs": "Invoked as `cargo fmt` or `rustfmt`. Requires rustup" },
+
+  "cargo-watch":      { "script": "cargo install cargo-watch --locked", "needs": "Requires cargo. Run `cargo watch -x check -x test` for tight feedback" },
+  "cargo-nextest":    { "script": "cargo install cargo-nextest --locked", "brew": "cargo-nextest", "needs": "Drop-in faster test runner — `cargo nextest run`" },
+  "cargo-edit":       { "script": "cargo install cargo-edit --locked", "needs": "Provides `cargo add/rm/upgrade/set-version`. Mostly built into cargo since 1.62 but cargo-edit adds rm/upgrade" },
+  "cargo-expand":     { "script": "cargo install cargo-expand --locked", "needs": "Shows macro expansions. Run `cargo expand` in a crate" },
+  "cargo-machete":    { "script": "cargo install cargo-machete --locked", "needs": "Detects unused dependencies. Run `cargo machete`" },
+  "cargo-outdated":   { "script": "cargo install cargo-outdated --locked", "needs": "Run `cargo outdated` to see deps with newer versions available" },
+  "cargo-udeps":      { "script": "cargo install cargo-udeps --locked", "needs": "Like cargo-machete but more thorough. Requires nightly: `cargo +nightly udeps`" },
+
+  "cargo-audit":      { "script": "cargo install cargo-audit --locked", "brew": "cargo-audit", "needs": "Scans Cargo.lock against RustSec advisory DB. Run `cargo audit`" },
+  "cargo-deny":       { "script": "cargo install cargo-deny --locked", "brew": "cargo-deny", "needs": "Policy enforcement: licenses, advisories, duplicate versions, banned crates. Run `cargo deny init` then `cargo deny check`" },
+  "cargo-geiger":     { "script": "cargo install cargo-geiger --locked", "needs": "Counts use of `unsafe` in dependencies. Run `cargo geiger`" },
+  "cargo-vet":        { "script": "cargo install cargo-vet --locked", "needs": "Supply-chain auditing tool by Mozilla. Run `cargo vet init`" },
+  "cargo-crev":       { "script": "cargo install cargo-crev --locked", "needs": "Crowd-sourced code review trust web. Run `cargo crev`" },
+
+  "cargo-flamegraph": { "script": "cargo install flamegraph --locked", "needs": "Requires perf (linux: linux-tools-common) or dtrace (macos). Run `cargo flamegraph`" },
+  "cargo-criterion":  { "script": "cargo install cargo-criterion --locked", "needs": "Frontend for criterion benches. Run `cargo criterion`" },
+  "cargo-bloat":      { "script": "cargo install cargo-bloat --locked", "needs": "Analyses what takes space in the binary. Run `cargo bloat --release`" },
+
+  "bacon":            { "script": "cargo install --locked bacon", "brew": "bacon", "pacman": "bacon", "needs": "Background `cargo check` TUI. Run `bacon` in a crate" },
+  "sccache":          { "script": "cargo install sccache --locked", "brew": "sccache", "pacman": "sccache", "needs": "Compiler cache. Set RUSTC_WRAPPER=sccache in your shell or .cargo/config.toml" },
+
+  "wasm-pack":        { "script": "curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh", "brew": "wasm-pack", "pacman": "wasm-pack", "needs": "Build Rust crates as WASM modules with JS bindings" },
+  "trunk":            { "script": "cargo install --locked trunk", "brew": "trunk", "needs": "Build/serve WASM web apps (Yew, Leptos, Sycamore). Also needs `rustup target add wasm32-unknown-unknown`" },
+  "dioxus":           { "script": "cargo install dioxus-cli --locked", "needs": "Dioxus app dev CLI. Run `dx new <name>`, `dx serve`" },
+  "tauri":            { "script": "cargo install tauri-cli --locked", "npm": "@tauri-apps/cli", "needs": "Desktop apps. Run `cargo tauri init` or `npm create tauri-app`" },
+
+  "sqlx":             { "script": "cargo install sqlx-cli --locked --no-default-features --features native-tls,postgres,sqlite,mysql", "needs": "DB migrations + offline query caching. Run `sqlx migrate add <name>` / `sqlx migrate run`" },
+  "sea-orm-cli":      { "script": "cargo install sea-orm-cli --locked", "needs": "Entity generation + migrations for SeaORM. Run `sea-orm-cli generate entity`" },
+  "diesel":           { "script": "cargo install diesel_cli --locked --no-default-features --features postgres", "apt": "libpq-dev", "needs": "Diesel ORM CLI. Replace features with sqlite/mysql as needed. apt line installs the libpq build dep" },
+
+  "mdbook":           { "script": "cargo install mdbook --locked", "brew": "mdbook", "pacman": "mdbook", "needs": "Static docs site from markdown. Run `mdbook init <dir>` then `mdbook serve`" },
+  "cross":            { "script": "cargo install cross --git https://github.com/cross-rs/cross", "needs": "Cross-compile via Docker images. Run `cross build --target aarch64-unknown-linux-gnu`. Requires docker" },
+  "just":             { "apt": "just", "brew": "just", "pacman": "just", "dnf": "just", "script": "cargo install just --locked", "needs": "Task runner — Justfile syntax, like make but sane" },
+
+  "tokio-console":    { "script": "cargo install --locked tokio-console", "needs": "Live runtime introspection for tokio. App must enable console-subscriber + RUSTFLAGS=\"--cfg tokio_unstable\"" },
+  "cargo-insta":      { "script": "cargo install cargo-insta --locked", "brew": "cargo-insta", "needs": "Snapshot testing review tool. Run `cargo insta test` then `cargo insta review`" },
+  "cargo-fuzz":       { "script": "cargo install cargo-fuzz --locked", "needs": "libFuzzer integration. Requires nightly: `cargo +nightly fuzz run <target>`" },
+  "cargo-hack":       { "script": "cargo install cargo-hack --locked", "brew": "cargo-hack", "needs": "Test all feature combos: `cargo hack check --feature-powerset`" },
+  "cargo-mutants":    { "script": "cargo install --locked cargo-mutants", "needs": "Mutation testing — verifies tests actually catch bugs. Run `cargo mutants`" },
+  "release-plz":      { "script": "cargo install --locked release-plz", "needs": "Automated versioning + changelog + crates.io publish. Best wired into GitHub Actions" },
+  "typos":            { "script": "cargo install typos-cli --locked", "brew": "typos-cli", "pacman": "typos", "needs": "Fast source-code spellcheck. Run `typos` (read-only) or `typos -w` (fix)" },
+
+  "cargo-chef":       { "script": "cargo install cargo-chef --locked", "needs": "Used inside Dockerfiles to cache dep compilation as a layer. Multi-stage: `cargo chef prepare` → `cargo chef cook`" },
+  "cargo-msrv":       { "script": "cargo install cargo-msrv --locked", "needs": "Find/verify minimum supported Rust version. Run `cargo msrv find` or `cargo msrv verify`" },
+  "cargo-readme":     { "script": "cargo install cargo-readme --locked", "needs": "Generate README.md from lib.rs doc comments. Run `cargo readme > README.md`" },
+
+  "maturin":          { "script": "pipx install maturin", "pip": "maturin", "brew": "maturin", "needs": "Build + publish PyO3 / cffi Python extension modules written in Rust. Run `maturin develop` for local install or `maturin build --release`" },
+  "napi":             { "npm": "@napi-rs/cli", "needs": "Build native Node.js addons from Rust via NAPI-RS. Run `napi new` then `napi build`" },
+  "uniffi-bindgen":   { "script": "cargo install uniffi-bindgen --locked", "needs": "Generate Kotlin/Swift/Python/Ruby bindings from a single Rust UDL spec. Used by Mozilla, Bitwarden" },
+  "bindgen":          { "script": "cargo install bindgen-cli --locked", "needs": "Generate Rust FFI from C headers: `bindgen wrapper.h -o bindings.rs`. Needs libclang at runtime — `apt install libclang-dev` or `brew install llvm` (set LIBCLANG_PATH on macOS)" },
+  "cbindgen":         { "script": "cargo install --locked cbindgen", "brew": "cbindgen", "pacman": "rust-cbindgen", "needs": "Generate C/C++ headers from a Rust crate: `cbindgen --config cbindgen.toml -o include/mylib.h`" },
+
+  "probe-rs":         { "script": "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/probe-rs/probe-rs/releases/latest/download/probe-rs-tools-installer.sh | sh", "brew": "probe-rs/probe-rs/probe-rs", "needs": "Embedded debugger/flasher (replaces OpenOCD for most targets). Ships `probe-rs`, `cargo-embed`, `cargo-flash`" },
+  "cargo-embed":      { "script": "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/probe-rs/probe-rs/releases/latest/download/probe-rs-tools-installer.sh | sh", "needs": "Ships with probe-rs. Flash + RTT console: `cargo embed --release`" },
+  "cargo-binutils":   { "script": "cargo install cargo-binutils --locked && rustup component add llvm-tools-preview", "needs": "size/objdump/strip on Rust binaries via LLVM tools. Run `cargo size --release`" },
+
+  "chisel":           { "script": "cargo install --git https://github.com/ckanthony/Chisel chisel", "manual": "Pre-built binaries + .mcpb MCP bundles at https://github.com/ckanthony/Chisel/releases/latest", "needs": "Rust-powered precision file tools for AI agents (patch-based edits, path confinement). Primarily an MCP server; the `chisel` binary speaks MCP over stdio/HTTP" }
+}
