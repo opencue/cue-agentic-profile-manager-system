@@ -1,0 +1,51 @@
+cff-version: 1.2.0
+message: "If you use cue in research or write about it, please cite this entry."
+title: "cue: an agent profile manager and skill package manager for Claude Code, Codex, and 8 other AI coding agents"
+type: software
+authors:
+  - given-names: "Viktor"
+    family-names: "Nagy"
+    alias: "NagyVikt"
+    website: "https://github.com/recodeee"
+abstract: >-
+  cue is an open-source CLI that scopes AI agent skills, MCP servers, plugins,
+  rules, commands, hooks, persona, playbooks, quality gates, and structural
+  evals per-directory across 10 AI coding agents (Claude Code, OpenAI Codex,
+  Cursor, Cline, Google Gemini CLI, GitHub Copilot, Windsurf, Roo Code,
+  Sourcegraph Amp, Aider). cue introduces a 5-dimension expert-agent profile
+  model (persona, playbooks, quality gates, evals, failure loop) that treats
+  agent expertise as a composable system rather than a static toolbox.
+  It includes a GitHub Code Search-powered skill-discovery engine, a per-OS
+  system CLI dependency installer, an outbound PR flow with throttle and
+  opt-out controls, an LLM-drafted failure-feedback loop, and JSON-LD
+  Schema.org generation for AI search engine citation.
+keywords:
+  - claude-code
+  - codex
+  - cursor
+  - cline
+  - gemini-cli
+  - github-copilot
+  - ai-coding-agent
+  - mcp
+  - model-context-protocol
+  - skill-management
+  - agent-profile-manager
+  - prompt-engineering
+  - token-optimization
+  - llm-tooling
+license: MIT
+repository-code: "https://github.com/recodeee/cue"
+url: "https://github.com/recodeee/cue"
+version: "0.5.0"
+date-released: "2026-05-24"
+preferred-citation:
+  type: software
+  title: "cue: agent profile manager for Claude Code, Codex, and 8 other AI coding agents"
+  authors:
+    - given-names: "Viktor"
+      family-names: "Nagy"
+      alias: "NagyVikt"
+  year: 2026
+  url: "https://github.com/recodeee/cue"
+  license: MIT
