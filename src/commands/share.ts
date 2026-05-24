@@ -16,7 +16,7 @@ import { loadProfile } from "../lib/profile-loader";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
-const MARKETPLACE_URL = "https://raw.githubusercontent.com/recodeee/cue-marketplace/main/index.json";
+const MARKETPLACE_URL = "https://raw.githubusercontent.com/opencue/cue-marketplace/main/index.json";
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 
 export async function run(args: string[]): Promise<number> {

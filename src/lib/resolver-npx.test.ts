@@ -307,3 +307,78 @@ describe("resolveNpxDetailed", () => {
     );
   });
 });
+
+// --- flattenNpxLayout: post-fetch path relocation --------------------------
+
+describe("flattenNpxLayout", () => {
+  let staging: string;
+
+  beforeEach(() => {
+    staging = mkdtempSync(join(tmpdir(), "cue-flatten-test-"));
+  });
+  afterEach(() => {
+    try { rmSync(staging, { recursive: true, force: true }); } catch {}
+  });
+
+  it("relocates <staging>/.claude/skills/<skill>/ → <staging>/<skill>/", async () => {
+    const { flattenNpxLayout } = await import("./resolver-npx");
+
+    // Set up the layout the `skills` CLI actually produces.
+    const fromPath = join(staging, ".claude", "skills", "my-skill");
+    mkdirSync(fromPath, { recursive: true });
+    writeFileSync(join(fromPath, "SKILL.md"), "# my-skill\n");
+
+    flattenNpxLayout(staging, "my-skill");
+
+    const flatPath = join(staging, "my-skill");
+    expect(existsSync(flatPath)).toBe(true);
+    expect(existsSync(join(flatPath, "SKILL.md"))).toBe(true);
+    expect(existsSync(fromPath)).toBe(false);
+    // Cleanup: .claude/ should be gone now (was empty after the move).
+    expect(existsSync(join(staging, ".claude"))).toBe(false);
+  });
+
+  it("is a no-op if <staging>/<skill>/ already exists (don't clobber)", async () => {
+    const { flattenNpxLayout } = await import("./resolver-npx");
+
+    const existing = join(staging, "my-skill");
+    mkdirSync(existing, { recursive: true });
+    writeFileSync(join(existing, "EXISTING.md"), "do not overwrite\n");
+
+    const fromPath = join(staging, ".claude", "skills", "my-skill");
+    mkdirSync(fromPath, { recursive: true });
+    writeFileSync(join(fromPath, "NEW.md"), "would clobber existing\n");
+
+    flattenNpxLayout(staging, "my-skill");
+
+    // The existing skill is preserved.
+    expect(existsSync(join(existing, "EXISTING.md"))).toBe(true);
+    expect(existsSync(join(existing, "NEW.md"))).toBe(false);
+  });
+
+  it("is a no-op when source layout is absent (e.g. CLI changed again)", async () => {
+    const { flattenNpxLayout } = await import("./resolver-npx");
+
+    // Nothing in staging — flattening should be silent, not throw.
+    expect(() => flattenNpxLayout(staging, "missing-skill")).not.toThrow();
+    expect(existsSync(join(staging, "missing-skill"))).toBe(false);
+  });
+
+  it("leaves sibling skills under .claude/skills/ alone when relocating one", async () => {
+    const { flattenNpxLayout } = await import("./resolver-npx");
+
+    const skillsDir = join(staging, ".claude", "skills");
+    mkdirSync(join(skillsDir, "alpha"), { recursive: true });
+    mkdirSync(join(skillsDir, "beta"), { recursive: true });
+    writeFileSync(join(skillsDir, "alpha", "SKILL.md"), "");
+    writeFileSync(join(skillsDir, "beta", "SKILL.md"), "");
+
+    flattenNpxLayout(staging, "alpha");
+
+    // alpha got moved out, beta stayed in place — the .claude tree is still
+    // present because beta is still there.
+    expect(existsSync(join(staging, "alpha", "SKILL.md"))).toBe(true);
+    expect(existsSync(join(skillsDir, "beta", "SKILL.md"))).toBe(true);
+    expect(existsSync(join(skillsDir, "alpha"))).toBe(false);
+  });
+});

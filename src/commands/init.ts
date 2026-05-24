@@ -2,6 +2,7 @@
  * `cue init` — project scanner + profile wizard.
  */
 
+import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as p from "@clack/prompts";
@@ -9,6 +10,29 @@ import * as p from "@clack/prompts";
 import { detectProfile } from "../lib/auto-detect";
 import { scanProject } from "../lib/project-scanner";
 import { listProfiles } from "../lib/profile-loader";
+import { getCachedGemsForProfile, autoInstallClis } from "./discover";
+
+async function offerDiscoverGems(profile: string): Promise<void> {
+  const gems = getCachedGemsForProfile(profile, 8).slice(0, 3);
+  if (!gems.length) return;
+
+  p.log.info(`💎 Top gems for "${profile}":`);
+  for (const g of gems) {
+    p.log.message(`  ${g.full_name} (★${g.stars}, score ${g.gem_score}) — ${(g.description ?? "").slice(0, 60)}`);
+  }
+
+  const install = await p.confirm({ message: "Install these gems?" });
+  if (p.isCancel(install) || !install) return;
+
+  for (const g of gems) {
+    p.log.step(`Installing ${g.full_name}...`);
+    spawnSync("npx", ["skills", "add", g.full_name, "-a", "claude-code", "-y"], {
+      encoding: "utf8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"],
+    });
+    autoInstallClis(g.name);
+  }
+  p.log.success(`Installed ${gems.length} gem(s).`);
+}
 
 export async function run(args: string[]): Promise<number> {
   const cwd = process.cwd();
@@ -86,12 +110,14 @@ export async function run(args: string[]): Promise<number> {
     await createProfile([name as string, "--description", desc as string, "--icon", "🔧"]);
 
     writeFileSync(join(cwd, ".cue-profile"), (name as string) + "\n");
+    await offerDiscoverGems(name as string);
     p.outro(`✅ Created profile "${name}" and pinned to this directory.`);
     return 0;
   }
 
   // Pin the chosen profile
   writeFileSync(join(cwd, ".cue-profile"), (choice as string) + "\n");
+  await offerDiscoverGems(choice as string);
   p.outro(`✅ Pinned "${choice}" to this directory. Next \`claude\` launch will use it.`);
   return 0;
 }

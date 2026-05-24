@@ -13,8 +13,8 @@ With cue: per-directory `.cue-profile` pins a profile to a repo. The materialize
 
 == INSTALL ==
 Primary:    npm install -g cue-ai
-One-line:   curl -fsSL https://raw.githubusercontent.com/recodeee/cue/main/get.sh | bash
-Manual:     git clone https://github.com/recodeee/cue.git ~/Documents/cue && ~/Documents/cue/install.sh
+One-line:   curl -fsSL https://raw.githubusercontent.com/opencue/cue/main/get.sh | bash
+Manual:     git clone https://github.com/opencue/cue.git ~/Documents/cue && ~/Documents/cue/install.sh
 Per-OS phased (agent-driven): paste setup/macos.md, setup/linux.md, or setup/windows.md into Claude Code; the agent walks the user through Phases 1–8 with verification checkpoints.
 Flags: `install.sh --help` lists `--yes`, `--codex`, `--uninstall`. Idempotent.
 
@@ -158,6 +158,6 @@ Python deps:       astral-sh/uv (uvx for Excel/Word MCPs).
 
 == LICENSE & LINKS ==
 License:   MIT.
-Repo:      https://github.com/recodeee/cue
+Repo:      https://github.com/opencue/cue
 npm:       https://www.npmjs.com/package/cue-ai
 Author:    @recodeee.

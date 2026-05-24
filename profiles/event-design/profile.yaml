@@ -1,0 +1,10 @@
+name: event-design
+icon: "💌"
+description: Event collateral design — wedding invitations, save-the-dates, programs, menus, place cards. Bespoke HTML → print-ready PNG, multilingual, fully local
+inherits: core
+skills:
+  local:
+    - event-design/wedding-invitations    # pointer to wyx-sg/wedding-invitation-skill
+    - design/high-end-visual-design       # generic aesthetic / composition guidance
+    - design/brandkit                     # palette / typography decisions
+mcps: []

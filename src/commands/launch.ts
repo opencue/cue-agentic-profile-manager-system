@@ -35,6 +35,8 @@ interface ParsedArgs {
   forcePick: boolean;
   dryRun: boolean;
   rematerialize: boolean;
+  /** `--subset "<prompt>"` — filter skills to those relevant to the prompt before materializing. */
+  subset: string | null;
   passthrough: string[];
 }
 
@@ -44,6 +46,7 @@ function parse(args: string[]): ParsedArgs {
   let forcePick = false;
   let dryRun = false;
   let rematerialize = false;
+  let subset: string | null = null;
   const passthrough: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -58,11 +61,17 @@ function parse(args: string[]): ParsedArgs {
       dryRun = true;
     } else if (a === "--rematerialize") {
       rematerialize = true;
+    } else if (a === "--subset") {
+      subset = args[++i] ?? null;
     } else {
       passthrough.push(a!);
     }
   }
-  return { agent, override, forcePick, dryRun, rematerialize, passthrough };
+  // Env var fallback for users who want subset on every launch without retyping.
+  if (!subset && process.env.CUE_SMART_SUBSET && passthrough.length > 0) {
+    subset = passthrough.join(" ");
+  }
+  return { agent, override, forcePick, dryRun, rematerialize, subset, passthrough };
 }
 
 // ---------------------------------------------------------------------------
@@ -558,6 +567,51 @@ export async function run(args: string[]): Promise<number> {
     const { rm: rmFile } = await import("node:fs/promises");
     const hashPath = join(configDir(), "runtime", profileName, agentKind === "claude-code" ? "claude" : "codex", ".cue-hash");
     try { await rmFile(hashPath, { force: true }); } catch { /* ok */ }
+  }
+
+  // --subset / CUE_SMART_SUBSET: ask claude --print which skills are relevant
+  // to the prompt and prune profile.skills.local before materialization. Fails
+  // open — any error keeps the full skill set.
+  //
+  // Auto-mode: if CUE_SMART_SUBSET=1 and no explicit --subset, look up the most
+  // recent first prompt captured by resources/hooks/first-prompt-capture.sh for
+  // this cwd. Cycle is: first launch loads full set → first prompt gets captured
+  // → second+ launch in same cwd auto-subsets using the historical prompt.
+  let subsetPrompt: string | null = parsed.subset;
+  if (!subsetPrompt && process.env.CUE_SMART_SUBSET) {
+    try {
+      const { createHash } = await import("node:crypto");
+      const cwdAbs = process.cwd();
+      const cwdHash = createHash("sha1").update(cwdAbs).digest("hex").slice(0, 16);
+      const captured = join(configDir(), "first-prompts", `${cwdHash}.json`);
+      const { existsSync, readFileSync } = await import("node:fs");
+      if (existsSync(captured)) {
+        const { prompt } = JSON.parse(readFileSync(captured, "utf8")) as { prompt?: string };
+        if (prompt && prompt.trim().length >= 8) {
+          subsetPrompt = prompt;
+          process.stderr.write(`  💡 smart-subset using captured first prompt from prior session\n`);
+        }
+      }
+    } catch { /* fail-open — no captured prompt, run full set */ }
+  }
+
+  if (subsetPrompt && profile.skills.local.length > 4) {
+    try {
+      const { selectRelevantSkills } = await import("../lib/skill-subset");
+      const ids = profile.skills.local.map((s) => s.id);
+      const result = await selectRelevantSkills(ids, subsetPrompt);
+      process.stderr.write(`  🎯 smart-subset: ${result.reason}\n`);
+      if (result.classified && result.selected.length < ids.length) {
+        const keep = new Set(result.selected);
+        profile.skills.local = profile.skills.local.filter((s) => keep.has(s.id));
+        // Force a rebuild so the smaller skill set actually lands on disk.
+        const { rm: rmFile } = await import("node:fs/promises");
+        const hashPath = join(configDir(), "runtime", profileName, agentKind === "claude-code" ? "claude" : "codex", ".cue-hash");
+        try { await rmFile(hashPath, { force: true }); } catch { /* ok */ }
+      }
+    } catch (err) {
+      process.stderr.write(`  ⚠️  smart-subset failed (${(err as Error).message}) — kept full skill set\n`);
+    }
   }
 
   const runtime = await materializeRuntime({

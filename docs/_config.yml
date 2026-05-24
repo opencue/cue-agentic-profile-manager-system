@@ -1,0 +1,8 @@
+title: "cue — Discover Claude Code Skills"
+description: "Find hidden gem skills for Claude Code, Codex, and 8 more AI agents"
+theme: cayman
+baseurl: /cue
+url: https://recodeee.github.io
+
+plugins:
+  - jekyll-seo-tag

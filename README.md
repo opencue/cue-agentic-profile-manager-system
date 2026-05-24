@@ -4,6 +4,7 @@
   and via GitHub Pages, so the JSON-LD blocks below are picked up by both Google's
   rich-results parser and LLM scrapers.
 -->
+<!--
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -13,11 +14,11 @@
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Linux, macOS, Windows (WSL2)",
   "description": "Open-source agent profile manager and skill package manager for Claude Code, OpenAI Codex, Cursor, Cline, Gemini CLI, GitHub Copilot, Windsurf, Roo Code, Sourcegraph Amp, and Aider. Discover Claude Code skills on GitHub, install them per-directory, organize into reusable profiles, cut per-message token cost 10–25×.",
-  "url": "https://github.com/recodeee/cue",
+  "url": "https://github.com/opencue/cue",
   "downloadUrl": "https://www.npmjs.com/package/cue-ai",
-  "codeRepository": "https://github.com/recodeee/cue",
-  "license": "https://github.com/recodeee/cue/blob/main/LICENSE",
-  "softwareVersion": "0.5.0",
+  "codeRepository": "https://github.com/opencue/cue",
+  "license": "https://github.com/opencue/cue/blob/main/LICENSE",
+  "softwareVersion": "0.6.0",
   "programmingLanguage": "TypeScript",
   "runtimePlatform": "Bun",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -33,6 +34,7 @@
   ]
 }
 </script>
+-->
 
 <p align="center">
   <img src="./docs/assets/hero.svg" alt="cue — Agent Profile Manager for Claude Code & Codex" width="820">
@@ -43,9 +45,9 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/cue-ai"><img src="https://img.shields.io/npm/v/cue-ai?style=flat-square&label=npm&color=6366f1" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/cue-ai"><img src="https://img.shields.io/npm/dw/cue-ai?style=flat-square&label=downloads&color=22c55e" alt="npm downloads"></a>
-  <a href="https://github.com/recodeee/cue/stargazers"><img src="https://img.shields.io/github/stars/recodeee/cue?style=flat-square&label=★&color=fbbf24" alt="GitHub stars"></a>
-  <a href="https://github.com/recodeee/cue/commits/main"><img src="https://img.shields.io/github/last-commit/recodeee/cue?style=flat-square&label=last%20commit&color=ec4899" alt="last commit"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/github/license/recodeee/cue?style=flat-square&color=8b5cf6" alt="MIT license"></a>
+  <a href="https://github.com/opencue/cue/stargazers"><img src="https://img.shields.io/github/stars/opencue/cue?style=flat-square&label=★&color=fbbf24" alt="GitHub stars"></a>
+  <a href="https://github.com/opencue/cue/commits/main"><img src="https://img.shields.io/github/last-commit/opencue/cue?style=flat-square&label=last%20commit&color=ec4899" alt="last commit"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/opencue/cue?style=flat-square&color=8b5cf6" alt="MIT license"></a>
 </p>
 
 # cue — Discover, install, and organize AI agent skills in one command
@@ -543,7 +545,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: recodeee/cue/skill-md-lint-action@main
+      - uses: opencue/cue/skill-md-lint-action@main
         with:
           fix: false            # set true to auto-commit fixes
           fail-on: error        # error | warning | info
@@ -913,8 +915,8 @@ claude
 
 | Path | Command |
 |---|---|
-| **One-line script** | `curl -fsSL https://raw.githubusercontent.com/recodeee/cue/main/get.sh \| bash` |
-| **Manual clone** | `git clone https://github.com/recodeee/cue.git ~/Documents/cue && ~/Documents/cue/install.sh` |
+| **One-line script** | `curl -fsSL https://raw.githubusercontent.com/opencue/cue/main/get.sh \| bash` |
+| **Manual clone** | `git clone https://github.com/opencue/cue.git ~/Documents/cue && ~/Documents/cue/install.sh` |
 | **Per-OS bootstrap (agent-driven)** | paste [`setup/macos.md`](./setup/macos.md) · [`setup/linux.md`](./setup/linux.md) · [`setup/windows.md`](./setup/windows.md) into Claude Code |
 
 `install.sh --help` lists `--yes`, `--codex`, `--uninstall`. Idempotent — safe to re-run.
@@ -1200,21 +1202,21 @@ Projects and teams using `.cue-profile` in production:
 
 | Project | Profile | What they do |
 |---------|---------|-------------|
-| [recodeee/cue](https://github.com/recodeee/cue) | `full`, `readme-writer` | This repo — dogfooding cue on itself |
+| [opencue/cue](https://github.com/opencue/cue) | `full`, `readme-writer` | This repo — dogfooding cue on itself |
 | [recodeee/colony](https://github.com/recodeee/colony) | `fleet-control` | Multi-agent coordination MCP |
 | [recodeee/gitguardex](https://github.com/recodeee/gitguardex) | `backend` | Branch + worktree isolation for parallel agents |
 
-> **Using cue?** Add your project — open a PR or drop a link in [Discussions](https://github.com/recodeee/cue/discussions).
+> **Using cue?** Add your project — open a PR or drop a link in [Discussions](https://github.com/opencue/cue/discussions).
 
 ---
 
 ## Star History
 
-<a href="https://star-history.com/#recodeee/cue&Date">
+<a href="https://star-history.com/#opencue/cue&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=recodeee/cue&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=recodeee/cue&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=recodeee/cue&type=Date" width="720" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=opencue/cue&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=opencue/cue&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=opencue/cue&type=Date" width="720" />
   </picture>
 </a>
 
@@ -1245,7 +1247,7 @@ cue score --profile my-profile                # verify efficiency
 
 ### Other ways to contribute
 
-- **Report bugs** — [open an issue](https://github.com/recodeee/cue/issues)
+- **Report bugs** — [open an issue](https://github.com/opencue/cue/issues)
 - **Share your profile** — `cue share publish --profile <name>`
 - **Add to the registry** — PR to `docs/registry/index.json`
 - **Improve docs** — SVGs live in `docs/assets/`, edit XML directly
@@ -1254,7 +1256,7 @@ cue score --profile my-profile                # verify efficiency
 ### Development
 
 ```bash
-git clone https://github.com/recodeee/cue.git
+git clone https://github.com/opencue/cue.git
 cd cue && bun install
 bun test                                      # 336 tests (lib + commands)
 bun run src/index.ts --help                   # run locally

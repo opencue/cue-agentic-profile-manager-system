@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/first-prompt-capture.sh",
+            "description": "On the first user prompt of a session, save it to ~/.config/cue/first-prompts/<cwd-hash>.json for the next launch's smart-subset",
+            "id": "cue:userpromptsubmit:first-prompt-capture"
+          }
+        ]
+      }
+    ]
+  }
+}

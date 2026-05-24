@@ -1,0 +1,9 @@
+name: predict-everything
+icon: "🔮"
+description: Multi-agent prediction & simulation — digital sandbox rehearsals, swarm intelligence, "what if" scenarios via MiroFish / OASIS-style engines
+inherits: core
+skills:
+  local:
+    - predict-everything/mirofish     # 666ghj/MiroFish — prediction engine on top of OASIS
+    - research/awesome-rust-search    # general discovery (useful for finding adjacent sim libs)
+mcps: []

@@ -1,17 +1,449 @@
 {
   "version": 1,
   "skills": {
+    "academic-cv-builder": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/academic-cv-builder/SKILL.md",
+      "computedHash": "10dfddb1d7d01fdbec8e965841c1de42b193e5af67d2570f24d3469ece4ded3b"
+    },
+    "agenticx-a2a-connector": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-a2a-connector/SKILL.md",
+      "computedHash": "13e34f1a3e3b3188582a9717f504e0014aca3e6013c040a36b28da9a50e1f1eb"
+    },
+    "agenticx-agent-builder": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-agent-builder/SKILL.md",
+      "computedHash": "f7b3ac4fe9822ef94e828c4e672afcd3f104170b4b43b98c759c07f5fe3142d7"
+    },
+    "agenticx-automation-crontask": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-automation-crontask/SKILL.md",
+      "computedHash": "ba16c6aef0e8161649f48e557c350c8bdf831375cb2772a84e3cb3b64e02c4a4"
+    },
+    "agenticx-deployer": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-deployer/SKILL.md",
+      "computedHash": "bca3c324aa2b5e9e00cbdae095e4b87439aa25ffb04385abf6f823249849c9a4"
+    },
+    "agenticx-memory-architect": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-memory-architect/SKILL.md",
+      "computedHash": "5816cc9a5bcfae54841a7d11707f0283a49a5a5bcc53831fa764f7c6f286f89d"
+    },
+    "agenticx-quickstart": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-quickstart/SKILL.md",
+      "computedHash": "c1a2a149a0a06e9722945143dc03df2356c0813ee0c55d8180c726233156a7ce"
+    },
+    "agenticx-skill-manager": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-skill-manager/SKILL.md",
+      "computedHash": "25c7a4822415eb3d190870ddb6bc5e97aa8490d2e8ff14088371d538c3c9b50c"
+    },
+    "agenticx-tool-creator": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-tool-creator/SKILL.md",
+      "computedHash": "85aae601930ea2b47b47412d897bab524f91119be0acdffeade6e945619d5350"
+    },
+    "agenticx-workflow-designer": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/agenticx-workflow-designer/SKILL.md",
+      "computedHash": "e31020b339de59259d09360d55b4a68c4cc75427af4942fe0570f5b903006c79"
+    },
+    "api-gateway": {
+      "source": "up2datedatabase476/api-gateway-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "38fdf4d3d31528fe0852fef2c1ceead47634e60d38bed84cb6601508e93a8898"
+    },
+    "career-changer-translator": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/career-changer-translator/SKILL.md",
+      "computedHash": "3ee269bf946090ef6c88fd516e1e0d76a5f47ff4379a9163bb409d7210f6753f"
+    },
+    "claude-skill-rust": {
+      "source": "londey/claude-skill-rust",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "4b4be0812c15c0ddf7efb802a429b91f62e2fbd2251ed596bd9708ae23cf86e4"
+    },
+    "claw-release": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/claw-release/SKILL.md",
+      "computedHash": "4f51403c08681bbda8cecba76a055391e9394c83e8a83fba9ca25e0dba643fda"
+    },
+    "clawsec-clawhub-checker": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/clawsec-clawhub-checker/SKILL.md",
+      "computedHash": "90c3405fdf0bfefdd9823a9818b15849704b22f103f68166c5160bbc9d40578e"
+    },
+    "clawsec-feed": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/clawsec-feed/SKILL.md",
+      "computedHash": "ba51739f26e0917261129e110e5af80ecb3018284da2af4571ace1cb64a7feae"
+    },
+    "clawsec-nanoclaw": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/clawsec-nanoclaw/SKILL.md",
+      "computedHash": "0865e6d5698dca8dd04d7149855a6afb5104033365f51bc019c9074d1994ed97"
+    },
+    "clawsec-scanner": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/clawsec-scanner/SKILL.md",
+      "computedHash": "7b2b91b7b76ffb30b2793091f1bd39cfed2fdad16c07423639efb9d10dec55fd"
+    },
+    "clawsec-suite": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/clawsec-suite/SKILL.md",
+      "computedHash": "70cd75e23558639de5dab5fc66ea26ee98f3cb823450072d2043214473802e49"
+    },
+    "clawtributor": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/clawtributor/SKILL.md",
+      "computedHash": "02fc21bee8f66eb9d81b20b06276a62f6240b156ef5f0cd27514fb9685664326"
+    },
+    "code-dev-workflow": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/bundled/code-dev-workflow/SKILL.md",
+      "computedHash": "16af074016f165522d68bc2de1d0de125896356814168fa13b74af5db83e5939"
+    },
+    "codebase-documenter": {
+      "source": "juanje/codebase-documenter",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "3d4d549ec5c4070ad9abb71185d9c9ec9ad075d823b1453ca0a7201efb9ab50d"
+    },
+    "context-mode": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "skillPath": "skills/context-mode/SKILL.md",
+      "computedHash": "1962755c8f5995762dff3e14b1d2703ae15c37e83fb10d5077ce2ddc595538e7"
+    },
+    "context-mode-ops": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/context-mode-ops/SKILL.md",
+      "computedHash": "adca9b66a9949e34793f44c3478a0d13e2096689be3c517b256b551299e6e8a3"
+    },
+    "cover-letter-generator": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/cover-letter-generator/SKILL.md",
+      "computedHash": "be8edf0952716e813a721f6d097cc8ae4d3562fac0a413138ca993cce8c4b5db"
+    },
+    "creative-portfolio-resume": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/creative-portfolio-resume/SKILL.md",
+      "computedHash": "a606d15d5a5af4bbbbb8f06433a3b4d16d6e88f23fc3f755eeee201cd35c94e1"
+    },
+    "ctx-doctor": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "skillPath": "skills/ctx-doctor/SKILL.md",
+      "computedHash": "0a3a57087267cb07f85bdf102f6b0778e1464a2e0a3f6383730f4aa2748c8cae"
+    },
+    "ctx-insight": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "skillPath": "skills/ctx-insight/SKILL.md",
+      "computedHash": "534d8ca8507738469ce4428a92e1bdcca3427ea6694a1a09646174cc93cd8a96"
+    },
+    "ctx-purge": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "skillPath": "skills/ctx-purge/SKILL.md",
+      "computedHash": "885b7538bfb20d315cd200ddd74ae6c621885d5d022dae964391837437b498d3"
+    },
+    "ctx-stats": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "skillPath": "skills/ctx-stats/SKILL.md",
+      "computedHash": "688761c1b6590738855da468c51acd855f19dd686fcd9f14c0e83cc89aaf6008"
+    },
+    "ctx-upgrade": {
+      "source": "mksglu/context-mode",
+      "sourceType": "github",
+      "skillPath": "skills/ctx-upgrade/SKILL.md",
+      "computedHash": "2113c6b0d6dbf0efbac1a611a4bd142be7ca9b3f1431bd5d065806525bd9bcce"
+    },
+    "deep-clean": {
+      "source": "JulienMicrofacto/deep-clean-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "d1d0a7c26c931a0504198f1c4226acbfc87b7819a39000d3c4512c473c78e399"
+    },
+    "deeppapernote": {
+      "source": "917Dhj/DeepPaperNote",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "c8737de36cb0fa8b85959d66584fce77e7f70e68cf54b2cc2b601c9b9d85dadb"
+    },
+    "executive-resume-writer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/executive-resume-writer/SKILL.md",
+      "computedHash": "4c8c519df4a69f2078ef14c354707754de4e28a73ddb5eb1032c88f2fd2201fe"
+    },
+    "fallow": {
+      "source": "fallow-rs/fallow-skills",
+      "sourceType": "github",
+      "skillPath": "fallow/skills/fallow/SKILL.md",
+      "computedHash": "620944dc17a55642252e337d5724f0836ba8c8215c58b3c2079d796b36728a08"
+    },
+    "feature-loop": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/bundled/feature-loop/SKILL.md",
+      "computedHash": "bb0634f4876154a36c65767683d75776869bf03eab8a9d9d9b01572224cc280f"
+    },
+    "free-image-and-video-generation": {
+      "source": "xramjetx/free-image-and-video-generation-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "d17141a28a55cf543adf47be8338d7f71642496121fb18f7bf096f5d72585fc8"
+    },
+    "github-optimization": {
+      "source": "inquisitive-production852/github-optimization-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "1b620701f7ff4947a2c8ac6e0d533b36dffc370c8ce74b20c90783872a18b6f5"
+    },
+    "hermes-attestation-guardian": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/hermes-attestation-guardian/SKILL.md",
+      "computedHash": "feb5c0570c9d3e18821b22fae4fac35d523f1d90ffa3fd23762fbd52cef2ea3d"
+    },
+    "hermes-traffic-guardian": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/hermes-traffic-guardian/SKILL.md",
+      "computedHash": "9e6d96ccbdd8dd37a7817af0f1faf8bf704f33169bfa69f7429e8e0e15240adb"
+    },
+    "interview-prep-generator": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/interview-prep-generator/SKILL.md",
+      "computedHash": "6079ff8377d21ec5bb660a9505ae77d4f33a9cdeb418f886c18e9668ff0b2852"
+    },
+    "job-description-analyzer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/job-description-analyzer/SKILL.md",
+      "computedHash": "f6b48144029ceef1e18e9ea9d8d7f3036965615608d82f91d3adb1321d3f4bbe"
+    },
+    "linkedin-profile-optimizer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/linkedin-profile-optimizer/SKILL.md",
+      "computedHash": "2d49d4fb126ddfdc630542e0844e87822abb8960030788de7cafa5deae7d736c"
+    },
+    "nanoclaw-traffic-guardian": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/nanoclaw-traffic-guardian/SKILL.md",
+      "computedHash": "5fbf11ee183dfe47c2ede2d04fd8b3b2bcb4d4bc3cae238f30fd0b85188833c8"
+    },
+    "nsauditor-ai": {
+      "source": "nsasoft/nsauditor-ai-agent-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "43fe4c73cb418b64cf72a76606b2c2776aa6a81969975eddb5e73ac74ad34fd9"
+    },
     "offensive-osint": {
       "source": "elementalsouls/Claude-OSINT",
       "sourceType": "github",
       "skillPath": "skills/offensive-osint/SKILL.md",
       "computedHash": "4087febda9dfaf663d7d1f44617595b1ad10dbf2104a93a2d1a993cee66656b6"
     },
+    "offer-comparison-analyzer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/offer-comparison-analyzer/SKILL.md",
+      "computedHash": "f80c939fe91f3a702a3b548b580c780cc204fa91281195fea800dd64246b4205"
+    },
+    "openclaw-audit-watchdog": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/openclaw-audit-watchdog/SKILL.md",
+      "computedHash": "6cb2a99d0e5e3edc5248bf9dd22bab7dc2e5872fba5aa8a45806b92d5727e6a5"
+    },
+    "openclaw-traffic-guardian": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/openclaw-traffic-guardian/SKILL.md",
+      "computedHash": "c2e552ac01917d45042a9e467a06f6bf23169cf7e328d0322e2aee3b6964ee48"
+    },
     "osint-methodology": {
       "source": "elementalsouls/Claude-OSINT",
       "sourceType": "github",
       "skillPath": "skills/osint-methodology/SKILL.md",
       "computedHash": "d4c435710fe1ba71750c469279b9f024d05d8557a6cfd86ee1a52a2a2c197417"
+    },
+    "picoclaw-security-guardian": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/picoclaw-security-guardian/SKILL.md",
+      "computedHash": "1d42eaee661334cc0f8e7d30de9790a3581e14bdda8ab94f28eff555a2f649e7"
+    },
+    "picoclaw-self-pen-testing": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/picoclaw-self-pen-testing/SKILL.md",
+      "computedHash": "1e1c212344cd10b04b213c67f43968db919b18e9ca45fec58ce1a49acc530b4b"
+    },
+    "picoclaw-traffic-guardian": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/picoclaw-traffic-guardian/SKILL.md",
+      "computedHash": "d8d59b62dd1747787208181e5ff35c3faf0f51a747f697bd654b80f36172a0d6"
+    },
+    "portfolio-case-study-writer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/portfolio-case-study-writer/SKILL.md",
+      "computedHash": "06712b3c7b6699797d15009ae31eca1e5b582290695f759a25a0bd9759312375"
+    },
+    "project-initializer": {
+      "source": "DemonDamon/AgenticX",
+      "sourceType": "github",
+      "skillPath": "agenticx/skills/bundled/project-initializer/SKILL.md",
+      "computedHash": "311df35082860279673df303d84882cca03fe70cfac3a474cb6e33161ec53f09"
+    },
+    "prompt-engineer": {
+      "source": "pateljig4545/prompt-engineer-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "bb20da64d8bc76a9141525a6a63ca6eca7bee935eb68c0a1c63955138ea50240"
+    },
+    "reference-list-builder": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/reference-list-builder/SKILL.md",
+      "computedHash": "a8cf62ebbbbc899caec7a64f9721c4eecece38a7981fa72929a8378f3ec6ad0f"
+    },
+    "resume-ats-optimizer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/resume-ats-optimizer/SKILL.md",
+      "computedHash": "2e3782b6176807b6d714213a14258bd86ca988d442757674eb86181d81465abd"
+    },
+    "resume-bullet-writer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/resume-bullet-writer/SKILL.md",
+      "computedHash": "c66df886c061907f50672f506120f716f64c3319ebd7ba306b70e9bb523d1ea8"
+    },
+    "resume-formatter": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/resume-formatter/SKILL.md",
+      "computedHash": "788284eb2f841efd6b59ee984924db4e67794ab842818f04870eb86ee61306c1"
+    },
+    "resume-quantifier": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/resume-quantifier/SKILL.md",
+      "computedHash": "d251f6c2f23684fe5bd270397a4cdb33e71575686dd3e44036536ddba645ad2c"
+    },
+    "resume-section-builder": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/resume-section-builder/SKILL.md",
+      "computedHash": "05ab3de39b14b41c93521536c77ea71793b21480381f1bfb01b032191b80ffac"
+    },
+    "resume-tailor": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/resume-tailor/SKILL.md",
+      "computedHash": "8b740a9d2ba26d33b02f0a6408975ed2aa1c322a6ceede049f06bd27878e1eff"
+    },
+    "resume-version-manager": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/resume-version-manager/SKILL.md",
+      "computedHash": "172c04ab07ba5e23a0136839f31dc36b6223877b60e2d438189ff95d816792f4"
+    },
+    "salary-negotiation-prep": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/salary-negotiation-prep/SKILL.md",
+      "computedHash": "f6b35719a68e88861f335871df923aa4239a4ef1f868fb88e011e189a0871203"
+    },
+    "soul-guardian": {
+      "source": "prompt-security/clawsec",
+      "sourceType": "github",
+      "skillPath": "skills/soul-guardian/SKILL.md",
+      "computedHash": "f5bf06731be10817d4c4b022a6e6a2a1f4276f1cd2d2fd62d639cd655a68656e"
+    },
+    "structured-prompt-writer": {
+      "source": "Marwane83930/structured-prompt-skill",
+      "sourceType": "github",
+      "skillPath": "skills/structured-prompt-writer/SKILL.md",
+      "computedHash": "bd51d154f9520eb1713174e38105293641b2641b8eec20d981988db514ed8cbd"
+    },
+    "sub-agents": {
+      "source": "blindlove200/sub-agents-skills",
+      "sourceType": "github",
+      "skillPath": "skills/sub-agents/SKILL.md",
+      "computedHash": "e6b3c2908768562f57e3454af1b6462e8ba489e5641c29ad5c778603a5b3276d"
+    },
+    "tech-resume-optimizer": {
+      "source": "Paramchoudhary/ResumeSkills",
+      "sourceType": "github",
+      "skillPath": "skills/tech-resume-optimizer/SKILL.md",
+      "computedHash": "2e29bf63c6532e5fb233aef21a7f7418a472fc52883995cd0d70544f1ba9b2ed"
+    },
+    "trace-mcp": {
+      "source": "nikolai-vysotskyi/trace-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/trace-mcp/SKILL.md",
+      "computedHash": "2a48cb912042fa1587a6b083f47d82f98eea6687414114f7dc8c5fe1b3443adc"
+    },
+    "trace-mcp-codemod": {
+      "source": "nikolai-vysotskyi/trace-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/trace-mcp-codemod/SKILL.md",
+      "computedHash": "227c5233dafc12a9822621f208fc06368a0a9b2920d6b4e889c0b03370bb4bf9"
+    },
+    "trace-mcp-pre-commit": {
+      "source": "nikolai-vysotskyi/trace-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/trace-mcp-pre-commit/SKILL.md",
+      "computedHash": "a1ff7ff3b58e7860554a3f5b6ffe108e222eeac456df274d697dee1d2fdff964"
+    },
+    "trace-mcp-refactoring": {
+      "source": "nikolai-vysotskyi/trace-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/trace-mcp-refactoring/SKILL.md",
+      "computedHash": "181114ec50fddabe0c52e5c8c60a15c84a48a2c933cfdc650c1c7daccb37c744"
+    },
+    "vap-media": {
+      "source": "RenSeiji27/vap-media-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "b315e906d7f013ed05e941e805d958baa8c9bf8126a31c9863cfafb7e562fd9a"
     }
   }
 }

@@ -244,7 +244,7 @@ A `registry.json` hosted on GitHub Pages (or raw GitHub):
 
 - New file: `src/commands/marketplace.ts`
 - Registry URL configurable via `CUE_REGISTRY_URL` env var
-- Default: `https://raw.githubusercontent.com/recodeee/cue-registry/main/registry.json`
+- Default: `https://raw.githubusercontent.com/opencue/cue-registry/main/registry.json`
 - `install` wraps `cue skills add` with the resolved repo + pin
 - Local cache in `profiles/_cache/marketplace/registry.json` (TTL: 1 hour)
 

@@ -607,7 +607,7 @@ Examples:
     if (repoSkillMap.size > 0 || localCount > 0) {
       process.stdout.write(`│\n│   ┌─ 🐙 Sources\n`);
       if (localCount > 0) {
-        process.stdout.write(`│   │  📁 recodeee/cue (${localCount} skills)\n`);
+        process.stdout.write(`│   │  📁 opencue/cue (${localCount} skills)\n`);
       }
       for (const [repo, count] of [...repoSkillMap.entries()].sort((a, b) => b[1] - a[1])) {
         let repoIconStr = "";

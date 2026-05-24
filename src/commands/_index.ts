@@ -314,7 +314,7 @@ export const COMMANDS = {
     load: () => import("./feedback"),
   },
   "submit-profile": {
-    summary: "Fork recodeee/cue, branch, commit your profile.yaml, open PR (community contribution)",
+    summary: "Fork opencue/cue, branch, commit your profile.yaml, open PR (community contribution)",
     load: () => import("./submit-profile"),
   },
 } as const satisfies Record<string, Command>;

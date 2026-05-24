@@ -190,7 +190,7 @@ function generateBadgeSvg(result: ScoreResult): string {
   <text x="320" y="84" fill="#8B949E" font-size="11" font-weight="600" font-family="Segoe UI, sans-serif" letter-spacing="0.03em">Score</text>
   <text x="320" y="110" fill="${color}" font-size="22" font-weight="800" font-family="Segoe UI, sans-serif">${result.score}/100</text>
   <text x="18" y="148" fill="#8B949E" font-size="11" font-family="Segoe UI, sans-serif">${date}</text>
-  <text x="442" y="148" fill="#8B949E" font-size="11" font-family="Segoe UI, sans-serif" text-anchor="end">github.com/recodeee/cue</text>
+  <text x="442" y="148" fill="#8B949E" font-size="11" font-family="Segoe UI, sans-serif" text-anchor="end">github.com/opencue/cue</text>
 </svg>`;
 }
 

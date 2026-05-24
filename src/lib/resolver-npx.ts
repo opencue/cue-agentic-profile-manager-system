@@ -118,7 +118,7 @@ export type NpxFetchFn = (
  * because the tests pass their own fetcher.
  */
 export const npxFetch: NpxFetchFn = async (repo, pin, skill, destDir) => {
-  const args = ["skills", "add", repo, "--skill", skill, "-a", "claude-code", "-y"];
+  const args = ["-y", "skills@latest", "add", repo, "--skill", skill, "-a", "claude-code", "-y"];
   if (pin) {
     // Pin format from schema: "git@<sha>" or "tag@<version>".
     // `npx skills add` accepts `--ref <ref>` for both shas and tags.
@@ -139,7 +139,39 @@ export const npxFetch: NpxFetchFn = async (repo, pin, skill, destDir) => {
       stderr: res.stderr,
     });
   }
+
+  flattenNpxLayout(destDir, skill);
 };
+
+/**
+ * The `skills` CLI drops fetched skills at `<destDir>/.claude/skills/<skill>/`
+ * (it follows Claude Code's runtime layout). Cue's resolver expects a flat
+ * `<destDir>/<skill>/` layout — so relocate here. Exported for tests; callers
+ * outside this module should not need this.
+ */
+export function flattenNpxLayout(destDir: string, skill: string): void {
+  const fromClaudeLayout = join(destDir, ".claude", "skills", skill);
+  const flatTarget = join(destDir, skill);
+  if (!existsSync(fromClaudeLayout) || existsSync(flatTarget)) return;
+
+  // Lazy import — avoids node:fs/promises overhead in the cached-fetch path.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("node:fs") as typeof import("node:fs");
+  fs.renameSync(fromClaudeLayout, flatTarget);
+
+  // Clean up the now-empty .claude/skills/ scaffold so the staging dir
+  // doesn't accumulate cruft when multiple skills are pulled in sequence.
+  try {
+    const claudeSkills = join(destDir, ".claude", "skills");
+    if (existsSync(claudeSkills) && fs.readdirSync(claudeSkills).length === 0) {
+      fs.rmSync(claudeSkills, { recursive: true, force: true });
+    }
+    const claudeDir = join(destDir, ".claude");
+    if (existsSync(claudeDir) && fs.readdirSync(claudeDir).length === 0) {
+      fs.rmSync(claudeDir, { recursive: true, force: true });
+    }
+  } catch { /* cleanup is best-effort */ }
+}
 
 // ---------------------------------------------------------------------------
 // Public resolver

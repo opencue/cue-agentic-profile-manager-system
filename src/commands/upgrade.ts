@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const REGISTRY_PATH = join(REPO_ROOT, "docs", "registry", "index.json");
-const REGISTRY_URL = "https://recodeee.github.io/cue/registry/index.json";
+const REGISTRY_URL = "https://opencue.github.io/cue/registry/index.json";
 const UPGRADE_STATE = join(REPO_ROOT, "profiles", "_cache", "last-upgrade.json");
 
 interface RegistrySkill {

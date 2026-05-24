@@ -21,7 +21,7 @@ import { resolveProfileForCwd } from "../lib/cwd-resolver";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
 const REGISTRY_PATH = join(REPO_ROOT, "docs", "registry", "index.json");
-const REGISTRY_URL = "https://recodeee.github.io/cue/registry/index.json";
+const REGISTRY_URL = "https://opencue.github.io/cue/registry/index.json";
 
 // ---------------------------------------------------------------------------
 // Registry

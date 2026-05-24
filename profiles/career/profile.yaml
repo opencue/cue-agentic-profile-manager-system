@@ -1,0 +1,13 @@
+name: career
+icon: "💼"
+description: Job hunting, resume optimization, interview prep, salary negotiation, and career development
+inherits: core
+skills:
+  local:
+    - career/jdfit
+    - career/resume-tailor
+    - career/tech-resume-optimizer
+    - career/resume-section-builder
+    - career/resume-version-manager
+    - career/salary-negotiation-prep
+mcps: []

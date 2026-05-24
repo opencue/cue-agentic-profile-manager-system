@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/skill-fire-tracker.sh",
+            "description": "Scan full transcript for skill SKILL.md references; emit one skill_hit event per unique skill to ~/.config/cue/analytics.jsonl",
+            "id": "cue:stop:skill-fire-tracker"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -764,7 +764,14 @@ skills:
         - triaging-security-incident-with-ir-playbook
         - triaging-vulnerabilities-with-ssvc-framework
         - validating-backup-integrity-for-recovery
+    # Discovered gems from `cue discover install` — these came in earlier under
+    # the wrong upstream (mukul975/Anthropic-Cybersecurity-Skills). They actually
+    # live in separate repos, one skill per repo.
+    - repo: Zandereins/hydra
+      skills:
         - hydra
+    - repo: elementalsouls/Claude-OSINT
+      skills:
         - Claude-OSINT
 
 mcps:
