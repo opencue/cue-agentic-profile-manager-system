@@ -141,6 +141,14 @@ export const COMMANDS = {
     summary: "Compare two profiles side-by-side",
     load: () => import("./diff"),
   },
+  eval: {
+    summary: "Benchmark profile performance — token savings, usage, score",
+    load: () => import("./eval"),
+  },
+  debug: {
+    summary: "Trace why skills/MCPs aren't loading — full resolution chain",
+    load: () => import("./debug"),
+  },
   snapshot: {
     summary: "Export/restore current profile state as portable YAML",
     load: () => import("./snapshot"),
