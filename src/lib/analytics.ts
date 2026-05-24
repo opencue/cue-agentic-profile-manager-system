@@ -7,22 +7,33 @@ import { appendFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 
-const ANALYTICS_PATH = join(
-  process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
-  "cue",
-  "analytics.jsonl",
-);
+/**
+ * Resolve the analytics log path. Lazy — read XDG_CONFIG_HOME on every call so
+ * tests (and any caller that mutates the env at runtime) get the current value.
+ * Previously this was a top-level const, which froze the path at module-load
+ * time and caused parallel test files to race on the same captured value.
+ */
+function analyticsPath(): string {
+  return join(
+    process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
+    "cue",
+    "analytics.jsonl",
+  );
+}
 
 /**
  * Session-summary hook (resources/hooks/session-summary.sh) appends one line
  * per session end here. Read it as a secondary source for sessions counts so
  * usage stats reflect real hook data, not just the launch-time analytics path.
  */
-const SESSION_LOG_PATH = join(
-  process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
-  "cue",
-  "session-log.jsonl",
-);
+/** Same lazy pattern for the session-summary hook's log. */
+function sessionLogPath(): string {
+  return join(
+    process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
+    "cue",
+    "session-log.jsonl",
+  );
+}
 
 interface SessionLogEntry {
   ts: string;
@@ -32,9 +43,9 @@ interface SessionLogEntry {
 }
 
 function readSessionLog(since?: Date): SessionLogEntry[] {
-  if (!existsSync(SESSION_LOG_PATH)) return [];
+  if (!existsSync(sessionLogPath())) return [];
   const out: SessionLogEntry[] = [];
-  for (const line of readFileSync(SESSION_LOG_PATH, "utf8").split("\n")) {
+  for (const line of readFileSync(sessionLogPath(), "utf8").split("\n")) {
     if (!line.trim()) continue;
     try {
       const e = JSON.parse(line) as SessionLogEntry;
@@ -57,8 +68,8 @@ export interface SessionEvent {
 }
 
 export function recordEvent(event: SessionEvent): void {
-  mkdirSync(dirname(ANALYTICS_PATH), { recursive: true });
-  appendFileSync(ANALYTICS_PATH, JSON.stringify(event) + "\n");
+  mkdirSync(dirname(analyticsPath()), { recursive: true });
+  appendFileSync(analyticsPath(), JSON.stringify(event) + "\n");
 }
 
 /**
@@ -110,8 +121,8 @@ export function recordSkillUsage(profile: string, agent: "claude-code" | "codex"
 }
 
 export function readEvents(since?: Date): SessionEvent[] {
-  if (!existsSync(ANALYTICS_PATH)) return [];
-  const lines = readFileSync(ANALYTICS_PATH, "utf8").split("\n").filter(Boolean);
+  if (!existsSync(analyticsPath())) return [];
+  const lines = readFileSync(analyticsPath(), "utf8").split("\n").filter(Boolean);
   const events: SessionEvent[] = [];
   for (const line of lines) {
     try {

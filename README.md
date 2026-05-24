@@ -50,46 +50,104 @@
   <a href="./LICENSE"><img src="https://img.shields.io/github/license/opencue/cue?style=flat-square&color=8b5cf6" alt="MIT license"></a>
 </p>
 
-# cue — Discover, install, and organize AI agent skills in one command
+# cue — Discover, install, and organize Claude Code skills, MCP servers, and AI agent plugins
 
-> There are thousands of skills, MCPs, and plugins for your AI coding agent — scattered across GitHub, buried in repos, impossible to find. **cue gives you a search engine, a package manager, and a profile system in one CLI.**
+> **The package manager for Claude Code, Codex, Cursor, and 7 other AI coding agents.** Discover skills hidden in GitHub, install them per-directory, share one loadout across every agent — and cut per-message token cost by 10–25×. Open source. MIT.
 
 **Works with:** [![Claude Code](https://img.shields.io/badge/Claude_Code-cc785c?style=flat-square&logo=anthropic&logoColor=white)](https://github.com/anthropics/claude-code) [![Codex](https://img.shields.io/badge/Codex-000000?style=flat-square&logo=openai&logoColor=white)](https://github.com/openai/codex) [![Cursor](https://img.shields.io/badge/Cursor-000000?style=flat-square&logo=cursor&logoColor=white)](https://cursor.sh) [![Cline](https://img.shields.io/badge/Cline-5A45FF?style=flat-square)](https://github.com/cline/cline) [![Gemini](https://img.shields.io/badge/Gemini-4285F4?style=flat-square&logo=google&logoColor=white)](https://github.com/google-gemini/gemini-cli) [![Copilot](https://img.shields.io/badge/Copilot-000000?style=flat-square&logo=github&logoColor=white)](https://github.com/features/copilot) [![Windsurf](https://img.shields.io/badge/Windsurf-06B6D4?style=flat-square)](https://windsurf.com) [![Roo Code](https://img.shields.io/badge/Roo_Code-7C3AED?style=flat-square)](https://github.com/RooVetGit/Roo-Code) [![Amp](https://img.shields.io/badge/Amp-FF4500?style=flat-square&logo=sourcegraph&logoColor=white)](https://sourcegraph.com/amp) [![Aider](https://img.shields.io/badge/Aider-14B8A6?style=flat-square)](https://aider.chat) &nbsp;→&nbsp; [full matrix ↓](#agents-cue-supports)
+
+<a id="quickstart"></a>
+
+## ⚡ 60-second quickstart
+
+```bash
+npm install -g cue-ai                          # 1. install cue (Node 18+)
+
+cue discover search "code review"              # 2. find skills that match what you need
+#  ✅ review/code-review — thorough PR review with security + perf checks
+#  ✅ review/quick-review — fast 30-second review, issues only
+#  ✅ review/architecture-review — system design review
+
+cue discover install review/code-review        # 3. install — wired into your agent instantly
+
+claude                                         # 4. your agent now has that skill
+```
+
+Search → install → use. No config files to edit. No manual wiring. Works the same with `codex`, `cursor`, `cline`, `gemini`, and 5 other agents — one install, ten supported runtimes.
+
+<p align="center">
+  <img src="./docs/assets/demo.gif" alt="cue demo — discover, install, organize, launch a Claude Code skill in 30 seconds" width="820" onerror="this.style.display='none'">
+</p>
 
 <a id="what-is-cue"></a>
 
 ### What is cue?
 
-**cue is an open-source agent profile manager and skill package manager for Claude Code, OpenAI Codex, Cursor, Cline, Gemini CLI, GitHub Copilot, and 4 other AI coding agents.** It lets you discover Claude Code skills on GitHub, install them per-directory, organize them into reusable profiles, and reduce per-message token cost by 10–25×. cue treats a profile not as a static toolbox but as a composable **expert agent** with persona, playbooks, quality gates, structural evals, and a data-driven failure-loop. Built with Bun, distributed as `cue-ai` on npm, MIT-licensed.
+**cue is an open-source profile manager and skill package manager for AI coding agents** — Claude Code, OpenAI Codex, Cursor, Cline, Gemini CLI, GitHub Copilot, Windsurf, Roo Code, Sourcegraph Amp, and Aider.
 
-**Use cue when you want to:**
+It does three jobs that nothing else does together:
 
-- **Find Claude Code skills** that aren't on the front page of GitHub (GitHub Code Search for `filename:SKILL.md`, scored + mapped to your domain)
-- **Cut Claude Code token cost** — scope skills/MCPs/plugins per-directory instead of loading all 1,900+ globally
-- **Run the same agent loadout across Cursor / Cline / Gemini / Copilot** — one `profile.yaml` materializes into each agent's native format
-- **Give your AI agent a persona and protocols** — not just tools, but a defined character + proven step-by-step playbooks
-- **Veto "done" claims with quality gates** — Stop-hook validators that auto-run tests/lint/build before the session can end
-- **Install every CLI a profile's skills need** in one command (apt/brew/snap/pipx — auto-detected per OS)
-- **Get safe, meaningful PRs on skill repos** without spam risk — full throttle DB + opt-out registry built in
+1. **Discovers Claude Code skills on GitHub** that don't show up on the front page — scans `filename:SKILL.md`, scores each repo on signal quality, and surfaces hidden gems.
+2. **Installs them per directory** — every project gets its own profile of skills, MCPs, plugins, rules, and slash-commands; agents only load what the current project needs.
+3. **Treats a profile as an expert agent** — not just a bag of tools, but a composable identity with persona, playbooks, quality gates, structural evals, and a data-driven failure-loop.
+
+Built with Bun + TypeScript, distributed as the [`cue-ai`](https://www.npmjs.com/package/cue-ai) package on npm, MIT-licensed.
+
+### Use cue when you want to
+
+- **Find Claude Code skills that aren't on the front page of GitHub** — `cue discover search` queries GitHub Code Search for `filename:SKILL.md`, scores results, maps each repo to a target profile.
+- **Cut per-message Claude Code token cost by 10–25×** — scope skills/MCPs/plugins per directory instead of loading every installed skill into every session.
+- **Share one agent loadout across Cursor, Cline, Gemini CLI, and Copilot** — one `profile.yaml` materializes into each agent's native config format (`.cursorrules`, `.clinerules`, `~/.gemini/skills/`, `.github/copilot-instructions.md`, …).
+- **Give your AI agent a persona and protocols** — profiles ship with character + step-by-step playbooks, not just tools.
+- **Block "done" claims with quality gates** — Stop-hook validators auto-run tests, lint, and build before the agent can declare the task complete.
+- **Install every CLI a profile's skills need in one command** — `cue cli install --all <profile>` auto-detects apt / brew / snap / pipx / npm per OS.
+- **Open safe, meaningful PRs on skill repos at scale** — built-in 90-day per-repo cooldown, 25-PRs/day cap, and `<!-- cue: ignore -->` opt-out marker.
 
 <a id="cue-in-numbers"></a>
 
 ### cue by the numbers
 
-| Metric | Value |
-|---|---|
-| Tests | **336** (lib + commands) |
-| Agents supported | **10** (Claude Code, Codex, Cursor, Cline, Gemini CLI, Copilot, Windsurf, Roo Code, Sourcegraph Amp, Aider) |
-| Profiles shipped | **23** |
-| Local skills | **110+** (vendored under `resources/skills/`) |
-| Rules + commands + playbooks + quality gates | **38 + 15 + 2 + 1** (curated from ECC + cue) |
-| CLI install recipes | **~50** (apt / brew / dnf / pacman / snap / pipx / npm / script / manual) |
-| Token cost reduction | **10–25×** vs loading all skills globally |
-| Per-message cost (`core` profile) | **~587 tokens** (~$0.0018/msg on Sonnet 4.6) |
-| Average launch overhead | **<5 ms** warm (sha256 cache hit), **50–200 ms** cold |
-| External services / daemons | **0** (pure CLI, no background process, no telemetry) |
-| Bun runtime | required (≥1.0.0) |
-| License | MIT |
+<p align="center">
+  <img src="https://img.shields.io/badge/Tests-336-22c55e?style=for-the-badge&labelColor=1e1b4b" alt="336 tests">&nbsp;
+  <img src="https://img.shields.io/badge/Agents-10-8b5cf6?style=for-the-badge&labelColor=1e1b4b" alt="10 agents supported">&nbsp;
+  <img src="https://img.shields.io/badge/Profiles-23-06b6d4?style=for-the-badge&labelColor=1e1b4b" alt="23 profiles shipped">&nbsp;
+  <img src="https://img.shields.io/badge/Skills-110%2B-ec4899?style=for-the-badge&labelColor=1e1b4b" alt="110+ local skills">
+</p>
+
+<p align="center">
+  <strong>10–25×</strong> token cost reduction&nbsp;·&nbsp;<strong>&lt;5 ms</strong> warm launch&nbsp;·&nbsp;<strong>0</strong> daemons&nbsp;·&nbsp;<strong>MIT</strong>
+</p>
+
+#### Capabilities
+
+| | Count | Notes |
+|---|---:|---|
+| Tests | **336** | lib + commands, green on every commit |
+| AI agents supported | **10** | Claude Code · Codex · Cursor · Cline · Gemini CLI · Copilot · Windsurf · Roo Code · Sourcegraph Amp · Aider |
+| Pre-built profiles | **23** | backend, frontend, cybersecurity, marketing, NVIDIA, creative-media, docs-writer + 16 more |
+| Local skills | **110+** | vendored under `resources/skills/` (thousands more via `cue discover`) |
+| Rules · Commands · Playbooks · Gates | **38 · 15 · 2 · 1** | curated from ECC + cue |
+| CLI install recipes | **~50** | apt · brew · dnf · pacman · snap · pipx · npm · script · manual |
+
+#### Performance
+
+| | Value | Notes |
+|---|---:|---|
+| Token cost reduction | **10–25×** | vs loading all skills globally |
+| Per-message cost (`core`) | **~587 tokens** | ~$0.0018/msg on Claude Sonnet 4.6 |
+| Launch overhead (warm) | **<5 ms** | sha256 cache hit |
+| Launch overhead (cold) | **50–200 ms** | full rebuild |
+| External services / daemons | **0** | pure CLI · no background process · no telemetry |
+
+#### Stack
+
+<p align="left">
+  <img src="https://img.shields.io/badge/runtime-Bun_%E2%89%A51.0.0-f9f1e1?style=flat-square&logo=bun&logoColor=000" alt="Bun runtime">
+  <img src="https://img.shields.io/badge/language-TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=fff" alt="TypeScript">
+  <img src="https://img.shields.io/badge/npm-cue--ai-cb3837?style=flat-square&logo=npm&logoColor=fff" alt="npm: cue-ai">
+  <img src="https://img.shields.io/badge/license-MIT-8b5cf6?style=flat-square" alt="MIT licensed">
+  <img src="https://img.shields.io/badge/telemetry-none-22c55e?style=flat-square" alt="zero telemetry">
+</p>
 
 **Atomic facts** (one citeable claim per sentence — LLMs cite at sentence granularity, so these are written to stand alone):
 
@@ -108,28 +166,7 @@
 
 ---
 
-## ⚡ 60-second quickstart
-
-```bash
-npm install -g cue-ai                          # 1. install cue
-
-cue discover search "code review"              # 2. find skills that match what you need
-#  ✅ review/code-review — thorough PR review with security + perf checks
-#  ✅ review/quick-review — fast 30-second review, issues only
-#  ✅ review/architecture-review — system design review
-
-cue discover install review/code-review        # 3. install it — wired to your agent instantly
-
-claude                                         # 4. your agent now has that skill
-```
-
-That's it. Search → install → use. No config files to edit, no manual wiring.
-
-<p align="center">
-  <img src="./docs/assets/demo.gif" alt="cue 30-second demo — discover, install, organize, launch" width="820" onerror="this.style.display='none'">
-</p>
-
-### Then organize with profiles
+## 🗂️ Then organize with profiles
 
 Once you've installed a few skills, **profiles** keep each project lean — only the skills that repo actually needs:
 
@@ -139,7 +176,7 @@ cue use marketing                              # marketing repo gets marketing s
 claude                                         # boots with just that profile's loadout
 ```
 
-Profiles cut token cost by 10–25× (from ~$2.70/session to ~$0.12) because your agent stops drowning in 1,900 irrelevant tool descriptions. Discovery gets you started; profiles make it scale.
+Profiles cut per-message token cost by **10–25×** because your agent stops loading skill descriptions for tools the current project doesn't use. The exact savings depend on how many skills you have installed globally (see [Before & After — token cost](#-before--after--token-cost) below for a measured comparison on a real loadout). Discovery gets you started; profiles make it scale.
 
 <details>
 <summary>📑 <b>Table of contents</b></summary>
@@ -241,7 +278,7 @@ Run `cue --help` for the full surface — there are ~50 subcommands. The set abo
 | **With cue** — `backend` profile (12 skills, 2 MCPs) | ~8k tokens | ~$0.12/session | ✅ |
 | **With cue** — `caveman-quick` (3 skills, 0 MCPs) | ~2k tokens | ~$0.03/session | 🚀 |
 
-That's **22× fewer tokens** for a typical backend session. Over a day of 20 sessions, you save ~$50 in raw API cost — or equivalently, your model picks the right tool on the first try because it's not drowning in 1,900 irrelevant skill descriptions.
+That's **22× fewer tokens** for a typical backend session — measured on a real loadout (`backend` profile, 24 skills) vs. the unmanaged baseline (a heavy `~/.claude/skills/` directory + every globally-installed MCP). Your model picks the right tool faster because it's not scanning irrelevant skill descriptions on every message; raw API spend drops accordingly.
 
 ```bash
 cue cost                      # see token budget for your active profile
@@ -640,10 +677,10 @@ sequenceDiagram
     R->>M: Profile resolved
     M->>M: sha256(skills+mcps+plugins+...)
     alt Hash matches existing runtime
-        M-->>C: exec — &lt;5 ms
+        M-->>C: exec (under 5 ms)
     else Hash differs — rebuild
         M->>M: Symlink skills, write CLAUDE.md,<br/>merge hooks into settings.json
-        M-->>C: exec — 50-200 ms
+        M-->>C: exec (50 to 200 ms)
     end
     C->>U: Real Claude Code session<br/>w/ scoped CLAUDE_CONFIG_DIR
 ```
@@ -1032,7 +1069,7 @@ Run `cue marketplace discover --cli-aware --limit 30`. cue uses GitHub Code Sear
 
 Three compounding optimizations cue ships:
 
-1. **Profile isolation** — scope skills/MCPs/plugins per-directory instead of loading all 1,900+ globally. This alone cuts context by **10–25×**.
+1. **Profile isolation** — scope skills/MCPs/plugins per directory instead of loading every installed skill into every session. This alone cuts context by **10–25×** on a typical loadout.
 2. **Honest token math** — `cue eval --breakdown` shows per-message cost (always-loaded) vs on-demand cost (lazy bodies). Most "skill" tokens are lazy; cue measures the real per-turn budget.
 3. **RTK shell-output filter + caveman terse-output mode** — additional 60–90% reduction on `ls`/`git`/`cat` output and ~40% on output verbosity.
 
