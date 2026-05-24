@@ -15,5 +15,6 @@ skills:
 mcps:
   - x-api
   - reddit
+  - google-ads-mcp
 plugins:
   - marketing-skills@claude-code-skills
