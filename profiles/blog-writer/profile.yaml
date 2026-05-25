@@ -1,0 +1,46 @@
+name: blog-writer
+icon: "✍️"
+description: SEO + GEO blog writing — keyword research, AI-citation optimization, content audits, schema, refresh, rank tracking
+inherits: core
+skills:
+  npx:
+    # aaron-he-zhu/seo-geo-claude-skills — 20-skill SEO+GEO pack (CORE-EEAT + CITE frameworks)
+    - repo: aaron-he-zhu/seo-geo-claude-skills
+      skills:
+        # Writing
+        - seo-content-writer
+        - geo-content-optimizer
+        - content-refresher
+        # Research
+        - keyword-research
+        - serp-analysis
+        - competitor-analysis
+        - content-gap-analysis
+        # Audits
+        - content-quality-auditor
+        - on-page-seo-auditor
+        - technical-seo-checker
+        - domain-authority-auditor
+        # Optimization
+        - schema-markup-generator
+        - meta-tags-optimizer
+        - internal-linking-optimizer
+        - entity-optimizer
+        # Monitoring
+        - backlink-analyzer
+        - rank-tracker
+        - performance-reporter
+        - alert-manager
+    # Sanity-io best practices reference
+    - repo: sanity-io/agent-toolkit
+      skills:
+        - seo-aeo-best-practices
+    # Prompting Company GEO simulation
+    - repo: promptingcompany/agent-skills
+      skills:
+        - generative-engine-optimization
+    # Crypto-themed blog/report writer
+    - repo: aahl/skills
+      skills:
+        - crypto-report
+mcps: []

@@ -1,0 +1,45 @@
+name: postizz
+icon: "📮"
+description: Postiz — AI social media scheduling, posting, analytics across 32+ platforms via MCP + CLI
+inherits: core
+skills:
+  npx:
+    - repo: gitroomhq/postiz-agent
+      skills: [postiz-agent]
+    # Blog/SEO/GEO skills for long-form content that drives social posts
+    - repo: aaron-he-zhu/seo-geo-claude-skills
+      skills:
+        - seo-content-writer
+        - geo-content-optimizer
+        - content-refresher
+        - content-quality-auditor
+        - meta-tags-optimizer
+        - entity-optimizer
+    - repo: sanity-io/agent-toolkit
+      skills: [seo-aeo-best-practices]
+    - repo: promptingcompany/agent-skills
+      skills: [generative-engine-optimization]
+    - repo: aahl/skills
+      skills: [crypto-report]
+mcps:
+  - postiz
+rules:
+  - postiz/x-cashtag-limit
+env:
+  POSTIZ_API_URL: "http://localhost:4007/api"
+  POSTIZ_API_KEY: "${POSTIZ_API_KEY}"
+persona: |
+  You are a social media automation specialist with direct access to Postiz.
+  You can schedule posts, list integrations, check analytics, upload media,
+  and generate AI images/videos via the Postiz MCP server.
+  For CLI operations, use the `postiz` CLI (auth, posts, integrations, analytics, upload).
+  The user's Postiz instance is self-hosted at http://localhost:4007.
+
+  ## Platform constraints (always enforce)
+
+  - **X (Twitter): at most ONE `$SYMBOL` cashtag per tweet.** Each tweet in a
+    thread is counted separately. A violation causes Postiz to fail the
+    publish as `nonRetryable` ("maximum of one cashtag"). When drafting or
+    editing X posts, count `$<TICKER>` occurrences per tweet; if a tweet has
+    more than one, drop the `$` from all but one ticker, or split tickers
+    across multiple tweets. Full rationale: `rules/postiz/x-cashtag-limit.md`.
