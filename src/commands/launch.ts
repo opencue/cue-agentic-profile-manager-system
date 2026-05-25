@@ -23,6 +23,7 @@ import { runPicker, type PickerOption } from "../lib/picker";
 import { materializeRuntime } from "../lib/runtime-materializer";
 import { resolveLocalSkill, listAllSkillIds } from "../lib/resolver-local";
 import { detectKittyTerminal, kittyPlaceholderLabel, transmitKittyImage } from "../lib/kitty-image";
+import { computeStats } from "../lib/analytics";
 import type { ResolvedProfile } from "../../profiles/_types";
 
 // ---------------------------------------------------------------------------
@@ -155,21 +156,38 @@ function truncateList(items: string[], max = LIST_TRUNCATE): string {
 }
 
 /**
- * Sort picker options: pinned profile first, "full" second, rest alphabetical.
- * Pure function so tests don't need filesystem.
+ * Sort picker options. Pure function so tests don't need filesystem.
+ *
+ * Priority order:
+ *   1. Pinned profile (if any) — pinned to top so resuming is one Enter.
+ *   2. Used profiles, descending by session count.
+ *   3. Never-used profiles, alphabetical (with `full` first as a sensible default).
+ *
+ * Pass `usage` empty or undefined to fall back to the legacy alphabetical-with-
+ * full-first ordering.
  */
-export function sortProfileOptions(opts: PickerOption[], pinnedProfile?: string): PickerOption[] {
+export function sortProfileOptions(
+  opts: PickerOption[],
+  pinnedProfile?: string,
+  usage?: Map<string, number>,
+): PickerOption[] {
   return [...opts].sort((a, b) => {
     if (a.value === pinnedProfile) return -1;
     if (b.value === pinnedProfile) return 1;
-    if (a.value === "full") return -1;
-    if (b.value === "full") return 1;
+    const ua = usage?.get(a.value) ?? 0;
+    const ub = usage?.get(b.value) ?? 0;
+    if (ua !== ub) return ub - ua;
+    if (ua === 0) {
+      if (a.value === "full") return -1;
+      if (b.value === "full") return 1;
+    }
     return a.value.localeCompare(b.value);
   });
 }
 
 async function listProfileOptions(pinnedProfile?: string): Promise<PickerOption[]> {
   const names = await listProfiles();
+  const knownNames = new Set(names);
   const opts: PickerOption[] = [];
   const kitty = await detectKittyTerminal();
   const profilesRoot = process.env.CUE_PROFILES_DIR ?? process.env.SOUL_PROFILES_DIR ?? join(
@@ -180,9 +198,12 @@ async function listProfileOptions(pinnedProfile?: string): Promise<PickerOption[
   // placeholder protocol. We have at most a handful of iconImage profiles, so
   // overflow isn't a concern in practice — assert anyway in transmitKittyImage.
   let nextImageId = 1;
+  // Loaded once per profile name — we reuse for combo synthesis below.
+  const loaded = new Map<string, ResolvedProfile>();
   for (const name of names) {
     try {
       const p = await loadProfile(name);
+      loaded.set(name, p);
       let iconLabel: string;
       if (kitty && p.iconImage && nextImageId <= 255) {
         const imgPath = resolve(profilesRoot, name, p.iconImage);
@@ -202,7 +223,41 @@ async function listProfileOptions(pinnedProfile?: string): Promise<PickerOption[
       opts.push({ value: name, label: name, hint: "" });
     }
   }
-  return sortProfileOptions(opts, pinnedProfile);
+
+  // Combo synthesis: for each profile A with recommends:[B, …], emit a
+  // first-class "A + B" picker entry. Dedupe by canonical (alphabetical) key
+  // so A+B and B+A appear once. Skip recs that don't resolve to real profiles.
+  const seenCombos = new Set<string>();
+  for (const [name, p] of loaded) {
+    for (const rec of p.recommends) {
+      if (rec === name || !knownNames.has(rec)) continue;
+      const canonical = [name, rec].sort().join("+");
+      if (seenCombos.has(canonical)) continue;
+      seenCombos.add(canonical);
+      // Pin value preserves declaration order (A+B), not canonical — left-first,
+      // right-last is the foldComposite merge semantics, and the profile that
+      // declared the recommendation likely wants to be the leftmost (overridden
+      // by the companion's later fields). For listing we show "A + B" with
+      // both icons.
+      const recProfile = loaded.get(rec);
+      const aIcon = p.icon ?? "";
+      const bIcon = recProfile?.icon ?? "";
+      const iconPair = [aIcon, bIcon].filter((s) => s.length > 0).join("");
+      const label = iconPair ? `${iconPair} ${name} + ${rec}` : `${name} + ${rec}`;
+      const hint = `combo: ${p.description.split(" — ")[0] ?? p.description} + ${recProfile?.description.split(" — ")[0] ?? rec}`;
+      opts.push({ value: `${name}+${rec}`, label, hint });
+    }
+  }
+
+  // Pull usage data so most-picked entries float to the top. Combo pins like
+  // "blog-writer+postizz" are naturally separate keys in the analytics log.
+  const usage = new Map<string, number>();
+  try {
+    for (const s of computeStats()) usage.set(s.profile, s.sessions);
+  } catch {
+    // Analytics is best-effort — never block the picker on a missing/corrupt log.
+  }
+  return sortProfileOptions(opts, pinnedProfile, usage);
 }
 
 async function loadMcpRegistry(agent: "claude-code" | "codex"): Promise<Record<string, unknown>> {
