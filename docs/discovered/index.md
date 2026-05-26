@@ -1,27 +1,31 @@
 ---
 title: "Discovered Claude Code Skills"
-description: "26 community Claude Code skills curated by cue across 7 profiles. Find skills for backend, frontend, marketing, cybersecurity, and more."
+description: "100 community Claude Code skills curated by cue across 11 profiles. Find skills for backend, frontend, marketing, cybersecurity, and more."
 layout: page
-updated: 2026-05-24
+updated: 2026-05-26
 tags: [claude-code, skills, mcp, ai-agents, marketplace]
 ---
 
 # 🎯 Discovered Claude Code Skills
 
-> **26 hidden-gem skills** discovered by [cue](https://github.com/opencue/cue) across **7 profiles**.
-> Last updated: 2026-05-24 · refreshed nightly via GitHub Code Search.
+> **100 hidden-gem skills** discovered by [cue](https://github.com/opencue/cue) across **11 profiles**.
+> Last updated: 2026-05-26 · refreshed nightly via GitHub Code Search.
 
 ## Browse by profile
 
 | Profile | Skills | Sample |
 |---|---|---|
-| [**core**](./core.md) | 19 | `claude-sdlc-wizard`, `llm-peer-review`, `accelerator` |
-| [**python-api**](./python-api.md) | 2 | `kai`, `ai-code-review-assistant` |
-| [**creative-media**](./creative-media.md) | 2 | `lad_mcp_server`, `inspect-ai-vision` |
-| [**frontend**](./frontend.md) | 2 | `inspect-ai-vision`, `Prism` |
-| [**fleet-control**](./fleet-control.md) | 1 | `karajan-code` |
-| [**backend**](./backend.md) | 1 | `ai-code-review-assistant` |
-| [**marketing**](./marketing.md) | 1 | `Diogo-Silva-VoxHorizon-Marketing-Control-Panel` |
+| [**core**](./core.md) | 67 | `context-mode`, `korean-privacy-terms`, `gopls-mcp` |
+| [**backend**](./backend.md) | 16 | `claude-code`, `postgresql-mcp-js`, `MCP---Agent-Starter-Kit` |
+| [**cybersecurity**](./cybersecurity.md) | 6 | `nsauditor-ai-agent-skill`, `hydra`, `slowmist-security-cc` |
+| [**frontend**](./frontend.md) | 6 | `suanfish-design-system`, `postgresql-mcp-js`, `lottie-marketplace` |
+| [**creative-media**](./creative-media.md) | 4 | `social-media-scraper-skill`, `pixel-mcp-workflow`, `ai-atelie` |
+| [**fleet-control**](./fleet-control.md) | 3 | `superx-agentic-orchestrator`, `MCP---Agent-Starter-Kit`, `rolepod` |
+| [**python-api**](./python-api.md) | 2 | `parbaked`, `ai-translation` |
+| [**video**](./video.md) | 1 | `social-media-scraper-skill` |
+| [**research**](./research.md) | 1 | `popper-scope` |
+| [**marketing**](./marketing.md) | 1 | `mcp` |
+| [**docs-writer**](./docs-writer.md) | 1 | `ai-translation` |
 
 ## How scoring works
 

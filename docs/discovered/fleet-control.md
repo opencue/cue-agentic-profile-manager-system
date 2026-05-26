@@ -1,29 +1,55 @@
 ---
 title: "Claude Code Skills for fleet-control"
-description: "1 community Claude Code skills curated by cue for the fleet-control profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "3 community Claude Code skills curated by cue for the fleet-control profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-24
+updated: 2026-05-26
 tags: [claude-code, fleet-control, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `fleet-control`
 
-> 1 community-built skills curated by [cue](https://github.com/opencue/cue) for the **fleet-control** profile.
+> 3 community-built skills curated by [cue](https://github.com/opencue/cue) for the **fleet-control** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="manufosela-karajan-code"></a>
-## 💎 [manufosela/karajan-code](https://github.com/manufosela/karajan-code)
+<a id="marcos-auguusto-superx-agentic-orchestrator"></a>
+## 💎 [Marcos-Auguusto/superx-agentic-orchestrator](https://github.com/Marcos-Auguusto/superx-agentic-orchestrator)
 
-**★ 14** · exceptional (score 9.1) · JavaScript · tags: ai-agent, ai-orchestration, orchestrator
+**★ 0** · exceptional (score 10) · HTML · tags: agent-orchestration, ai-agent, ai-coding, ai-orchestration, anthropic
 
-Local multi-agent coding orchestrator with 22 pipeline roles, TDD enforcement, SonarQube integration, and automated code review. Supports Claude, Codex, Gemini, OpenCode and Aider. MCP server included. No API costs — runs on your existing subscriptions.
+SuperX Autonomous AI Agent 2026: 14 Specialized Coders, 10x Parallel Execution & Adaptive Skill Learning
 
 ```bash
-cue skills add manufosela/karajan-code --profile fleet-control
+cue skills add Marcos-Auguusto/superx-agentic-orchestrator --profile fleet-control
+```
+
+---
+
+<a id="fub05-mcp-agent-starter-kit"></a>
+## 💎 [fub05/MCP---Agent-Starter-Kit](https://github.com/fub05/MCP---Agent-Starter-Kit)
+
+**★ 4** · exceptional (score 8.3) · Python · tags: ai, automation, chatbot, demo, fastapi
+
+🚀 Build and explore multi-agent AI workflows with ready-to-use projects for document serving, Q/A bots, and orchestration.
+
+```bash
+cue skills add fub05/MCP---Agent-Starter-Kit --profile fleet-control
+```
+
+---
+
+<a id="nuttaruj-rolepod"></a>
+## ✨ [nuttaruj/rolepod](https://github.com/nuttaruj/rolepod)
+
+**★ 1** · strong (score 6.3) · Shell · tags: agent-orchestration, ai-agents, automation, claude-code, prompt-engineering
+
+Universal AI dev team workflow system for Claude Code — 18 specialist agents, lazy-load rules, parallel-safe by path/concern ownership
+
+```bash
+cue skills add nuttaruj/rolepod --profile fleet-control
 ```
 
 ---

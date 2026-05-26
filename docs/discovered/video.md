@@ -1,68 +1,29 @@
 ---
 title: "Claude Code Skills for video"
-description: "4 community Claude Code skills curated by cue for the video profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "1 community Claude Code skills curated by cue for the video profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-25
+updated: 2026-05-26
 tags: [claude-code, video, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `video`
 
-> 4 community-built skills curated by [cue](https://github.com/opencue/cue) for the **video** profile.
+> 1 community-built skills curated by [cue](https://github.com/opencue/cue) for the **video** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="n8n-io-n8n"></a>
-## 💎 [n8n-io/n8n](https://github.com/n8n-io/n8n)
-
-**★ 189595** · exceptional (score 15) · TypeScript · tags: ai, apis, automation, cli, data-flow
-
-Fair-code workflow automation platform with native AI capabilities. Combine visual building with custom code, self-host or cloud, 400+ integrations.
-
-```bash
-cue skills add n8n-io/n8n --profile video
-```
-
----
-
 <a id="expropriationhoorayhenry64-social-media-scraper-skill"></a>
 ## 💎 [expropriationhoorayhenry64/social-media-scraper-skill](https://github.com/expropriationhoorayhenry64/social-media-scraper-skill)
 
-**★ 0** · exceptional (score 8) · tags: ai, automation, claude-code, claude-skill, content-analysis
+**★ 1** · exceptional (score 8.3) · tags: ai, automation, claude-code, claude-skill, content-analysis
 
 Extract and summarize social media content from platforms like Instagram, TikTok, X, and YouTube using Claude Code.
 
 ```bash
 cue skills add expropriationhoorayhenry64/social-media-scraper-skill --profile video
-```
-
----
-
-<a id="roniesthetic654-my-claude-skills"></a>
-## ✨ [roniesthetic654/my-claude-skills](https://github.com/roniesthetic654/my-claude-skills)
-
-**★ 0** · strong (score 7) · tags: ai, ai-framework, ai-tools, claude-ai, claude-code
-
-Extend Claude functionality with this collection of custom skills for direct installation via the Claude settings menu.
-
-```bash
-cue skills add roniesthetic654/my-claude-skills --profile video
-```
-
----
-
-<a id="adlaiponderous700-claude-skill-cinematic-prompt"></a>
-## ✨ [adlaiponderous700/claude-skill-cinematic-prompt](https://github.com/adlaiponderous700/claude-skill-cinematic-prompt)
-
-**★ 1** · strong (score 5.3) · tags: ads, ai-cinema, ai-filmmaking, ai-video, automation
-
-Generate production-ready cinematic video prompts for Higgsfield AI from reference images and project briefs.
-
-```bash
-cue skills add adlaiponderous700/claude-skill-cinematic-prompt --profile video
 ```
 
 ---

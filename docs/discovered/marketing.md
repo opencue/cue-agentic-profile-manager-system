@@ -2,7 +2,7 @@
 title: "Claude Code Skills for marketing"
 description: "1 community Claude Code skills curated by cue for the marketing profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-24
+updated: 2026-05-26
 tags: [claude-code, marketing, skills, mcp, ai-agents]
 ---
 
@@ -15,15 +15,15 @@ tags: [claude-code, marketing, skills, mcp, ai-agents]
 
 ---
 
-<a id="mogginglabs-diogo-silva-voxhorizon-marketing-control-panel"></a>
-## 🔹 [MoggingLabs/Diogo-Silva-VoxHorizon-Marketing-Control-Panel](https://github.com/MoggingLabs/Diogo-Silva-VoxHorizon-Marketing-Control-Panel)
+<a id="clamp-sh-mcp"></a>
+## ✨ [clamp-sh/mcp](https://github.com/clamp-sh/mcp)
 
-**★ 0** · potential (score 3) · TypeScript
+**★ 1** · strong (score 5.3) · TypeScript · tags: agent-tools, analytics, clamp, claude, claude-code
 
-Next.js + Supabase + Tailscale control panel for the VoxHorizon AI marketing department (Ekko). Drives the image-ad pipeline end-to-end: brief, generate, review, launch, audit. Replaces Slack-driven workflows with a Kanban + funnel UI. Claude Code agent loop on a local Python worker.
+MCP server for Clamp, web analytics for the agentic era. Tools for traffic, referrers, live visitors, events, revenue, session paths, funnels, and alerts — queryable from Cursor, Claude Code, Claude Desktop, Smithery, and any MCP-compatible editor.
 
 ```bash
-cue skills add MoggingLabs/Diogo-Silva-VoxHorizon-Marketing-Control-Panel --profile marketing
+cue skills add clamp-sh/mcp --profile marketing
 ```
 
 ---

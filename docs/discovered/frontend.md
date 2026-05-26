@@ -1,42 +1,96 @@
 ---
 title: "Claude Code Skills for frontend"
-description: "2 community Claude Code skills curated by cue for the frontend profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "6 community Claude Code skills curated by cue for the frontend profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-24
+updated: 2026-05-26
 tags: [claude-code, frontend, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `frontend`
 
-> 2 community-built skills curated by [cue](https://github.com/opencue/cue) for the **frontend** profile.
+> 6 community-built skills curated by [cue](https://github.com/opencue/cue) for the **frontend** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="srikar08-inspect-ai-vision"></a>
-## ✨ [srikar08/inspect-ai-vision](https://github.com/srikar08/inspect-ai-vision)
+<a id="suanfishxyy-suanfish-design-system"></a>
+## 💎 [SuanFishXYY/suanfish-design-system](https://github.com/SuanFishXYY/suanfish-design-system)
 
-**★ 0** · strong (score 5.5) · HTML · tags: architecture, claude-code, claude-plugin, code-review, edtech
+**★ 5** · exceptional (score 10.9) · JavaScript · tags: agent-skills, agent-ui, ai, ai-native, anthropic
 
-AI Code Review & Visualization Plugin 2026 – Claude Code by Hulde AI
+🐟 Suanfish Design System — 33 specialized AI design agents across 7 tiers with REJECT mechanism. Multi-agent design language SKILL for Claude Code / Codex CLI / Copilot CLI. v2.5 adds AI-native Path G (streaming · tool-calls · reasoning · citations · artifacts).
+
+✅ SKILL.md
 
 ```bash
-cue skills add srikar08/inspect-ai-vision --profile frontend
+cue skills add SuanFishXYY/suanfish-design-system --profile frontend
 ```
 
 ---
 
-<a id="urabexon-prism"></a>
-## 🔹 [urabexon/Prism](https://github.com/urabexon/Prism)
+<a id="s2mgtvodois2-postgresql-mcp-js"></a>
+## 💎 [s2mgtvodois2/postgresql-mcp-js](https://github.com/s2mgtvodois2/postgresql-mcp-js)
 
-**★ 0** · potential (score 4) · Go · tags: bubbletea, cli, code-review, github, go
+**★ 0** · exceptional (score 9.5) · TypeScript · tags: agent-framework, ai, ai-agent, bun, database
 
-Prism is a terminal-native code review environment for GitHub Pull Requests.  Focused on speed, clarity, and keyboard-driven navigation, Prism brings pull request review workflows into the terminal.
+🔌 Simplify PostgreSQL interactions with a secure MCP server for LLMs, enabling efficient access to schemas, tables, and query execution.
 
 ```bash
-cue skills add urabexon/Prism --profile frontend
+cue skills add s2mgtvodois2/postgresql-mcp-js --profile frontend
+```
+
+---
+
+<a id="byrobertocumbane-glitch-lottie-marketplace"></a>
+## 💎 [byrobertocumbane-glitch/lottie-marketplace](https://github.com/byrobertocumbane-glitch/lottie-marketplace)
+
+**★ 0** · exceptional (score 8) · JavaScript · tags: app, claude-code, claude-code-plugin, claude-code-skill, claude-code-skills
+
+Search, fetch, and integrate Lottie animations into React, Vue, Flutter, and other frameworks using two Claude Code commands.
+
+```bash
+cue skills add byrobertocumbane-glitch/lottie-marketplace --profile frontend
+```
+
+---
+
+<a id="giovannisacca-pixel-mcp-workflow"></a>
+## ✨ [giovannisacca/pixel-mcp-workflow](https://github.com/giovannisacca/pixel-mcp-workflow)
+
+**★ 0** · strong (score 7.5) · HTML · tags: ai-coding-agent, claude-code, claude-skill, design-to-code, figma
+
+🔧 AI-Powered Design-to-Code Pipeline 2026: Figma to React in 6-Phase Parallel Workflow
+
+```bash
+cue skills add giovannisacca/pixel-mcp-workflow --profile frontend
+```
+
+---
+
+<a id="aiatelie-ai-atelie"></a>
+## ✨ [aiatelie/ai-atelie](https://github.com/aiatelie/ai-atelie)
+
+**★ 4** · strong (score 5.6) · TypeScript · tags: agent-skills, ai-agents, ai-design, bun, byok
+
+Local-first, open-source alternative to Anthropic's Claude Design. MIT-licensed, BYO agent CLI — Claude Code, Kimi, Codex, or any SDK-compatible model. Composable skills · three edit paths · designs as plain HTML/JSX/CSS folders · run locally, no cloud round-trip. Generate banners, thumbnails, websites, animations, design systems.
+
+```bash
+cue skills add aiatelie/ai-atelie --profile frontend
+```
+
+---
+
+<a id="davidzhaozz-opendev"></a>
+## 🔹 [davidzhaozz/openDev](https://github.com/davidzhaozz/openDev)
+
+**★ 2** · potential (score 3.4) · TypeScript
+
+openDev is a macOS desktop IDE for JavaScript and TypeScript with Claude integrated in the core. Click any element in the embedded browser to capture its CSS path, computed styles, and a screenshot — then   ▎  ship it to the AI as context. Built-in MySQL, Postgres, and ES client. Every panel is an MCP endpoint your CLI agents can drive.
+
+```bash
+cue skills add davidzhaozz/openDev --profile frontend
 ```
 
 ---

@@ -2,7 +2,7 @@
 title: "Claude Code Skills for python-api"
 description: "2 community Claude Code skills curated by cue for the python-api profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-24
+updated: 2026-05-26
 tags: [claude-code, python-api, skills, mcp, ai-agents]
 ---
 
@@ -15,28 +15,28 @@ tags: [claude-code, python-api, skills, mcp, ai-agents]
 
 ---
 
-<a id="dcellison-kai"></a>
-## 💎 [dcellison/kai](https://github.com/dcellison/kai)
+<a id="saml7n-parbaked"></a>
+## ✨ [saml7n/parbaked](https://github.com/saml7n/parbaked)
 
-**★ 31** · exceptional (score 13.1) · Python · tags: ai-agent, ai-assistant, anthropic, automation, claude
+**★ 1** · strong (score 6.3) · Python · tags: agent-native, auth, fastapi, fly-io, invite-only
 
-Agentic AI coding assistant on Telegram, powered by multiple persistent back ends. Runs locally with shell access, automated PR reviews, layered security, persistent memory, and scheduled jobs. Your machine, your data, your rules.
+Agent-native FastAPI kernel for invite-only Python apps — MCP scaffold, auth, admin, dev, deploy to fly.io.
 
 ```bash
-cue skills add dcellison/kai --profile python-api
+cue skills add saml7n/parbaked --profile python-api
 ```
 
 ---
 
-<a id="coldjeffry12-ai-code-review-assistant"></a>
-## 🔹 [coldjeffry12/ai-code-review-assistant](https://github.com/coldjeffry12/ai-code-review-assistant)
+<a id="esolnguyen-ai-translation"></a>
+## 🔹 [esolnguyen/ai-translation](https://github.com/esolnguyen/ai-translation)
 
-**★ 0** · potential (score 4) · Python · tags: ai, ai-assisted-development, code-review, fastapi, portfolio
+**★ 1** · potential (score 3) · Python · tags: chromadb, kiro, knowledge-base, langgraph, multi-agent
 
-Full-stack AI Code Review Assistant using React, TypeScript, Python FastAPI, fallback review logic, test cases, and screenshots.
+Multi-agent translation pipeline with a curated knowledge vault. Two interchangeable paths a programmatic RAG pipeline (Python) and a Claude Code / Kiro skill-and-subagent orchestra share the same Obsidian vault, Chroma index, and retrieval API. Supports Azure OpenAI + Gemini; ships as a CLI, HTTP API, and Docker image.
 
 ```bash
-cue skills add coldjeffry12/ai-code-review-assistant --profile python-api
+cue skills add esolnguyen/ai-translation --profile python-api
 ```
 
 ---
