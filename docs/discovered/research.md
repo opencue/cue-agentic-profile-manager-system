@@ -1,14 +1,14 @@
 ---
 title: "Claude Code Skills for research"
-description: "1 community Claude Code skills curated by cue for the research profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "3 community Claude Code skills curated by cue for the research profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-26
+updated: 2026-05-28
 tags: [claude-code, research, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `research`
 
-> 1 community-built skills curated by [cue](https://github.com/opencue/cue) for the **research** profile.
+> 3 community-built skills curated by [cue](https://github.com/opencue/cue) for the **research** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
@@ -24,6 +24,32 @@ Popper Probe Repo: Automated Vulnerability Scanner 2026 - Smart GitHub Code Anal
 
 ```bash
 cue skills add aemro-motors/popper-scope --profile research
+```
+
+---
+
+<a id="ahmedeid1-thoth"></a>
+## ✨ [ahmedEid1/thoth](https://github.com/ahmedEid1/thoth)
+
+**★ 0** · strong (score 6) · TypeScript · tags: agentic-ai, ai-agents, cite-check, clerk, hallucination-detection
+
+Agentic systematic literature reviews. Every citation verified against the source paper by cite_check. Authenticated MCP server (OAuth 2.1 + DCR) on the official registry. $0/mo on free tiers.
+
+```bash
+cue skills add ahmedEid1/thoth --profile research
+```
+
+---
+
+<a id="mlava-scholar-sidekick-skills"></a>
+## ✨ [mlava/scholar-sidekick-skills](https://github.com/mlava/scholar-sidekick-skills)
+
+**★ 0** · strong (score 5) · tags: agent-skills, bibliography, bibtex, citation-verification, citations
+
+Installable Agent Skills for Scholar Sidekick — turn DOI/PMID/ISBN/arXiv/ISSN/ADS/WHO IRIS into citations (10,000+ CSL styles), exports (BibTeX/RIS/EndNote/CSV), and retraction / open-access / fabrication checks. Zero-install REST skill + MCP skill.
+
+```bash
+cue skills add mlava/scholar-sidekick-skills --profile research
 ```
 
 ---

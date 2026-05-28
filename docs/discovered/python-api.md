@@ -1,42 +1,29 @@
 ---
 title: "Claude Code Skills for python-api"
-description: "2 community Claude Code skills curated by cue for the python-api profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "1 community Claude Code skills curated by cue for the python-api profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-26
+updated: 2026-05-28
 tags: [claude-code, python-api, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `python-api`
 
-> 2 community-built skills curated by [cue](https://github.com/opencue/cue) for the **python-api** profile.
+> 1 community-built skills curated by [cue](https://github.com/opencue/cue) for the **python-api** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="saml7n-parbaked"></a>
-## ✨ [saml7n/parbaked](https://github.com/saml7n/parbaked)
+<a id="sheep-programmer-aiforge"></a>
+## 💎 [sheep-programmer/AIForge](https://github.com/sheep-programmer/AIForge)
 
-**★ 1** · strong (score 6.3) · Python · tags: agent-native, auth, fastapi, fly-io, invite-only
+**★ 0** · exceptional (score 8.5) · TypeScript · tags: ai-agents, claude-code, fastapi, mcp, mcp-server
 
-Agent-native FastAPI kernel for invite-only Python apps — MCP scaffold, auth, admin, dev, deploy to fly.io.
-
-```bash
-cue skills add saml7n/parbaked --profile python-api
-```
-
----
-
-<a id="esolnguyen-ai-translation"></a>
-## 🔹 [esolnguyen/ai-translation](https://github.com/esolnguyen/ai-translation)
-
-**★ 1** · potential (score 3) · Python · tags: chromadb, kiro, knowledge-base, langgraph, multi-agent
-
-Multi-agent translation pipeline with a curated knowledge vault. Two interchangeable paths a programmatic RAG pipeline (Python) and a Claude Code / Kiro skill-and-subagent orchestra share the same Obsidian vault, Chroma index, and retrieval API. Supports Azure OpenAI + Gemini; ships as a CLI, HTTP API, and Docker image.
+Unified registry & router for agent skills, MCP servers, and Claude Code plugins.
 
 ```bash
-cue skills add esolnguyen/ai-translation --profile python-api
+cue skills add sheep-programmer/AIForge --profile python-api
 ```
 
 ---

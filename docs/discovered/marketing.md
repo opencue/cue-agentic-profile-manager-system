@@ -1,24 +1,39 @@
 ---
 title: "Claude Code Skills for marketing"
-description: "1 community Claude Code skills curated by cue for the marketing profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "2 community Claude Code skills curated by cue for the marketing profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, marketing, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `marketing`
 
-> 1 community-built skills curated by [cue](https://github.com/opencue/cue) for the **marketing** profile.
+> 2 community-built skills curated by [cue](https://github.com/opencue/cue) for the **marketing** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
+<a id="zenithmetodo-zenith-crea-ofertas"></a>
+## 💎 [zenithmetodo/zenith-crea-ofertas](https://github.com/zenithmetodo/zenith-crea-ofertas)
+
+**★ 0** · exceptional (score 12) · HTML · tags: ai-agents, anthropic, avatar-deep, bencivenga, claude-code
+
+Zenith Crea Ofertas™ v2.0.0 · Mega-skill TOP 1% para Claude Code. 41 agentes especializados + 17 commands + 18 HTML templates + 20 knowledge files. Avatar deep + Reddit/YouTube research + ángulos + competencia. Pipeline 17 etapas con optimización de costes (Opus/Sonnet/Haiku).
+
+✅ SKILL.md
+
+```bash
+cue skills add zenithmetodo/zenith-crea-ofertas --profile marketing
+```
+
+---
+
 <a id="clamp-sh-mcp"></a>
 ## ✨ [clamp-sh/mcp](https://github.com/clamp-sh/mcp)
 
-**★ 1** · strong (score 5.2) · TypeScript · tags: agent-tools, analytics, clamp, claude, claude-code
+**★ 1** · strong (score 5.3) · TypeScript · tags: agent-tools, analytics, clamp, claude, claude-code
 
 MCP server for Clamp, web analytics for the agentic era. Tools for traffic, referrers, live visitors, events, revenue, session paths, funnels, and alerts — queryable from Cursor, Claude Code, Claude Desktop, Smithery, and any MCP-compatible editor.
 

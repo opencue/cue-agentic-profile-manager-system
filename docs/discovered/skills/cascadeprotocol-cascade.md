@@ -2,7 +2,7 @@
 title: "CascadeProtocol/Cascade — Claude Code skill discovered by cue"
 description: "Autonomous arbitrage scanner - monitors price spreads across 4 Solana DEXes, evaluates paths with Claude, executes in milliseconds."
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, skill, core]
 ---
 

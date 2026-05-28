@@ -2,7 +2,7 @@
 title: "Claude Code Skills for niche"
 description: "4 community Claude Code skills curated by cue for the niche profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, niche, skills, mcp, ai-agents]
 ---
 
@@ -12,21 +12,6 @@ tags: [claude-code, niche, skills, mcp, ai-agents]
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
-
----
-
-<a id="outmansay-devil-chat-coach"></a>
-## 💎 [OutmanSay/devil-chat-coach](https://github.com/OutmanSay/devil-chat-coach)
-
-**★ 0** · exceptional (score 10.8) · tags: ai-agent, ai-agent-skill, claude-code, openclaw, prompt-engineering
-
-🧠 AI Agent Skill: 实战恋爱聊天教练，贴对方消息按「阶段+温度」给你能用的回复 | AI agent skill for dating-chat coaching
-
-✅ SKILL.md
-
-```bash
-cue skills add OutmanSay/devil-chat-coach --profile niche
-```
 
 ---
 
@@ -71,6 +56,19 @@ cue skills add Ikramahmadmemon13/grant-thinking-skill --profile niche
 
 ```bash
 cue skills add jayden-lg/costing-master --profile niche
+```
+
+---
+
+<a id="jinsedawoniu-mobile-app-store-deployment-automation"></a>
+## ✨ [JINSEDAWONIU/mobile-app-store-deployment-automation](https://github.com/JINSEDAWONIU/mobile-app-store-deployment-automation)
+
+**★ 0** · strong (score 5) · HTML · tags: app-store-connect, capacitor, claude-code, claude-plugin, claude-skill
+
+Auto‑Deploy Mobile Apps 2026 – Unlock iOS & Android CI/CD with Capacitor, Expo & Flutter
+
+```bash
+cue skills add JINSEDAWONIU/mobile-app-store-deployment-automation --profile niche
 ```
 
 ---

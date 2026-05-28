@@ -1,29 +1,29 @@
 ---
 title: "Claude Code Skills for fleet-control"
-description: "5 community Claude Code skills curated by cue for the fleet-control profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "3 community Claude Code skills curated by cue for the fleet-control profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, fleet-control, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `fleet-control`
 
-> 5 community-built skills curated by [cue](https://github.com/opencue/cue) for the **fleet-control** profile.
+> 3 community-built skills curated by [cue](https://github.com/opencue/cue) for the **fleet-control** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="sleep2agi-agent-network"></a>
-## 💎 [sleep2agi/agent-network](https://github.com/sleep2agi/agent-network)
+<a id="j7an-nexus-mcp"></a>
+## 💎 [j7an/nexus-mcp](https://github.com/j7an/nexus-mcp)
 
-**★ 28** · exceptional (score 11.2) · JavaScript · tags: agent-network, ai-agents, anthropic, bun, claude
+**★ 3** · exceptional (score 10.7) · Python · tags: ai-agents, ai-orchestration, claude-code, claude-desktop, claudecode
 
-多 Agent，一行命令。Run a multi-agent network with Claude / GPT / MiniMax — one npm install.
+MCP server that lets AI models invoke CLI agents (Gemini, Codex, Claude, OpenCode) as tools — with parallel execution, retries, and structured output parsing.
 
 ```bash
-cue skills add sleep2agi/agent-network --profile fleet-control
+cue skills add j7an/nexus-mcp --profile fleet-control
 ```
 
 ---
@@ -37,32 +37,6 @@ SuperX Autonomous AI Agent 2026: 14 Specialized Coders, 10x Parallel Execution &
 
 ```bash
 cue skills add Marcos-Auguusto/superx-agentic-orchestrator --profile fleet-control
-```
-
----
-
-<a id="7ossamfarid-mcp-mindmesh"></a>
-## 💎 [7ossamfarid/mcp-mindmesh](https://github.com/7ossamfarid/mcp-mindmesh)
-
-**★ 5** · exceptional (score 9.7) · TypeScript · tags: claude-api, mcp, mcp-server, modelcontextprotocol, multi-agent-systems
-
-Claude 3.7 Swarm with Field Coherence: A Model Context Protocol (MCP) server that orchestrates multiple specialized Claude 3.7 Sonnet instances in a quantum-inspired swarm. It creates a field coherence effect across pattern recognition, information theory, and reasoning specialists to produce optimally coherent responses from ensemble intelligence.
-
-```bash
-cue skills add 7ossamfarid/mcp-mindmesh --profile fleet-control
-```
-
----
-
-<a id="aadiieee-multi-agent-revenue-orchestrator"></a>
-## ✨ [aadiieee/multi-agent-revenue-orchestrator](https://github.com/aadiieee/multi-agent-revenue-orchestrator)
-
-**★ 0** · strong (score 7.5) · HTML · tags: agents, ai-agents, ai-sdr, apollo-io, business-development
-
-2026 Multi-Agent BD Orchestrator – Apollo, Notion, Gmail & Slack Integration
-
-```bash
-cue skills add aadiieee/multi-agent-revenue-orchestrator --profile fleet-control
 ```
 
 ---

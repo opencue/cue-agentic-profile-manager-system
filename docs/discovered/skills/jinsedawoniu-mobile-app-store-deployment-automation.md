@@ -2,26 +2,26 @@
 title: "JINSEDAWONIU/mobile-app-store-deployment-automation — Claude Code skill discovered by cue"
 description: "Auto‑Deploy Mobile Apps 2026 – Unlock iOS & Android CI/CD with Capacitor, Expo & Flutter"
 layout: page
-updated: 2026-05-26
-tags: [claude-code, skill, core]
+updated: 2026-05-28
+tags: [claude-code, skill, niche]
 ---
 
 # ✨ [JINSEDAWONIU/mobile-app-store-deployment-automation](https://github.com/JINSEDAWONIU/mobile-app-store-deployment-automation)
 
-**★ 0** · strong (score 7.5) · HTML · app-store-connect, capacitor, claude-code, claude-plugin, claude-skill
+**★ 0** · strong (score 5) · HTML · app-store-connect, capacitor, claude-code, claude-plugin, claude-skill
 
 > Auto‑Deploy Mobile Apps 2026 – Unlock iOS & Android CI/CD with Capacitor, Expo & Flutter
 
 ## Why cue indexed it
 
-cue ran [GitHub Code Search](https://docs.github.com/en/search-github/searching-on-github/searching-code) for `filename:SKILL.md` and found this repo. It scored 7.5 based on:
+cue ran [GitHub Code Search](https://docs.github.com/en/search-github/searching-on-github/searching-code) for `filename:SKILL.md` and found this repo. It scored 5 based on:
 - ⭐ 0 stars
-- 🗓️ Last pushed: 2026-05-26
+- 🗓️ Last pushed: 2026-05-28
 - 🏷️ Tags: app-store-connect, capacitor, claude-code, claude-plugin, claude-skill, expo, fastlane, flutter, gradle-play-publisher, mobile-publishing, play-store, testflight
 
 ## Best fit cue profiles
 
-[core](../core.md)
+[niche](../niche.md)
 
 
 
@@ -29,7 +29,7 @@ cue ran [GitHub Code Search](https://docs.github.com/en/search-github/searching-
 
 ```bash
 npm install -g cue-ai
-cue skills add JINSEDAWONIU/mobile-app-store-deployment-automation --profile core
+cue skills add JINSEDAWONIU/mobile-app-store-deployment-automation --profile niche
 ```
 
 ## About

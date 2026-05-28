@@ -1,14 +1,14 @@
 ---
 title: "Claude Code Skills for backend"
-description: "12 community Claude Code skills curated by cue for the backend profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "14 community Claude Code skills curated by cue for the backend profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, backend, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `backend`
 
-> 12 community-built skills curated by [cue](https://github.com/opencue/cue) for the **backend** profile.
+> 14 community-built skills curated by [cue](https://github.com/opencue/cue) for the **backend** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
@@ -18,7 +18,7 @@ tags: [claude-code, backend, skills, mcp, ai-agents]
 <a id="n8n-io-n8n"></a>
 ## 💎 [n8n-io/n8n](https://github.com/n8n-io/n8n)
 
-**★ 189872** · exceptional (score 15) · TypeScript · tags: ai, apis, automation, cli, data-flow
+**★ 190038** · exceptional (score 15) · TypeScript · tags: ai, apis, automation, cli, data-flow
 
 Fair-code workflow automation platform with native AI capabilities. Combine visual building with custom code, self-host or cloud, 400+ integrations.
 
@@ -28,93 +28,145 @@ cue skills add n8n-io/n8n --profile backend
 
 ---
 
-<a id="skyhook-io-radar"></a>
-## 💎 [skyhook-io/radar](https://github.com/skyhook-io/radar)
+<a id="dave-london-pare"></a>
+## 💎 [Dave-London/Pare](https://github.com/Dave-London/Pare)
 
-**★ 2140** · exceptional (score 13) · Go · tags: argocd, cloud-native, gitops, helm, k8s
+**★ 124** · exceptional (score 13.5) · TypeScript · tags: ai-coding, ai-tools, claude, cursor, developer-tools
 
-The missing open source Kubernetes UI. Topology, event timeline, and service traffic — plus resource browsing and Helm management.
+Dev tools, optimized for agents. Structured, token-efficient MCP servers for git, test runners, npm, Docker, and more.
 
 ```bash
-cue skills add skyhook-io/radar --profile backend
+cue skills add Dave-London/Pare --profile backend
 ```
 
 ---
 
-<a id="lirantal-mcp-server-nodejs-api-docs"></a>
-## 💎 [lirantal/mcp-server-nodejs-api-docs](https://github.com/lirantal/mcp-server-nodejs-api-docs)
+<a id="skyinv-seedream-mcp"></a>
+## 💎 [skyinv/Seedream_MCP](https://github.com/skyinv/Seedream_MCP)
 
-**★ 10** · exceptional (score 11.1) · TypeScript · tags: claude-ai, claude-desktop, cursor, cursor-ai, llm
+**★ 0** · exceptional (score 10) · Python · tags: ai, claude, claude-code, cursor, cursor-ai
 
-MCP Server for Node.js API documentation
+🎨 Generate high-quality images from text, blend visuals, and manage outputs seamlessly with the enhanced Seedream MCP toolkit based on Volcanic Engine API.
 
 ```bash
-cue skills add lirantal/mcp-server-nodejs-api-docs --profile backend
+cue skills add skyinv/Seedream_MCP --profile backend
 ```
 
 ---
 
-<a id="kanak03-star-mcp-safe-run"></a>
-## 💎 [Kanak03-star/mcp-safe-run](https://github.com/Kanak03-star/mcp-safe-run)
+<a id="sanjusathian-ai-specs"></a>
+## 💎 [sanjusathian/ai-specs](https://github.com/sanjusathian/ai-specs)
 
-**★ 5** · exceptional (score 9.7) · TypeScript · tags: claude, context, cursor, go, keychain
+**★ 1** · exceptional (score 9.8) · tags: agents, ai, ai-agent, ai-agents, aiagent
 
-Tired of hardcoding secrets like API keys in your MCP client configuration (e.g., mcp.json, claude_desktop_config.json)? mcp-secure-launcher lets you run your existing MCP servers securely without modifying them.
+📁 Streamline AI development with comprehensive rules and configurations for consistent, high-quality coding across multiple AI copilots.
 
 ```bash
-cue skills add Kanak03-star/mcp-safe-run --profile backend
+cue skills add sanjusathian/ai-specs --profile backend
 ```
 
 ---
 
-<a id="7ossamfarid-mcp-mindmesh"></a>
-## 💎 [7ossamfarid/mcp-mindmesh](https://github.com/7ossamfarid/mcp-mindmesh)
+<a id="sheep-programmer-aiforge"></a>
+## 💎 [sheep-programmer/AIForge](https://github.com/sheep-programmer/AIForge)
 
-**★ 5** · exceptional (score 9.7) · TypeScript · tags: claude-api, mcp, mcp-server, modelcontextprotocol, multi-agent-systems
+**★ 0** · exceptional (score 8.5) · TypeScript · tags: ai-agents, claude-code, fastapi, mcp, mcp-server
 
-Claude 3.7 Swarm with Field Coherence: A Model Context Protocol (MCP) server that orchestrates multiple specialized Claude 3.7 Sonnet instances in a quantum-inspired swarm. It creates a field coherence effect across pattern recognition, information theory, and reasoning specialists to produce optimally coherent responses from ensemble intelligence.
+Unified registry & router for agent skills, MCP servers, and Claude Code plugins.
 
 ```bash
-cue skills add 7ossamfarid/mcp-mindmesh --profile backend
+cue skills add sheep-programmer/AIForge --profile backend
 ```
 
 ---
 
-<a id="anzy-renlab-ai-pronounce"></a>
-## 💎 [anzy-renlab-ai/pronounce](https://github.com/anzy-renlab-ai/pronounce)
+<a id="ej-locked-flowcore"></a>
+## ✨ [Ej-Locked/FlowCore](https://github.com/Ej-Locked/FlowCore)
 
-**★ 10** · exceptional (score 9.7) · Shell · tags: bash, claude-code, cli, community-driven, cursor
+**★ 0** · strong (score 7.5) · Rust · tags: automation, bpm, business-process, flowcore, mcp
 
-🔊 Pronounce developer jargon out loud. 544+ entries (kubectl, GIF, JSON, JWT, …), sourced with confidence levels. Bash CLI + interactive quiz + voice search + MCP server + Claude Code skill.
+🚀 Build a minimal Flink-like streaming engine in Rust and React to process events with tumbling windows, late-event detection, and a simple web interface.
 
 ```bash
-cue skills add anzy-renlab-ai/pronounce --profile backend
+cue skills add Ej-Locked/FlowCore --profile backend
 ```
 
 ---
 
-<a id="valennmg-solscan-mcp"></a>
-## 💎 [Valennmg/solscan-mcp](https://github.com/Valennmg/solscan-mcp)
+<a id="tahahussein-dotcom-mcp-encrypted-sqlite"></a>
+## ✨ [TahaHussein-dotcom/mcp-encrypted-sqlite](https://github.com/TahaHussein-dotcom/mcp-encrypted-sqlite)
 
-**★ 2** · exceptional (score 8) · Rust · tags: crate, crates, mcp, mcp-client, mcp-server
+**★ 0** · strong (score 7.5) · tags: crud, database, database-tools, encryption, gradle
 
-An MCP server for querying Solana transactions using natural language with Solscan API
+🔒 Access and manage encrypted SQLite databases effortlessly with this MCP server, designed for seamless integration with SQLCipher and various clients.
 
 ```bash
-cue skills add Valennmg/solscan-mcp --profile backend
+cue skills add TahaHussein-dotcom/mcp-encrypted-sqlite --profile backend
 ```
 
 ---
 
-<a id="cdeust-automatised-pipeline"></a>
-## ✨ [cdeust/automatised-pipeline](https://github.com/cdeust/automatised-pipeline)
+<a id="vtnhogg-mcp-server"></a>
+## ✨ [vtnhogg/mcp-server](https://github.com/vtnhogg/mcp-server)
 
-**★ 1** · strong (score 7.8) · Rust · tags: anthropic, bm25, claude, claude-code, claude-code-plugin
+**★ 0** · strong (score 7.5) · Python · tags: agents, ai, batch-processing, content-extraction, deepseek
 
-Codebase intelligence as an MCP server — tree-sitter AST → LadybugDB graph → Louvain communities → hybrid BM25 + TF-IDF + RRF search. 23 tools · 10 stages · 220 tests · Rust · Clean Architecture. The read-only intelligence layer between finding and PRD.
+🚀 Access 249+ APIs effortlessly with the APIVerve MCP Server using the Model Context Protocol for seamless integration and development.
 
 ```bash
-cue skills add cdeust/automatised-pipeline --profile backend
+cue skills add vtnhogg/mcp-server --profile backend
+```
+
+---
+
+<a id="patsa2561-art-mneme-ai"></a>
+## ✨ [patsa2561-art/mneme-ai](https://github.com/patsa2561-art/mneme-ai)
+
+**★ 4** · strong (score 6.8) · TypeScript · tags: ai-coding-assistant, ai-memory, codebase-memory, developer-tools, ghost-code
+
+the memory layer of your codebase. Knows the WHY, the WHAT, the WHERE-IT-BREAKS.
+
+```bash
+cue skills add patsa2561-art/mneme-ai --profile backend
+```
+
+---
+
+<a id="ahmedeid1-thoth"></a>
+## ✨ [ahmedEid1/thoth](https://github.com/ahmedEid1/thoth)
+
+**★ 0** · strong (score 6) · TypeScript · tags: agentic-ai, ai-agents, cite-check, clerk, hallucination-detection
+
+Agentic systematic literature reviews. Every citation verified against the source paper by cite_check. Authenticated MCP server (OAuth 2.1 + DCR) on the official registry. $0/mo on free tiers.
+
+```bash
+cue skills add ahmedEid1/thoth --profile backend
+```
+
+---
+
+<a id="unbearabledev-k8s-manifest-audit"></a>
+## ✨ [UnbearableDev/k8s-manifest-audit](https://github.com/UnbearableDev/k8s-manifest-audit)
+
+**★ 0** · strong (score 6) · Python · tags: apify, apify-actor, audit, devops, devsecops
+
+MCP server: static security audit of Kubernetes manifests via kube-linter. 63 checks across 7 categories. Pay-per-event via Apify Actor Store.
+
+```bash
+cue skills add UnbearableDev/k8s-manifest-audit --profile backend
+```
+
+---
+
+<a id="unbearabledev-iac-audit-pack"></a>
+## ✨ [UnbearableDev/iac-audit-pack](https://github.com/UnbearableDev/iac-audit-pack)
+
+**★ 0** · strong (score 6) · Python · tags: apify, apify-actor, audit, devops, devsecops
+
+Bundle audit MCP for IaC: docker-compose + Dockerfile + GitHub Actions + HU postcode under one endpoint. Pay-per-event via Apify Actor Store.
+
+```bash
+cue skills add UnbearableDev/iac-audit-pack --profile backend
 ```
 
 ---
@@ -128,32 +180,6 @@ Self-hosted LLM gateway that turns flat-rate AI subscriptions (Claude Code Max, 
 
 ```bash
 cue skills add renefichtmueller/adaptive-llm-gateway --profile backend
-```
-
----
-
-<a id="hshintelligence-agent-scrape"></a>
-## ✨ [hshintelligence/agent-scrape](https://github.com/hshintelligence/agent-scrape)
-
-**★ 1** · strong (score 5.3) · TypeScript · tags: agent-native, agentic-commerce, ai-agents, base-network, browser-automation
-
-Pay-per-call web scraping for AI agents — no signup, no API keys, just USDC. x402-monetized MCP server on Base mainnet, deployed on Cloudflare Workers. 6 tools: scrape, extract (Groq + Llama 4), screenshot, metadata, workflow, session.
-
-```bash
-cue skills add hshintelligence/agent-scrape --profile backend
-```
-
----
-
-<a id="kubeleash-kubeleash"></a>
-## ✨ [kubeleash/kubeleash](https://github.com/kubeleash/kubeleash)
-
-**★ 0** · strong (score 5) · Go · tags: ai-agents, claude, devops, go, guardrails
-
-Guardrails for AI agents on your cluster: a local, policy-gated Kubernetes MCP server with RBAC-style, context-scoped access control. Point it at an over-privileged kubeconfig — it still can't nuke prod.
-
-```bash
-cue skills add kubeleash/kubeleash --profile backend
 ```
 
 ---

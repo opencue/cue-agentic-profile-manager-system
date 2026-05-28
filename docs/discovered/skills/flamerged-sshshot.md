@@ -2,19 +2,19 @@
 title: "flamerged/sshshot — Claude Code skill discovered by cue"
 description: "Take a screenshot locally → it auto-uploads via SSH → the remote path lands on your clipboard. Paste screenshots into Claude Code, OpenAI Codex, Aider, or any A"
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, skill, core]
 ---
 
 # ✨ [flamerged/sshshot](https://github.com/flamerged/sshshot)
 
-**★ 1** · strong (score 5.1) · TypeScript · ai-agents, aider, claude-code, cli, codex
+**★ 1** · strong (score 5) · TypeScript · ai-agents, aider, claude-code, cli, codex
 
 > Take a screenshot locally → it auto-uploads via SSH → the remote path lands on your clipboard. Paste screenshots into Claude Code, OpenAI Codex, Aider, or any AI agent running over SSH. macOS, Linux X11, Windows, WSL.
 
 ## Why cue indexed it
 
-cue ran [GitHub Code Search](https://docs.github.com/en/search-github/searching-on-github/searching-code) for `filename:SKILL.md` and found this repo. It scored 5.1 based on:
+cue ran [GitHub Code Search](https://docs.github.com/en/search-github/searching-on-github/searching-code) for `filename:SKILL.md` and found this repo. It scored 5 based on:
 - ⭐ 1 stars
 - 🗓️ Last pushed: 2026-05-21
 - 🏷️ Tags: ai-agents, aider, claude-code, cli, codex, dev-tools, developer-tools, linux, macos, productivity, remote-development, screenshot, screenshot-tool, ssh, ssh-tunnel, typescript, wayland, windows

@@ -1,14 +1,14 @@
 ---
 title: "Claude Code Skills for cybersecurity"
-description: "6 community Claude Code skills curated by cue for the cybersecurity profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "7 community Claude Code skills curated by cue for the cybersecurity profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, cybersecurity, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `cybersecurity`
 
-> 6 community-built skills curated by [cue](https://github.com/opencue/cue) for the **cybersecurity** profile.
+> 7 community-built skills curated by [cue](https://github.com/opencue/cue) for the **cybersecurity** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
@@ -45,25 +45,10 @@ cue skills add Zandereins/hydra --profile cybersecurity
 
 ---
 
-<a id="leontynestirredup43-slowmist-security-cc"></a>
-## 💎 [Leontynestirredup43/slowmist-security-cc](https://github.com/Leontynestirredup43/slowmist-security-cc)
-
-**★ 0** · exceptional (score 13) · tags: agent-security, aml, audit, blockchain, claude-code
-
-Audit Claude Code agents with this security framework to detect vulnerabilities, social engineering, and supply chain threats in adversarial environments.
-
-✅ SKILL.md
-
-```bash
-cue skills add Leontynestirredup43/slowmist-security-cc --profile cybersecurity
-```
-
----
-
 <a id="elementalsouls-claude-osint"></a>
 ## 💎 [elementalsouls/Claude-OSINT](https://github.com/elementalsouls/Claude-OSINT)
 
-**★ 1517** · exceptional (score 11.3) · Python · tags: agentskills, claude, skills
+**★ 1539** · exceptional (score 11.2) · Python · tags: agentskills, claude, skills
 
 Two paired Claude skills · 90+ recon modules · 48 secret-regex patterns · 80+ dorks · 9 read-only credential validators · 27 attack-path templates · 5,500+ lines of structured tradecraft. Drop-in SKILL.md files that turn Claude into a god-mode external recon operator for authorized red-team and bug-bounty engagements.
 
@@ -76,7 +61,7 @@ cue skills add elementalsouls/Claude-OSINT --profile cybersecurity
 <a id="x-glacier-kali-pentest"></a>
 ## 💎 [x-glacier/kali-pentest](https://github.com/x-glacier/kali-pentest)
 
-**★ 44** · exceptional (score 10.1) · tags: ai-agent, claude-code-skill, cybersecurity, ethical-hacking, hermes-agent
+**★ 45** · exceptional (score 10.1) · tags: ai-agent, claude-code-skill, cybersecurity, ethical-hacking, hermes-agent
 
 Kali Linux penetration testing skill for AI agents (Claude Code, OpenClaw, Hermes Agent). 200+ CLI tools, 15 scenario playbooks. Autonomously plans attack paths, selects tools, and integrates results across phases to adapt the penetration strategy — with human approval gates for high-risk actions.
 
@@ -95,6 +80,32 @@ Automate security research workflows with structured tool-driven assessments for
 
 ```bash
 cue skills add davzpogi01/claude-security-research-skill --profile cybersecurity
+```
+
+---
+
+<a id="unbearabledev-k8s-manifest-audit"></a>
+## ✨ [UnbearableDev/k8s-manifest-audit](https://github.com/UnbearableDev/k8s-manifest-audit)
+
+**★ 0** · strong (score 6) · Python · tags: apify, apify-actor, audit, devops, devsecops
+
+MCP server: static security audit of Kubernetes manifests via kube-linter. 63 checks across 7 categories. Pay-per-event via Apify Actor Store.
+
+```bash
+cue skills add UnbearableDev/k8s-manifest-audit --profile cybersecurity
+```
+
+---
+
+<a id="unbearabledev-iac-audit-pack"></a>
+## ✨ [UnbearableDev/iac-audit-pack](https://github.com/UnbearableDev/iac-audit-pack)
+
+**★ 0** · strong (score 6) · Python · tags: apify, apify-actor, audit, devops, devsecops
+
+Bundle audit MCP for IaC: docker-compose + Dockerfile + GitHub Actions + HU postcode under one endpoint. Pay-per-event via Apify Actor Store.
+
+```bash
+cue skills add UnbearableDev/iac-audit-pack --profile cybersecurity
 ```
 
 ---

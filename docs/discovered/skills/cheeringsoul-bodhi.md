@@ -2,7 +2,7 @@
 title: "cheeringsoul/bodhi — Claude Code skill discovered by cue"
 description: "AI-native semantic DSL that makes Claude Code capture developer intent, data flows, service topology, and error paths as structured annotations — while writing "
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, skill, core]
 ---
 
@@ -16,7 +16,7 @@ tags: [claude-code, skill, core]
 
 cue ran [GitHub Code Search](https://docs.github.com/en/search-github/searching-on-github/searching-code) for `filename:SKILL.md` and found this repo. It scored 4.3 based on:
 - ⭐ 1 stars
-- 🗓️ Last pushed: 2026-05-26
+- 🗓️ Last pushed: 2026-05-27
 - 🏷️ Tags: (none)
 
 ## Best fit cue profiles

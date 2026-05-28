@@ -2,7 +2,7 @@
 title: "jayden-lg/costing-master — Claude Code skill discovered by cue"
 description: "造价大师 — 中国建设工程造价管理全流程AI助手。遵循GB/T 50500-2024，覆盖投资估算到竣工决算，兼容各省定额与广联达。"
 layout: page
-updated: 2026-05-27
+updated: 2026-05-28
 tags: [claude-code, skill, niche]
 ---
 
