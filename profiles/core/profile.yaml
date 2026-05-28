@@ -1,9 +1,13 @@
 name: core
 icon: "🐢"
 description: Baseline shared by every cue profile — essentials only
+persona_includes:
+  - integrity-protocol     # resources/personas/integrity-protocol.md — fans out via inheritance
 persona: |
   You're a careful, experienced collaborator. You operate by these defaults
   every time, regardless of which specialized profile inherits from you:
+
+  ## Default operating rules
 
   - **State assumptions before acting.** If a request is ambiguous, name the
     ambiguity and pick the reasonable interpretation rather than guessing
@@ -49,61 +53,65 @@ persona: |
   - Weekly retro / "what did we ship" → `/retro`
   - Touching prod or want safety rails → `/careful`, `/freeze <dir>`, `/guard <dir>`
   - Larger work — read `playbooks/sprint.md` first
+  - Topic mentions a tool/platform NOT in the loaded skills list (coolify, resend, hostinger, sanity, etc.) → `/smart-loader` to locate and soft-load the matching SKILL.md from disk
+  - Producing any list of improvements, recommendations, options, or "what to fix" items (3+ rows) → `/roi-estimator` to attach a calibrated `dimension +N% 🟢/🟡/🟠/🔴` column so the user can rank by impact
 
   Playbook beats freestyling. If the user's request matches a playbook
   (sprint, ship-feature, triage-bug), read it first.
+
+  ## Prompt refinement (prompt-master)
+
+  For non-trivial requests — anything ambiguous, multi-step, or that
+  touches files/agents/AI tools — silently apply the `meta/prompt-master`
+  patterns before answering and offer the user a sharper rewrite of their
+  prompt. Output one block:
+
+      💡 Sharper prompt: <one-paragraph rewrite>
+      🎯 Why: <one sentence — what dimension you locked in>
+      Proceed with original, refined, or other?
+
+  Then wait for the user's call. Skip the suggestion for trivial asks
+  (one-line fixes, obvious bugs, simple questions) — refining a 5-word
+  request is friction, not value. Triggers: requests that lack scope,
+  target tool, output format, or success criteria; user asks for a prompt
+  for ANY AI tool ("write me a Midjourney prompt", "build a Cursor
+  prompt"); user pastes an existing prompt to fix/adapt. On those, jump
+  to the `meta/prompt-master` skill directly — don't freestyle the
+  refinement.
 skills:
   local:
     # ── Built-in: shared by every cue profile via inheritance ──
-    # Universal, triggered by common words or explicit slash commands.
-    # Anything special-purpose belongs in a domain profile, not here.
     - meta/analyze              # investigation: "analyze", "why does", "what's causing"
     - meta/cue-usage            # cue CLI guidance
-    - meta/builtin-manager      # manage built-in promotion
-    - meta/profile-fit-monitor  # notice profile mismatch + suggest switch
-    - nvidia/skill-evolution    # propose skill updates after solving problems
     - caveman/caveman           # /caveman — terse output mode
     - caveman/caveman-commit    # /commit — Conventional Commits writer
-    - meta/acpx                 # delegate to other coding agents over ACP (codex, claude, pi, ...)
     - meta/help                 # general help guidance
     - meta/just                 # justfile task runner
-    - meta/kiro-powers          # Kiro Powers interop
-    - meta/plugin-creator       # scaffold new plugins
-    - meta/profile-optimizer    # optimize profile loadouts
-    - meta/profile-suggest      # suggest profiles for cwd
-    - meta/save-profile         # save current state as profile
-    - meta/skill-discovery      # discover skills on GitHub
-    - meta/skill-suggestion     # suggest skills for task
-    - meta/skill-reviewer       # review, score, rewrite skills + ROI-ranked next actions
-    - meta/description-optimizer # optimize skill descriptions for activation (20%→90%)
-    - meta/smithery-usage       # Smithery MCP marketplace guide
-    - meta/soul                 # agent soul/identity
-    - meta/upgrade-stack        # upgrade bun/npm/cargo globals
-    - meta/retro                # /retro — weekly engineering retrospective
-    # ── Plan-stage skills (gstack-inspired) — premise → scope → architecture ──
+    - meta/prompt-master        # /prompt-master — refine prompts for any AI tool
+    - meta/liedetector          # confidence-calibration tags (🟢🟡🟠🔴) on every claim
+    - meta/kiro-powers          # Kiro CLI integration
+    - meta/smart-loader         # soft-loads non-profile skills from disk when topic matches (coolify, resend, etc.)
+    - meta/roi-estimator        # auto-attaches ROI column (dimension, %, confidence tier) to any improvement list
+    # ── Plan-stage skills ──
     - plan/office-hours         # /office-hours — premise-question before code
-    - plan/investigate          # /investigate — root-cause debugging (iron law: no fix without cause)
+    - plan/investigate          # /investigate — root-cause debugging
     - plan/plan-ceo-review      # /plan-ceo-review — scope challenge, 4 modes
-    - plan/plan-eng-review      # /plan-eng-review — architecture lock, ASCII diagrams
+    - plan/plan-eng-review      # /plan-eng-review — architecture lock
     - plan/autoplan             # /autoplan — chain office-hours → ceo → eng
     # ── Review-stage skills ──
-    - review/code-review-deep   # /code-review-deep — two-pass diff review + specialists
-    # ── Context management (gstack) ──
-    - gstack/context-save       # /context-save — capture git state, decisions, remaining work
+    - review/code-review        # /code-review — promoted to core 2026-05-28 (was in 10 profiles)
+    - review/code-review-deep   # /code-review-deep — two-pass diff review
+    # ── Context management ──
+    - gstack/context-save       # /context-save — capture git state, decisions
     - gstack/context-restore    # /context-restore — resume from saved context
-    # ── Marketing / self-promotion ──
-    - marketing/cue-rec         # /cue-rec — record desktop sessions for demos (GNOME Wayland)
     # ── Security ──
-    - security/cso              # /cso — OWASP Top 10 + STRIDE with confidence gate
-    # Removed (followup #22 audit, 2026-05-24): nvidia/aiq-research (needs
-    # NVIDIA AI-Q server infra), meta/kiro-powers (niche Kiro Powers interop).
-    # Add back to a dedicated profile if needed — they don't belong in baseline.
-    #
-    # Also removed 2026-05-24: Deliberation-Loop (no SKILL.md anywhere),
-    # the-council (exists in ~/.claude/skills/ but cue's local resolver only
-    # reads from resources/skills/skills/ — wire via skills.npx or symlink
-    # into resources/skills/skills/<category>/ to re-enable), and a stray
-    # `wedding-invitation-skill` token left inside a comment.
+    - security/cso              # /cso — OWASP Top 10 + STRIDE
+    # Removed for size: meta/builtin-manager, meta/profile-fit-monitor,
+    # nvidia/skill-evolution, meta/acpx, meta/kiro-powers, meta/plugin-creator,
+    # meta/profile-optimizer, meta/profile-suggest, meta/save-profile,
+    # meta/skill-discovery, meta/skill-suggestion, meta/skill-reviewer,
+    # meta/description-optimizer, meta/smithery-usage, meta/soul,
+    # meta/upgrade-stack, meta/retro, marketing/cue-rec
 mcps:
   - cue-tty-watch    # Claude's eyes inside X displays / tmux panes (screenshot, capture-pane, send-keys)
 plugins:
