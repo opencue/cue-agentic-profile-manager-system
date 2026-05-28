@@ -160,6 +160,12 @@ hooks:
   # ~/.config/cue/first-prompts/<cwd-hash>.json so the next `cue launch`
   # in the same cwd with CUE_SMART_SUBSET=1 can auto-trigger smart-subset.
   - first-prompt-capture.json
+  # UserPromptSubmit hook: on EVERY user prompt, detect vendor/tool keywords
+  # (coolify, higgsfield, hostinger, etc.) that map to skills not currently
+  # loaded in the active profile. Prints a "💡 Available skills" context
+  # block so Claude can offer them instead of needing to "notice" the gap.
+  # Pairs with meta/smart-loader — this is the proactive trigger.
+  - smart-loader-suggest.json
   # Stricter destructive-command guard, opt-in via /careful. No-op until
   # ~/.config/cue/careful-mode exists.
   - careful-mode.json

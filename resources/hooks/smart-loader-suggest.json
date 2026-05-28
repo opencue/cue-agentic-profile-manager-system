@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/smart-loader-suggest.sh",
+            "description": "Scan every user prompt for vendor/tool keywords; surface matching skills not in the active profile via a context-injection block. Makes meta/smart-loader proactive instead of reactive.",
+            "id": "cue:userpromptsubmit:smart-loader-suggest"
+          }
+        ]
+      }
+    ]
+  }
+}
