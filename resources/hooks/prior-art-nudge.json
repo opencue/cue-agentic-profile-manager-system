@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/prior-art-nudge.sh",
+            "description": "Detect build-intent in a user prompt and inject a prior-art reminder so Claude searches open-source solutions before writing net-new code. Makes tools/prior-art proactive. Non-blocking, throttled, suppressible with [skip-prior-art].",
+            "id": "cue:userpromptsubmit:prior-art-nudge"
+          }
+        ]
+      }
+    ]
+  }
+}

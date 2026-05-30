@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { loadProfile } from "../lib/profile-loader";
 import { resolveLocalSkill } from "../lib/resolver-local";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 
 export async function run(args: string[]): Promise<number> {

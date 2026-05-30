@@ -13,6 +13,7 @@
  */
 
 import { readdir, readFile, stat } from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -47,8 +48,8 @@ const MAX_INHERITANCE_DEPTH = 3;
 /** Pattern a plugin id must match: <plugin>@<marketplace>. */
 const PLUGIN_PATTERN = /^[a-z0-9][a-z0-9-]*@[a-z0-9][a-z0-9_-]*$/;
 
-/** Resolve repo root by walking up from this file: src/lib -> repo root. */
-const REPO_ROOT = resolve(
+/** Resolve repo root: env override first, else walk up from this file. */
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",
@@ -88,8 +89,52 @@ async function getValidator(): Promise<ValidateFunction> {
 // Path helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolve the profile YAML path. Tries the main profiles dir first
+ * (CUE_PROFILES_DIR or the repo's `profiles/`); if the profile isn't
+ * found there, falls back to the shared root used by `cue share install`
+ * — installed shared profiles live at `<sharedRoot>/<user>/<repo>/` and
+ * are named `<user>-<repo>` so we map the namespaced name back to that
+ * subpath. Returns the main-dir path even when nothing exists, so
+ * downstream "not found" errors still point at the conventional location.
+ */
 function profileYamlPath(name: string): string {
-  return join(profilesDir(), name, "profile.yaml");
+  const main = join(profilesDir(), name, "profile.yaml");
+  // Try the shared fallback only when the name has the namespaced shape
+  // (`user-repo`, no further hyphens beyond what would parse as a single
+  // user segment). We match anything containing at least one `-` so
+  // multi-hyphen names like `jane-medusa-shop` still resolve.
+  try {
+    // Synchronous existsSync avoids async fanout in the hot path.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("node:fs") as typeof import("node:fs");
+    if (fs.existsSync(main)) return main;
+    if (!name.includes("-")) return main;
+    const sharedBase = process.env.XDG_CONFIG_HOME ?? join(
+      process.env.HOME ?? "",
+      ".config",
+    );
+    const sharedRoot = join(sharedBase, "cue", "shared");
+    // Walk shared/<user>/<repo>/profile.yaml looking for a name match.
+    if (!fs.existsSync(sharedRoot)) return main;
+    for (const user of fs.readdirSync(sharedRoot)) {
+      const userDir = join(sharedRoot, user);
+      try {
+        const stats = fs.statSync(userDir);
+        if (!stats.isDirectory()) continue;
+      } catch { continue; }
+      for (const repo of fs.readdirSync(userDir)) {
+        const candidate = join(userDir, repo, "profile.yaml");
+        if (!fs.existsSync(candidate)) continue;
+        // Reuse the same slugifier as shared-profiles.ts so we recognize
+        // the installed namespaced name without depending on that module.
+        const slug = (s: string) =>
+          s.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+        if (`${slug(user)}-${slug(repo)}` === name) return candidate;
+      }
+    }
+  } catch { /* fall through to main */ }
+  return main;
 }
 
 async function pathExists(p: string): Promise<boolean> {
@@ -423,13 +468,22 @@ function foldChain(chain: Profile[]): ResolvedProfile {
       rules: dedupePrimitiveArray(acc.rules, child.rules),
       commands: dedupePrimitiveArray(acc.commands, child.commands),
       hooks: dedupePrimitiveArray(acc.hooks, child.hooks),
+      subagents: dedupePrimitiveArray(acc.subagents, child.subagents),
       // Persona is leaf-wins (child overrides parent fully). Concatenating
       // would produce awkward "you are X. ALSO you are Y" priming.
       persona: child.persona ?? acc.persona,
+      // persona_includes IS additive (concat+dedupe). Lets cross-profile
+      // policy snippets (Integrity Protocol, voice rules) fan out via core
+      // without forcing children to give up their own persona block.
+      personaIncludes: dedupePrimitiveArray(acc.personaIncludes, child.persona_includes),
       playbooks: dedupePrimitiveArray(acc.playbooks, child.playbooks),
       qualityGates: dedupePrimitiveArray(acc.qualityGates, child.qualityGates),
       evals: dedupePrimitiveArray(acc.evals, child.evals),
       recommends: dedupePrimitiveArray(acc.recommends, child.recommends),
+      conflicts: dedupePrimitiveArray(acc.conflicts, child.conflicts),
+      // bundles is a display hint, leaf-wins: a child that declares its own
+      // list overrides the parent; a child that omits it inherits the parent's.
+      bundles: child.bundles && child.bundles.length > 0 ? [...child.bundles] : acc.bundles,
       personaRouting: [...acc.personaRouting, ...(child.persona_routing ?? [])],
       inheritanceChain: [...acc.inheritanceChain, child.name],
     };
@@ -462,11 +516,15 @@ function normalizeToResolved(p: Profile, chain: string[]): ResolvedProfile {
     rules: [...(p.rules ?? [])],
     commands: [...(p.commands ?? [])],
     hooks: [...(p.hooks ?? [])],
+    subagents: [...(p.subagents ?? [])],
     persona: p.persona ?? "",
+    personaIncludes: [...(p.persona_includes ?? [])],
     playbooks: [...(p.playbooks ?? [])],
     qualityGates: [...(p.qualityGates ?? [])],
     evals: [...(p.evals ?? [])],
     recommends: [...(p.recommends ?? [])],
+    conflicts: [...(p.conflicts ?? [])],
+    bundles: p.bundles && p.bundles.length > 0 ? [...p.bundles] : undefined,
     personaRouting: [...(p.persona_routing ?? [])],
     inheritanceChain: chain,
   };
@@ -537,6 +595,7 @@ function foldComposite(selector: string, parts: ResolvedProfile[]): ResolvedProf
     rules: [...head.rules],
     commands: [...head.commands],
     hooks: [...head.hooks],
+    subagents: [...head.subagents],
     persona: head.persona && head.persona.trim().length > 0
       ? `## ${head.name}\n\n${head.persona.trim()}`
       : "",
@@ -544,6 +603,10 @@ function foldComposite(selector: string, parts: ResolvedProfile[]): ResolvedProf
     qualityGates: [...head.qualityGates],
     evals: [...head.evals],
     recommends: [...head.recommends],
+    conflicts: [...head.conflicts],
+    // persona_includes is additive across a composite too — policy snippets
+    // (Integrity Protocol, voice rules) from every stacked profile survive.
+    personaIncludes: [...head.personaIncludes],
     personaRouting: [...head.personaRouting],
     inheritanceChain: [head.inheritanceChain.join("+")],
   };
@@ -570,11 +633,14 @@ function foldComposite(selector: string, parts: ResolvedProfile[]): ResolvedProf
       rules: dedupePrimitiveArray(acc.rules, next.rules),
       commands: dedupePrimitiveArray(acc.commands, next.commands),
       hooks: dedupePrimitiveArray(acc.hooks, next.hooks),
+      subagents: dedupePrimitiveArray(acc.subagents, next.subagents),
       persona: [acc.persona, nextPersona].filter((s) => s.length > 0).join("\n\n"),
       playbooks: dedupePrimitiveArray(acc.playbooks, next.playbooks),
       qualityGates: dedupePrimitiveArray(acc.qualityGates, next.qualityGates),
       evals: dedupePrimitiveArray(acc.evals, next.evals),
       recommends: dedupePrimitiveArray(acc.recommends, next.recommends),
+      conflicts: dedupePrimitiveArray(acc.conflicts, next.conflicts),
+      personaIncludes: dedupePrimitiveArray(acc.personaIncludes, next.personaIncludes),
       personaRouting: [...acc.personaRouting, ...next.personaRouting],
       inheritanceChain: [...acc.inheritanceChain, next.inheritanceChain.join("+")],
     };
@@ -619,11 +685,11 @@ export async function loadProfile(name: string): Promise<ResolvedProfile> {
  * `_cache`, `_examples`) are skipped — those are reserved system folders.
  */
 export async function listProfiles(): Promise<string[]> {
-  let entries: Awaited<ReturnType<typeof readdir>>;
+  let entries: Dirent[];
   try {
     entries = await readdir(profilesDir(), { withFileTypes: true });
   } catch {
-    return [];
+    entries = [];
   }
 
   const names: string[] = [];
@@ -634,6 +700,49 @@ export async function listProfiles(): Promise<string[]> {
       names.push(entry.name);
     }
   }
+
+  // Also surface profiles installed via `cue share install` so the picker,
+  // `cue list`, etc. see them alongside builtins. Namespaced as
+  // `<user>-<repo>` to dodge collisions with the builtins above.
+  const sharedBase = process.env.XDG_CONFIG_HOME ?? join(process.env.HOME ?? "", ".config");
+  const sharedRoot = join(sharedBase, "cue", "shared");
+  try {
+    const users = await readdir(sharedRoot, { withFileTypes: true });
+    const slug = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    for (const userEntry of users) {
+      if (!userEntry.isDirectory()) continue;
+      const userDir = join(sharedRoot, userEntry.name);
+      const repos = await readdir(userDir, { withFileTypes: true });
+      for (const repoEntry of repos) {
+        if (!repoEntry.isDirectory()) continue;
+        const yamlPath = join(userDir, repoEntry.name, "profile.yaml");
+        if (!(await pathExists(yamlPath))) continue;
+        const namespaced = `${slug(userEntry.name)}-${slug(repoEntry.name)}`;
+        if (!names.includes(namespaced)) names.push(namespaced);
+      }
+    }
+  } catch { /* shared dir missing — fine */ }
+
   names.sort();
   return names;
+}
+
+/**
+ * Read the optional `profiles/_featured.yaml` config and return the ordered
+ * list of featured profile slugs. Slugs not present in `listProfiles()` are
+ * silently filtered out by the caller.
+ */
+export async function listFeaturedProfiles(): Promise<string[]> {
+  const path = join(profilesDir(), "_featured.yaml");
+  if (!(await pathExists(path))) return [];
+  try {
+    const raw = await readFile(path, "utf8");
+    const parsed = parseYaml(raw) as { featured?: unknown } | null | undefined;
+    const list = parsed?.featured;
+    if (!Array.isArray(list)) return [];
+    return list.filter((s): s is string => typeof s === "string" && s.length > 0);
+  } catch {
+    return [];
+  }
 }

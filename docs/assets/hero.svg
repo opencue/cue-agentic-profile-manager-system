@@ -1,24 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480" fill="none" role="img" aria-label="cue — Agent Profile Manager">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480" fill="none" role="img" aria-label="cuecards — Agent Profile Manager">
   <style>
-    .t-brand    { font: 800 96px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; letter-spacing: -3.5px; fill: url(#heroAccent); }
-    .t-eyebrow  { font: 700 11px 'SF Mono', 'Fira Code', monospace; letter-spacing: 3px; fill: #a5b4fc; }
-    .t-tagline    { font: 700 16px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; fill: #e2e8f0; letter-spacing: -0.2px; }
-    .t-tagline-em { font: 800 16px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; fill: url(#heroAccent); letter-spacing: -0.2px; }
-    .t-tagline-sub { font: 12px 'SF Mono', monospace; fill: #64748b; letter-spacing: 1.5px; }
-    .t-pain     { font: 800 36px -apple-system, system-ui, sans-serif; fill: #cbd5e1; letter-spacing: -0.9px; }
-    .t-hl       { font: 800 36px -apple-system, system-ui, sans-serif; fill: #f8fafc; letter-spacing: -0.9px; }
-    .t-sub      { font: 14px -apple-system, system-ui, sans-serif; fill: #94a3b8; }
+    .t-brand    { font: 800 76px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; letter-spacing: -2.8px; fill: url(#heroAccent); }
+    .t-tagline    { font: 700 15px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; fill: #e2e8f0; letter-spacing: -0.2px; }
+    .t-tagline-em { font: 800 15px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; fill: url(#heroAccent); letter-spacing: -0.2px; }
+    .t-tagline-sub { font: 700 11px 'SF Mono', 'Fira Code', monospace; fill: #64748b; letter-spacing: 2.5px; }
+    .t-pain     { font: 800 30px -apple-system, system-ui, sans-serif; fill: #cbd5e1; letter-spacing: -0.7px; }
+    .t-hl       { font: 800 30px -apple-system, system-ui, sans-serif; fill: #f8fafc; letter-spacing: -0.7px; }
+    .t-sub      { font: 13px -apple-system, system-ui, sans-serif; fill: #94a3b8; }
     .t-cmd      { font: 13px 'SF Mono', monospace; fill: #f1f5f9; }
-    .t-chip     { font: 600 13px -apple-system, system-ui, sans-serif; fill: #f1f5f9; }
-    .t-chiptag  { font: 10px 'SF Mono', monospace; fill: #94a3b8; letter-spacing: 0.5px; }
-    .chip-bg    { fill: #1e293b; fill-opacity: 0.7; }
-    .badge-tx   { font: 700 10px 'SF Mono', monospace; fill: #4ade80; }
-    .stat-n     { font: 800 24px -apple-system, system-ui, sans-serif; fill: #f8fafc; }
-    .stat-n-acc { font: 800 24px -apple-system, system-ui, sans-serif; fill: #fbbf24; }
+    .stat-n     { font: 800 22px -apple-system, system-ui, sans-serif; fill: #f8fafc; }
+    .stat-n-acc { font: 800 22px -apple-system, system-ui, sans-serif; fill: #fbbf24; }
     .stat-l     { font: 10px 'SF Mono', monospace; fill: #94a3b8; letter-spacing: 1.2px; }
     .strike     { stroke: #ef4444; stroke-width: 4; stroke-linecap: round; }
 
-    /* Number cycling: each tspan is hidden by default, made visible during its slice */
+    /* terminal list */
+    .term-mono   { font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+    .row-name    { font: 13px 'SF Mono', monospace; fill: #cbd5e1; }
+    .row-name-sel{ font: 700 13px 'SF Mono', monospace; fill: #f8fafc; }
+    .row-circle  { font: 12px 'SF Mono', monospace; fill: #475569; }
+    .row-section { font: 12px 'SF Mono', monospace; fill: #475569; }
+    .row-emoji   { font-size: 13px; }
+    .term-prompt { font: 13px 'SF Mono', monospace; fill: #64748b; }
+    .term-head   { font: 700 13px 'SF Mono', monospace; fill: #e2e8f0; }
+    .term-tab    { font: 600 11px 'SF Mono', monospace; fill: #64748b; }
+
     .num { opacity: 0; }
     .num-0 { animation: showNum0 4s ease-in-out forwards; }
     .num-1 { animation: showNum1 4s ease-in-out forwards; }
@@ -27,25 +32,28 @@
     .num-4 { animation: showNum4 4s ease-in-out forwards; }
     .num-5 { animation: showNum5 4s ease-in-out forwards; }
     .num-6 { animation: showNum6 4s ease-in-out forwards; }
-
-    /* Each number is visible during a 0.4s window across a 4s total */
-    /* slice = 10% of 4s = 0.4s; gaps so they don't overlap */
     @keyframes showNum0 { 0%, 9% { opacity: 1; } 10%, 100% { opacity: 0; } }
     @keyframes showNum1 { 0%, 9% { opacity: 0; } 10%, 19% { opacity: 1; } 20%, 100% { opacity: 0; } }
     @keyframes showNum2 { 0%, 19% { opacity: 0; } 20%, 29% { opacity: 1; } 30%, 100% { opacity: 0; } }
     @keyframes showNum3 { 0%, 29% { opacity: 0; } 30%, 39% { opacity: 1; } 40%, 100% { opacity: 0; } }
     @keyframes showNum4 { 0%, 39% { opacity: 0; } 40%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
     @keyframes showNum5 { 0%, 49% { opacity: 0; } 50%, 59% { opacity: 1; } 60%, 100% { opacity: 0; } }
-    /* Final number: appears at 60% and stays */
     @keyframes showNum6 { 0%, 59% { opacity: 0; } 60%, 100% { opacity: 1; } }
 
-    /* Strike line draws at 75% (3s in 4s) */
-    .strike-anim { stroke-dasharray: 420; stroke-dashoffset: 420; animation: drawStrike 4s ease-in-out forwards; }
-    @keyframes drawStrike { 0%, 74% { stroke-dashoffset: 420; } 92%, 100% { stroke-dashoffset: 0; } }
+    .strike-anim { stroke-dasharray: 360; stroke-dashoffset: 360; animation: drawStrike 4s ease-in-out forwards; }
+    @keyframes drawStrike { 0%, 74% { stroke-dashoffset: 360; } 92%, 100% { stroke-dashoffset: 0; } }
 
-    /* Payoff fade-in at 95% (3.8s in 4s) */
     .payoff { opacity: 0; animation: fadePayoff 4s ease-in-out forwards; }
     @keyframes fadePayoff { 0%, 94% { opacity: 0; } 100% { opacity: 1; } }
+
+    .term { opacity: 0; animation: termFade 0.9s ease-out 0.3s forwards; }
+    @keyframes termFade { from { opacity: 0; } to { opacity: 1; } }
+
+    .active-dot { animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+    .cursor { animation: blink 1.1s step-end infinite; }
+    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
   </style>
 
   <defs>
@@ -72,7 +80,6 @@
     </radialGradient>
   </defs>
 
-  <!-- background -->
   <rect width="880" height="480" rx="20" fill="#0b1020"/>
   <rect width="880" height="480" rx="20" fill="url(#heroBg)"/>
   <rect width="880" height="480" rx="20" fill="url(#heroGrid)"/>
@@ -80,134 +87,95 @@
   <circle cx="760" cy="380" r="180" fill="url(#glowPink)" opacity="0.55"/>
 
   <!-- ============ LEFT: brand + marketing ============ -->
-  <g transform="translate(56,72)">
-    <text x="0" y="0" class="t-brand">cue</text>
-    <!-- tagline placed beside the wordmark, separated by a vertical accent rule -->
-    <g transform="translate(170,-30)">
-      <!-- subtle vertical separator -->
-      <line x1="0" y1="-12" x2="0" y2="14" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
-      <!-- top: small uppercase eyebrow -->
-      <text x="14" y="-12" class="t-tagline-sub">PROFILES FOR CODING AGENTS</text>
-      <!-- main: bigger, two-line value prop -->
-      <text x="14" y="6" class="t-tagline">The <tspan class="t-tagline-em">missing layer</tspan></text>
-      <text x="14" y="24" class="t-tagline">between you and your <tspan font-family="'SF Mono', monospace" fill="#f8fafc">agent</tspan>.</text>
-    </g>
+  <g transform="translate(56,80)">
+    <text x="0" y="0" class="t-brand">cuecards</text>
+    <text x="2" y="22" class="t-tagline-sub">PROFILES FOR CODING AGENTS</text>
+    <text x="2" y="48" class="t-tagline">The <tspan class="t-tagline-em">missing layer</tspan> between you and your <tspan font-family="'SF Mono', monospace" fill="#f8fafc">agent</tspan>.</text>
 
-    <!-- PAIN line: number cycles through values via CSS, then strike sweeps across -->
-    <text x="0" y="100" class="t-pain">Loading <tspan x="170" fill="#fbbf24" class="num num-0">1,927</tspan><tspan x="170" fill="#fbbf24" class="num num-1">1,800</tspan><tspan x="170" fill="#fbbf24" class="num num-2">8,500</tspan><tspan x="170" fill="#fbbf24" class="num num-3">5,600</tspan><tspan x="170" fill="#fbbf24" class="num num-4">3,240</tspan><tspan x="170" fill="#fbbf24" class="num num-5">7,120</tspan><tspan x="170" fill="#fbbf24" class="num num-6">1,927</tspan><tspan x="285"> skills.</tspan></text>
-    <line x1="0" y1="87" x2="420" y2="87" class="strike strike-anim" opacity="0.9"/>
+    <text x="0" y="108" class="t-pain">Loading <tspan x="145" fill="#fbbf24" class="num num-0">1,927</tspan><tspan x="145" fill="#fbbf24" class="num num-1">1,800</tspan><tspan x="145" fill="#fbbf24" class="num num-2">8,500</tspan><tspan x="145" fill="#fbbf24" class="num num-3">5,600</tspan><tspan x="145" fill="#fbbf24" class="num num-4">3,240</tspan><tspan x="145" fill="#fbbf24" class="num num-5">7,120</tspan><tspan x="145" fill="#fbbf24" class="num num-6">1,927</tspan><tspan x="240"> skills.</tspan></text>
+    <line x1="0" y1="97" x2="360" y2="97" class="strike strike-anim" opacity="0.9"/>
 
-    <!-- PAYOFF line: fades in after the strike completes -->
     <g class="payoff">
-      <text x="0" y="142" class="t-hl">Load <tspan fill="url(#heroAccent)">just what</tspan></text>
+      <text x="0" y="148" class="t-hl">Load <tspan fill="url(#heroAccent)">just what</tspan></text>
       <text x="0" y="184" class="t-hl"><tspan fill="url(#heroAccent)">you need.</tspan></text>
     </g>
 
-    <text x="0" y="220" class="t-sub">Works with <tspan font-family="'SF Mono', monospace" fill="#e5e7eb">claude</tspan> · <tspan font-family="'SF Mono', monospace" fill="#e5e7eb">codex</tspan> · <tspan font-family="'SF Mono', monospace" fill="#e5e7eb">kiro</tspan> <tspan fill="#94a3b8">&amp; any agent harness.</tspan></text>
-    <text x="0" y="240" class="t-sub">Per-directory profiles. Materialized runtimes. <tspan fill="#4ade80" font-weight="700">Zero daemons.</tspan></text>
+    <text x="0" y="216" class="t-sub">Works with <tspan font-family="'SF Mono', monospace" fill="#e5e7eb">claude</tspan> · <tspan font-family="'SF Mono', monospace" fill="#e5e7eb">codex</tspan> · <tspan font-family="'SF Mono', monospace" fill="#e5e7eb">kiro</tspan> <tspan fill="#94a3b8">&amp; any agent harness.</tspan></text>
+    <text x="0" y="236" class="t-sub">Per-directory profiles. Materialized runtimes. <tspan fill="#4ade80" font-weight="700">Zero daemons.</tspan></text>
 
-    <!-- stat row -->
-    <g transform="translate(0,276)">
-      <g>
-        <text x="0" y="0" class="stat-n">16</text>
-        <text x="0" y="16" class="stat-l">PROFILES</text>
-      </g>
-      <g transform="translate(96,0)">
-        <text x="0" y="0" class="stat-n-acc">1,927</text>
-        <text x="0" y="16" class="stat-l">SKILLS</text>
-      </g>
-      <g transform="translate(204,0)">
-        <text x="0" y="0" class="stat-n">15</text>
-        <text x="0" y="16" class="stat-l">MCPs</text>
-      </g>
-      <g transform="translate(264,0)">
-        <text x="0" y="0" class="stat-n">0</text>
-        <text x="0" y="16" class="stat-l">DAEMONS</text>
-      </g>
+    <g transform="translate(0,272)">
+      <g><text x="0" y="0" class="stat-n">49</text><text x="0" y="16" class="stat-l">PROFILES</text></g>
+      <g transform="translate(80,0)"><text x="0" y="0" class="stat-n-acc">1,927</text><text x="0" y="16" class="stat-l">SKILLS</text></g>
+      <g transform="translate(180,0)"><text x="0" y="0" class="stat-n">15</text><text x="0" y="16" class="stat-l">MCPs</text></g>
+      <g transform="translate(238,0)"><text x="0" y="0" class="stat-n">0</text><text x="0" y="16" class="stat-l">DAEMONS</text></g>
     </g>
 
-    <!-- CTA terminal pills -->
-    <g transform="translate(0,320)">
-      <rect width="232" height="40" rx="10" fill="#020617" stroke="#818cf8" stroke-opacity="0.7" stroke-width="1.2"/>
-      <text x="14" y="26" font-family="'SF Mono', monospace" font-size="13" fill="#4ade80">$</text>
-      <text x="28" y="26" class="t-cmd">npm install -g cue-ai</text>
-
-      <rect x="244" width="124" height="40" rx="10" fill="#020617" stroke="#334155" stroke-opacity="0.6"/>
-      <text x="258" y="26" font-family="'SF Mono', monospace" font-size="13" fill="#4ade80">$</text>
-      <text x="272" y="26" class="t-cmd">claude</text>
+    <g transform="translate(0,316)">
+      <rect width="232" height="38" rx="9" fill="#020617" stroke="#818cf8" stroke-opacity="0.7" stroke-width="1.2"/>
+      <text x="14" y="25" font-family="'SF Mono', monospace" font-size="13" fill="#4ade80">$</text>
+      <text x="28" y="25" class="t-cmd">npm install -g cue-ai</text>
+      <rect x="244" width="100" height="38" rx="9" fill="#020617" stroke="#334155" stroke-opacity="0.6"/>
+      <text x="258" y="25" font-family="'SF Mono', monospace" font-size="13" fill="#4ade80">$</text>
+      <text x="272" y="25" class="t-cmd">cue</text>
     </g>
   </g>
 
-  <!-- ============ RIGHT: 8 profile chips, 2 cols × 4 rows ============ -->
-  <g transform="translate(528,78)">
+  <!-- ============ RIGHT: terminal profile picker ============ -->
+  <g transform="translate(468,26)" class="term">
+    <!-- window -->
+    <rect x="0" y="0" width="362" height="428" rx="12" fill="#0a0e1a" fill-opacity="0.96" stroke="#1e293b" stroke-width="1"/>
+    <!-- left accent bar (like the screenshot's branch strip) -->
+    <rect x="0" y="0" width="3" height="428" rx="2" fill="#38bdf8" fill-opacity="0.8"/>
 
-    <!-- COL 1 -->
-    <g transform="translate(0,0)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#6366f1" stroke-opacity="0.55"/>
-      <image href="data:image/png;base64,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" x="12" y="11" width="24" height="24"/>
-      <text x="46" y="22" class="t-chip">hostinger</text>
-      <text x="46" y="38" class="t-chiptag">DNS · VPS · API</text>
-    </g>
-    <g transform="translate(0,60)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#0ea5e9" stroke-opacity="0.6"/>
-      <circle cx="24" cy="23" r="14" fill="#f1f5f9"/>
-      <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQAAAAAYLlVAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAD/h4/MvwAAAAd0SU1FB+oFFw03EYxKYYcAAAU+SURBVGje7ZlbiJZFGICfz/XUX9kutu1CWyqSVmCxHUxiJSTcorYyKrJMrOxgUMSGHSgsgjC7iJKkE4jlhWa0bElEUrElZS5mmZ0zs0wTkdSkdrPd7eliZ7++/7jfvxre7Dc3887MO/P878w7M+/8kRzZb8gRHn8QYBBgEGAQgKEDUfqH793DUYyNjj90AstKP7vQBjNxwYle5yq7yuwlmcpo2sMiRxSsmuA3/u8AXcwM2fNd7EZ/5VtbvClY42QXeIF1Zqx1is1+lhooNcBcEcf5Xk7Xu2ks0HyIc9yRCiLl8G0iTnFfTnknizwmCDVOtdHJsVzpmykQUgLMEOvcnVPa6viQbUwYvYs2zxOxwlf6RUg1/D6Gi8uyOtvshfEvf9GeHI2D3C3iCDd6GABeFmsTztbDQivCAPPzpqUvLRBxUj9O2u/g7zvfMeLt9hn4GSeIWO2Dbk/8vq22ZsH0MEfExQ4Y4EenxcLToZslIg7zIQ8kWv7OXVaIo1yU+MV7GSWOGyjAOkeHbCQuCd08IpKzvj90YkKckKi9XsStJRCKHkbfejG/AefSzpi82rOjvtxOZzuV74A6biEDfE8T8/wTgAYAvir/LOhmkoiz7ULG5llgFyKdLAxeP9wF/oHsZnZYnmN8VXldxJdKWKBI8UoRLw3zWRig1XGheZWfJIZod0rITvMxEVeUD3CFmIk3nnyAj52epTDT/Vn6TwY79Ka15QJ0USk2x2r5AL2GH2Gz8x1mr1MuzfL477wsFraVC7BexC9KAGCNC8Jxs8OHg79MdIl/JPrZ4FUinpK1X6QAWCZmEir5AHfamaWx077DutoXsyzxgogzygN4VhxdEmBXns62hHB2wnpyhxi5uQhCwX2gEthPd849MM1XzyhgI+fxhH36T0TVyFNFNAoCTAR6+DQrcn+Kd1NE8pezJZpDBR08wBWh/bHcCrTwd3qAM6JjgZZYbgC2MZ2r/aFfiBN4KVrHeGBDXHYlcIDPC+sWnpkm8Tj3xm75QPDrjKeXXAOPhJm+X6xOXFGGWmw7KnIWzAR+597APJTHo3VMBjr4OsVKyP2GkgH2pp8CuDZqBJZyWzhUYHLUHq3h0qAw1/VZBn3bWSUAuvkLOK5wZTH/PEDvjl5na5bpNtgQspf4pSKbvTiuLjwF7SJuKjgFRQFke5yd5g9ZyiusFrHCW5wXVsfoEgDNYm3evbFfgLUJoTJnf/slsdMjzvObogC7yJg8WVItQoAdADxKE7Cf25js2nje66KbqQr5SbzDc9HIovM/1w5G0lxsmOIWWC7i68pqTwqF17hF2cesIFf5bLBMYTc8GAK6G8s7C3rTWyI+r8ieeMiMN1gTVsBdiVtwIYA2zw2YOwcC8JOI18eq6z0nUT09+EBfeiYPoC/VlAxOSgDIWeLRiTttN2u8yCGe5eqsLj8IUdIQW0L5PaGq2vvcU3KMkpWrRGzMcaDsSGdTHKI1JOLDJvFMl+fcGsoG6KHX6A8VMeFv9O0C1a40iXiCuPxwhOdfhtvfwrzODrLYyiBclvMWsELM5FxTBwggq8Olc6qtdsSWecNTQ4PTXZP3ZFEnzk/5RpKiSVtwOxzmqU613lFBrnJxXuy7hyliVd5bwiEAyG5mFKyY5pac3/m2Y8T/Qtn+U5T2H5NNtvARP9FBJeNpYBEHgAquoYnTOIbttNPKRgBmsyyqSNlvSs78tNU5jixQUe9rZT3ZDRigd2oes94oiDXOsq3s98LUU1D862S7ndRGtQPSPgwAh/Yd8dfyQYBBgEGAQYB/AakGcqYcVCEPAAAAAElFTkSuQmCC" x="12" y="11" width="24" height="24"/>
-      <text x="46" y="22" class="t-chip">openai-docs</text>
-      <text x="46" y="38" class="t-chiptag">API reference</text>
-    </g>
-    <g transform="translate(0,120)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#f59e0b" stroke-opacity="0.6"/>
-      <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACJklEQVR4nO2aPU/bUBSGz7lxUoePoYEklWBmqIS6IHUrsLYDU1kidkTaAYmqLCxMHRgqtVW3Du3W7vwHJCZWhqqiQyjmS4CaOMGH1UksgYXtN+09z/jq5urRK90bWz5MMahXvCUi/hrnN4NCQPzk85/SXm9uEDKDhBaAFkBjfQEOWiBLlse8CWZ5FM6sKiDn0GsS8zacWX8EtAC0ABrrC3BelY9fxlhfFaYfqdmkiDF8TkF/7gjT97tvw98+HZYWe9PVyYNi82LUvY9gFnCBXebuLJG/wZY/tGkeXK8lsVfWWH8HaAFoATSx74C1amP4Lzkb4UyELkl4PTmt7IhdQIuHhyjwe5+n33w8Km0lp5Ud1h8BLQAtgEYLQAug0QLQAmi0ALQAGi0ALYBGC0ALoNEC0AJotAC0ABotAC2ARgtAC6DRAtACaLQAtAAa6wuI/WlsrDFyejjuzYSzggl+J6eULVyveu/uvFjYF+GrNIXSwuTyXz40Ro96c45avDp5UGw23cfhzHULP32//eJ/G5ePPAIdf2TKmGA3nLXb17W05JBYfwlqAWgBNJF3QM6nX5KnrnnAnEM7nQ7NZqOVDiuVkxqzLISzyALenz08I+qfCK1XvHTMMoI5mCbhrslY64+AFoAWQGN9AfFehvKF7aDVmrl94eDhus19v13syyPfBeJSL588JxM8S2KvVBGeI6Kn4SiRcXlhmWdhHZf/F9EC0AJobgCGpm1dGHy4sAAAAABJRU5ErkJggg==" x="12" y="11" width="24" height="24"/>
-      <text x="46" y="22" class="t-chip">coolify</text>
-      <text x="46" y="38" class="t-chiptag">deploys · CI</text>
-    </g>
-    <g transform="translate(0,180)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#fbbf24" stroke-opacity="0.6"/>
-      <image href="data:image/png;base64,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" x="10" y="9" width="28" height="28"/>
-      <text x="46" y="22" class="t-chip">caveman-quick</text>
-      <text x="46" y="38" class="t-chiptag">terse edits</text>
-    </g>
+    <!-- tab/branch bar -->
+    <text x="18" y="22" class="term-tab"><tspan fill="#94a3b8">bun</tspan> · <tspan fill="#a78bfa">cue</tspan> · <tspan fill="#4ade80">main</tspan></text>
+    <line x1="14" y1="32" x2="348" y2="32" stroke="#1e293b" stroke-width="1"/>
 
-    <!-- COL 2 -->
-    <g transform="translate(176,0)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#22c55e" stroke-opacity="0.6"/>
-      <image href="data:image/png;base64,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" x="12" y="11" width="24" height="24"/>
-      <text x="46" y="22" class="t-chip">nvidia</text>
-      <text x="46" y="38" class="t-chiptag">cuOpt · MILP</text>
-    </g>
-    <g transform="translate(176,60)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#8b5cf6" stroke-opacity="0.6"/>
-      <image href="data:image/png;base64,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" x="12" y="11" width="24" height="24"/>
-      <text x="46" y="22" class="t-chip">medusa-dev</text>
-      <text x="46" y="38" class="t-chiptag">v2 backend</text>
-    </g>
+    <!-- prompt -->
+    <text x="18" y="54" class="term-prompt"><tspan fill="#a78bfa" font-weight="700">cue</tspan> · pick a profile for <tspan fill="#94a3b8">~/Documents/cue</tspan></text>
 
-    <!-- FULLSTACK: browser stacked over server (frontend on top, backend below) -->
-    <g transform="translate(176,120)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#ec4899" stroke-opacity="0.6"/>
-      <g transform="translate(12,11)" stroke="#f472b6" stroke-width="1.4" fill="none" stroke-linejoin="round">
-        <!-- frontend: browser window on top -->
-        <rect x="0" y="0" width="24" height="12" rx="2" fill="#f472b6" fill-opacity="0.22"/>
-        <line x1="0" y1="3.5" x2="24" y2="3.5"/>
-        <circle cx="2.2" cy="1.8" r="0.7" fill="#f472b6" stroke="none"/>
-        <circle cx="4.4" cy="1.8" r="0.7" fill="#f472b6" stroke="none"/>
-        <circle cx="6.6" cy="1.8" r="0.7" fill="#f472b6" stroke="none"/>
-        <!-- backend: server rack underneath -->
-        <rect x="0" y="14" width="24" height="4.5" rx="1.2" fill="#f472b6" fill-opacity="0.18"/>
-        <circle cx="2.2" cy="16.25" r="0.7" fill="#f472b6" stroke="none"/>
-        <rect x="0" y="20.5" width="24" height="4.5" rx="1.2" fill="#f472b6" fill-opacity="0.12"/>
-        <circle cx="2.2" cy="22.75" r="0.7" fill="#f472b6" stroke="none"/>
+    <!-- heading -->
+    <text x="18" y="84" class="term-head">Profile</text>
+
+    <!-- list -->
+    <g transform="translate(18,100)" class="term-mono">
+      <!-- Default (selected) -->
+      <rect x="-6" y="-11" width="344" height="17" rx="4" fill="#1e293b" fill-opacity="0.55"/>
+      <circle cx="2" cy="-3" r="4" fill="#4ade80" class="active-dot"/>
+      <text x="16" y="1" class="row-emoji">⭐</text>
+      <text x="34" y="1" class="row-name-sel">Default <tspan fill="#64748b" font-weight="400">(</tspan> <tspan fill="#a78bfa">core</tspan> <tspan fill="#64748b" font-weight="400">)</tspan></text>
+
+      <!-- Recent header -->
+      <text x="14" y="21" class="row-section">── Recent ──</text>
+
+      <!-- recent items -->
+      <g transform="translate(0,38)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">💼</text><text x="34" y="0" class="row-name">career</text></g>
+      <g transform="translate(0,55)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🐙</text><text x="34" y="0" class="row-name">core</text></g>
+      <g transform="translate(0,72)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🎨</text><text x="34" y="0" class="row-name">skill-writer</text></g>
+
+      <!-- All profiles header -->
+      <text x="14" y="92" class="row-section">── All profiles ──</text>
+
+      <!-- all profiles -->
+      <g transform="translate(0,109)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">📮</text><text x="34" y="0" class="row-name">postizz</text></g>
+      <g transform="translate(0,126)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🎨</text><text x="34" y="0" class="row-name">designer</text></g>
+      <g transform="translate(0,143)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🦊</text><text x="34" y="0" class="row-name">ecc</text></g>
+      <g transform="translate(0,160)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🦋</text><text x="34" y="0" class="row-name">frontend</text></g>
+      <g transform="translate(0,177)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">⚫</text><text x="34" y="0" class="row-name">medusa-dev</text></g>
+      <g transform="translate(0,194)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🤹</text><text x="34" y="0" class="row-name">full</text></g>
+      <g transform="translate(0,211)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">💰</text><text x="34" y="0" class="row-name">affiliate</text></g>
+      <g transform="translate(0,228)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🦞</text><text x="34" y="0" class="row-name">backend</text></g>
+      <g transform="translate(0,245)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🐉</text><text x="34" y="0" class="row-name">blog-writer</text></g>
+      <g transform="translate(0,262)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🌐</text><text x="34" y="0" class="row-name">browser</text></g>
+      <g transform="translate(0,279)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">🦣</text><text x="34" y="0" class="row-name">caveman-quick</text></g>
+      <g transform="translate(0,296)"><text x="0" y="0" class="row-circle">○</text><text x="16" y="0" class="row-emoji">☁️</text><text x="34" y="0" class="row-name">coolify</text></g>
+
+      <!-- scroll indicator / more -->
+      <g transform="translate(0,315)">
+        <text x="0" y="0" class="row-circle" fill="#334155">⋮</text>
+        <text x="34" y="0" font-family="'SF Mono', monospace" font-size="12" fill="#475569">+37 more profiles</text>
+        <rect x="200" y="-9" width="3" height="11" fill="#38bdf8" class="cursor"/>
       </g>
-      <text x="46" y="20" class="t-chip">fullstack</text>
-      <text x="46" y="32" class="t-chiptag" font-size="9">backend</text>
-      <text x="46" y="42" class="t-chiptag" font-size="9">frontend</text>
-    </g>
-
-    <g transform="translate(176,180)">
-      <rect width="156" height="46" rx="12" class="chip-bg" stroke="#a78bfa" stroke-opacity="0.6"/>
-      <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAECUExURfDw8O/v7+/v8O7u7/Pz8PX18fHx8PLy8PX18PT08OXl7uvr7/b28ff38enp7vj48e3t7+jo7uTk7eLi7ePj7fn58erq7sfH6K+v47S05LOz5LKy5Nvb7K+v5NLS6re35bCw5L+/5omJ3JCQ3o+P3Y6O3d/f7M/P6YiI3MDA55WV342N3YqK3aKi4ZeX35aW3+Dg7dHR6o+P3sTE55yc4JSU3pKS3qio4sPD55ub4JOT3pGR3qen4uHh7c3N6ZmZ36am4p+f4Jqa35iY37Gx5NPT6sbG6NDQ6tfX65SU34uL3YqK3KGh4cHB58zM6aCg4aur46Wl4oyM3aOj4bW15f////Hu/FoAAAAXdFJOUwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAvZNQYAAAAAFiS0dEVZMEuDMAAAAHdElNRQfqBRcNNxGMSmGHAAACdklEQVRYw+2We1faMBjGk7Y01LYM8DJu4qVQpShVsKhcBNmcuqvOff/PstJcxbRlZ56dnSPPfzx5+BGSvG8CwP8hyKUwU5GZYpR7AKpM4Yd4U3luMi7UMkyAgqHOTcRMkGWmAdlUtfelcgWrukbCUKttE7NcqhsqgZo7VWLu7unkX0A1U9p3GlhNV8Ouah1Q0zls2RSQ89rEPDpGHFB2Oj6Wd0IBmVNqdro9iwHOAmL2z4UZVBq+hxUIAGr6zQsOuByQ5HC0AsQBXE2NzukiAJ9eDvDjAOMs0OcCdp0Deu+wqWumfAbVphdgDWr5XKQCvKKm126BAnbN4qRPks6UAhQI1tyTSO64dj27xPowGlO3+NE/I+7kZp26G4AVJEQaUTY/Gw4iBY1phphos9IOsDvor9s0zCpsXrlEKni2SGTl8kalyxcZqawfCG2ClbBkm+TbHNOZ3ixA6J+gkAZwUZ6FhaZqkUZpwzRAcdPAUUtoqnrt4BSrfjVJAXy6ucXR2zvAa2GbNdVu4AXxgPt7jwadz/Km6tPvx82A5uKaKpccIBlfAV4JIGzjy21KG49u58Nuc0GNL18RAySOh0cZ1Vu9iwX1vn0nRzVtfP4bhm29kJ3hTTNtHKhS0XJNG1/pNaSI71eYvLZQ9tQNuzkXgInfB0JUOAdmjklNIoQXwBZLmoA8wqGa3fHo/T8bJ908UN/6MSHJzoP4QuH3v5sMyE3Y++FR7Afd5e6+ZR5ZywJS34lvDhA2Tby0SwACX7ILu0f9IZaTdg46DZL8+cRuZ2jsHZ+PsKYbKBFgPjyS5NMvnTdVHf15MSFeTH9fznG2RMrSyX+m3ysPDSzfadvjAAAAAElFTkSuQmCC" x="10" y="9" width="28" height="28"/>
-      <text x="46" y="22" class="t-chip">creative-media</text>
-      <text x="46" y="38" class="t-chiptag">image · video</text>
     </g>
   </g>
 </svg>

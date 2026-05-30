@@ -2,6 +2,9 @@ name: docs-writer
 icon: "🐝"
 description: Documentation, Markdown, PDF, Obsidian, and structured writing work
 inherits: core
+recommends:
+  - blog-writer      # SEO-optimized long-form content
+  - readme-writer    # beautiful README design with SVG diagrams
 skills:
   local:
     - content/doc
@@ -11,11 +14,14 @@ skills:
     - obsidian/obsidian-bases
     - obsidian/json-canvas
     - medusa/marva-blog-author
+    - design/tech-graph      # publish-grade SVG/PNG diagrams
+    - content/preview        # HTML explanations, slides, recaps
     - caveman/caveman-compress
     # gstack
     - gstack/document-generate
     - gstack/document-release
     - gstack/make-pdf
+    - content/playwright
   npx:
     - repo: lucasli6833/slop-cop
       skills:
@@ -23,3 +29,4 @@ skills:
 mcps:
   - gbrain
   - obsidian-vault
+  - Higgsfield

@@ -12,8 +12,9 @@ import { fileURLToPath } from "node:url";
 import { resolveProfileForCwd } from "../lib/cwd-resolver";
 import { loadProfile, listProfiles } from "../lib/profile-loader";
 import { computeStats } from "../lib/analytics";
+import { readGateStatus, type GateRun } from "../lib/gate-status";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 const MCP_CONFIGS_DIR = join(REPO_ROOT, "resources", "mcps", "configs");
 const RUNTIME_ROOT = join(process.env.HOME ?? "~", ".config", "cue", "runtime");
@@ -84,11 +85,17 @@ export function quickDiagnose(profileName: string, profile: any): Warning[] {
     }
   } catch { /* non-fatal */ }
 
-  // Check runtime staleness
+  // Check runtime staleness. The materializer writes `.cue-hash` into the
+  // per-agent runtime dir (runtime/<profile>/{claude,codex}/.cue-hash), not
+  // the profile root — so check both. Only warn when no hash exists anywhere.
   const runtimeDir = join(RUNTIME_ROOT, profileName);
   if (existsSync(runtimeDir)) {
-    const hashFile = join(runtimeDir, ".hash");
-    if (!existsSync(hashFile)) {
+    const hashCandidates = [
+      join(runtimeDir, ".cue-hash"),
+      join(runtimeDir, "claude", ".cue-hash"),
+      join(runtimeDir, "codex", ".cue-hash"),
+    ];
+    if (!hashCandidates.some((p) => existsSync(p))) {
       warnings.push({ code: "D5", message: "runtime missing hash (may be stale)" });
     }
   }
@@ -126,6 +133,10 @@ export async function run(args: string[]): Promise<number> {
   // 3. Profiles count
   const allProfiles = await listProfiles();
 
+  // 4. Most recent Stop-hook gate run for this profile. Null when no run has
+  //    been recorded yet (fresh install, telemetry off, or gates not declared).
+  const gateRun: GateRun | null = hasProfile ? readGateStatus(resolved.profile) : null;
+
   if (json) {
     const out = {
       profile: hasProfile ? resolved.profile : null,
@@ -133,9 +144,17 @@ export async function run(args: string[]): Promise<number> {
       skills: profile ? profile.skills.local.length + profile.skills.npx.length : 0,
       mcps: profile ? profile.mcps.length : 0,
       plugins: profile ? profile.plugins.length : 0,
+      subagents: profile ? (profile.subagents?.length ?? 0) : 0,
       totalProfiles: allProfiles.length,
       totalSessions,
       warnings,
+      gates: gateRun
+        ? {
+            ts: gateRun.ts,
+            overall: gateRun.overall,
+            failed: gateRun.results.filter((r) => !r.ok).map((r) => r.name),
+          }
+        : null,
     };
     process.stdout.write(JSON.stringify(out, null, 2) + "\n");
     return 0;
@@ -168,7 +187,9 @@ export async function run(args: string[]): Promise<number> {
     process.stdout.write(`  ${bold("Profile")}  ${green(resolved.profile)} ${dim(`(${resolved.source})`)}\n`);
     if (profile) {
       const skillCount = profile.skills.local.length + profile.skills.npx.length;
-      process.stdout.write(`  ${bold("Skills")}   ${skillCount}    ${bold("MCPs")} ${profile.mcps.length}    ${bold("Plugins")} ${profile.plugins.length}\n`);
+      const subagentCount = profile.subagents?.length ?? 0;
+      const subagentPart = subagentCount > 0 ? `    ${bold("Subagents")} ${subagentCount}` : "";
+      process.stdout.write(`  ${bold("Skills")}   ${skillCount}    ${bold("MCPs")} ${profile.mcps.length}    ${bold("Plugins")} ${profile.plugins.length}${subagentPart}\n`);
     }
   } else {
     process.stdout.write(`  ${bold("Profile")}  ${dim("none pinned for this directory")}\n`);
@@ -185,6 +206,33 @@ export async function run(args: string[]): Promise<number> {
     process.stdout.write(`  ${bold("Top")}      ${topStr}\n`);
   }
 
+  // Quality gates section (only when a run has been recorded for the active
+  // profile — otherwise stay silent so the status output doesn't grow noisy
+  // for profiles that don't declare any gates).
+  if (gateRun) {
+    process.stdout.write("\n");
+    const when = gateRun.ts.slice(0, 16).replace("T", " ") + "Z";
+    if (gateRun.overall === "pass") {
+      process.stdout.write(
+        `  ${green("✓")} ${bold("Gates")}   ${gateRun.results.length} passed ${dim(`(${when})`)}\n`,
+      );
+    } else if (gateRun.overall === "fail") {
+      const failed = gateRun.results.filter((r) => !r.ok);
+      process.stdout.write(
+        `  ${red("✗")} ${bold("Gates")}   ${failed.length}/${gateRun.results.length} failed ${dim(`(${when})`)}\n`,
+      );
+      for (const r of failed.slice(0, 3)) {
+        process.stdout.write(`    ${red("✗")} ${r.name} ${dim(`(exit ${r.exit})`)}\n`);
+      }
+      if (failed.length > 3) {
+        process.stdout.write(`    ${dim(`…and ${failed.length - 3} more (cue gates status)`)}\n`);
+      }
+    } else {
+      // overall === "skip" — no gates ran (none declared, or runtime dir absent).
+      process.stdout.write(`  ${dim("·")} ${bold("Gates")}   none declared ${dim(`(${when})`)}\n`);
+    }
+  }
+
   // Warnings section
   if (warnings.length > 0) {
     process.stdout.write("\n");
@@ -199,6 +247,6 @@ export async function run(args: string[]): Promise<number> {
     process.stdout.write(`\n  ${green("✓")} ${dim("no issues detected")}\n`);
   }
 
-  process.stdout.write("\n");
+  process.stdout.write(`\n  ${dim("Run cue --help for all commands.")}\n\n`);
   return 0;
 }

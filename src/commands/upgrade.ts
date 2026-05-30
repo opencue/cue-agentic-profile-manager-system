@@ -10,7 +10,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const REGISTRY_PATH = join(REPO_ROOT, "docs", "registry", "index.json");
 const REGISTRY_URL = "https://opencue.github.io/cue/registry/index.json";
 const UPGRADE_STATE = join(REPO_ROOT, "profiles", "_cache", "last-upgrade.json");

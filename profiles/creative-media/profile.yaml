@@ -2,6 +2,23 @@ name: creative-media
 icon: "🦚"
 description: Image, video, product asset, brand, and visual generation workflows
 inherits: core
+recommends:
+  - designer       # premium UI/UX design skills
+  - marketing      # distribute creative assets
+  - video          # video production workflows
+  - instagram      # Instagram content publishing
+persona: |
+  You're a creative director who thinks in visual systems, not individual
+  assets. Every image, video, and brand element serves a larger narrative.
+
+  - **Brand coherence over individual brilliance.** A single stunning image
+    that doesn't match the brand system is worse than a good one that does.
+  - **Generate with intent.** Before creating any visual, clarify: what's the
+    platform, aspect ratio, mood, and call-to-action?
+  - **Product photography is commerce.** Hero shots sell. Lifestyle shots
+    build desire. Detail shots reduce returns. Know which you're making.
+  - **Iterate fast, polish last.** Generate 3-5 variants quickly, pick the
+    direction, then refine one to final quality.
 skills:
   local:
     - higgsfield/higgsfield-generate
@@ -16,7 +33,8 @@ skills:
     - design/gpt-taste
     - design/stitch-design-taste
     - design/imagegen-frontend-web
+    - design/screenshot
     - medusa/higgsfield-to-medusa-products
 mcps:
   - Higgsfield
-  - marva-blog
+  - secret-mcp

@@ -93,6 +93,10 @@ export const COMMANDS = {
     summary: "Print the active profile and its resolved capability counts",
     load: () => import("./current"),
   },
+  tui: {
+    summary: "Three-pane interactive viewer: profiles, skills, preview",
+    load: () => import("./tui"),
+  },
   ask: {
     summary: "Show what a skill does — description, summary, size",
     load: () => import("./ask"),
@@ -140,6 +144,10 @@ export const COMMANDS = {
   optimizer: {
     summary: "Review profiles: skills, MCPs, and CLIs per profile",
     load: () => import("./optimizer"),
+  },
+  merge: {
+    summary: "Merge several profiles into one fat profile (static or live alias)",
+    load: () => import("./merge"),
   },
   "auto-detect": {
     summary: "Detect project type and suggest a profile",
@@ -194,7 +202,7 @@ export const COMMANDS = {
     load: () => import("./packs"),
   },
   init: {
-    summary: "Interactive project scanner + profile wizard",
+    summary: "Project scanner + profile wizard. First run also walks default-profile and telemetry opt-in (replay with --re-onboard)",
     load: () => import("./init"),
   },
   import: {
@@ -343,12 +351,40 @@ export const COMMANDS = {
     load: () => import("./feedback"),
   },
   "submit-profile": {
-    summary: "Fork opencue/cue, branch, commit your profile.yaml, open PR (community contribution)",
+    summary: "Fork opencue/claude-code-skills, branch, commit your profile.yaml, open PR (community contribution)",
     load: () => import("./submit-profile"),
   },
   telemetry: {
     summary: "Opt-in local activation telemetry (enable/disable/status/purge/ingest/report)",
     load: () => import("./telemetry"),
+  },
+  "suggest-pairs": {
+    summary: "Show \"you usually pair X with Y\" from local session history (same data the picker uses)",
+    load: () => import("./suggest-pairs"),
+  },
+  gates: {
+    summary: "Inspect and run profile quality gates (list / run / status)",
+    load: () => import("./gates"),
+  },
+  "skill-report": {
+    summary: "Show which declared skills actually fire (active vs zombie) from local telemetry",
+    load: () => import("./skill-report"),
+  },
+  prune: {
+    summary: "Remove zombie skills (0 hits in window) from a profile.yaml — dry-run by default",
+    load: () => import("./prune"),
+  },
+  "trigger-gaps": {
+    summary: "Find skills whose trigger phrases appear in your prompts but never fire (description too weak)",
+    load: () => import("./trigger-gaps"),
+  },
+  dashboard: {
+    summary: "Boot the local read-only dashboard server (JSON endpoints; React UI in next turn)",
+    load: () => import("./dashboard"),
+  },
+  mcp: {
+    summary: "Expose cue data over MCP (stdio JSON-RPC) so Claude can query it as tool calls",
+    load: () => import("./mcp"),
   },
 } as const satisfies Record<string, Command>;
 

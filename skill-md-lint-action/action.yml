@@ -1,6 +1,6 @@
 name: 'cue SKILL.md Linter'
 description: 'Validate every SKILL.md against the cue spec (R001-R013): auto-fixable issues, flagged warnings, optional cross-skill overlap, optional baseline filtering.'
-author: 'recodeee'
+author: 'NagyVikt'
 branding:
   icon: 'check-square'
   color: 'blue'
@@ -52,7 +52,7 @@ runs:
       run: |
         # Clone a shallow copy of cue into a sibling dir, install deps once.
         if [ ! -d "${RUNNER_TEMP}/cue" ]; then
-          git clone --depth 1 https://github.com/recodeee/cue "${RUNNER_TEMP}/cue"
+          git clone --depth 1 https://github.com/opencue/claude-code-skills "${RUNNER_TEMP}/cue"
           (cd "${RUNNER_TEMP}/cue" && bun install --frozen-lockfile)
         fi
         echo "CUE_DIR=${RUNNER_TEMP}/cue" >> "$GITHUB_ENV"
@@ -131,7 +131,7 @@ runs:
           }
           const errCount = report.flatMap(r => r.diagnostics).filter(d => d.severity === 'error').length;
           const lines = [];
-          lines.push('## 🔍 SKILL.md lint report (via [cue](https://github.com/recodeee/cue))');
+          lines.push('## 🔍 SKILL.md lint report (via [cue](https://github.com/opencue/claude-code-skills))');
           lines.push('');
           lines.push(`**${errCount} errors**, **${total - errCount} warnings/info** across ${report.length} SKILL.md file(s).`);
           lines.push('');

@@ -36,6 +36,7 @@ function printHelp(): void {
       ["list", "List available profiles"],
       ["use", "Activate a profile for the current directory"],
       ["current", "Show the active profile"],
+      ["tui", "Three-pane interactive viewer: profiles, skills, preview"],
       ["new", "Scaffold a new profile"],
       ["create-profile", "Create profile from skills/MCPs list"],
       ["icon", "Pick an emoji icon for a profile"],
@@ -112,8 +113,22 @@ function printHelp(): void {
   process.stdout.write(
     "\x1b[1mGlobal flags:\x1b[0m\n" +
     "  -h, --help       Show this help\n" +
-    "  -v, --version    Print version\n\n" +
-    "\x1b[2mRun `cue <command> --help` for command-specific usage.\x1b[0m\n"
+    "  -v, --version    Print version\n\n"
+  );
+
+  process.stdout.write(
+    "\x1b[1mExamples:\x1b[0m\n" +
+    "  $ cue                       Show status for the current directory\n" +
+    "  $ cue list                  List available profiles\n" +
+    "  $ cue use skill-writer      Activate a profile here\n" +
+    "  $ cue skills search lint    Find skills matching a keyword\n" +
+    "  $ cue doctor --fix          Diagnose and repair the active profile\n\n"
+  );
+
+  process.stdout.write(
+    "\x1b[1mLearn more:\x1b[0m\n" +
+    "  Run `cue <command> --help` for command-specific usage.\n" +
+    "  Run `cue status` for the current-directory dashboard.\n"
   );
 }
 

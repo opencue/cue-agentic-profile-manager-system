@@ -71,8 +71,8 @@ export class UnresolvedEnvPlaceholder extends ProfileError {
 // Constants & options
 // ---------------------------------------------------------------------------
 
-/** Resolve repo root by walking up from this file: src/lib -> repo root. */
-const REPO_ROOT = resolve(
+/** Resolve repo root: env override first, else walk up from this file. */
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",

@@ -21,9 +21,14 @@ import { parseSkillFromDir, renderRouter, type ParsedSkill } from "./skill-route
 const REPO_ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RESOURCES_RULES = join(REPO_ROOT, "resources", "rules");
 const RESOURCES_COMMANDS = join(REPO_ROOT, "resources", "commands");
+const RESOURCES_SUBAGENTS = join(REPO_ROOT, "resources", "subagents");
 const RESOURCES_HOOKS = join(REPO_ROOT, "resources", "hooks");
 const RESOURCES_PLAYBOOKS = join(REPO_ROOT, "resources", "playbooks");
 const RESOURCES_QUALITY_GATES = join(REPO_ROOT, "resources", "quality-gates");
+const RESOURCES_PERSONAS = join(REPO_ROOT, "resources", "personas");
+
+/** Char count past which Claude Code warns about (and is slowed by) a memory file. */
+const MEMORY_FILE_WARN_CHARS = 40_000;
 
 function resolveResourcePath(ref: string, base: string): string {
   return isAbsolute(ref) ? ref : join(base, ref);
@@ -59,6 +64,35 @@ export interface MaterializeOutput {
 
 function agentSubdir(agent: AgentKind): string {
   return agent === "claude-code" ? "claude" : "codex";
+}
+
+/** Directory profiles are read from (CUE_PROFILES_DIR override → repo profiles/).
+ * Read lazily so tests can point it at a temp dir. */
+function profilesDir(): string {
+  return process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
+}
+
+/**
+ * Staleness predicate shared with `cue doctor`'s D5 check: a materialized
+ * runtime is stale when the profile's source `profile.yaml` was modified more
+ * recently than the stored `.cue-hash`. Mirror, not duplicate — doctor reports
+ * it, launch acts on it (auto-rebuild). Returns false when either file is
+ * absent (no runtime yet, or no source to compare against): the normal
+ * content-hash path in materializeRuntime handles those cases.
+ */
+export async function isRuntimeStale(
+  profileName: string,
+  agent: AgentKind,
+  runtimeRoot: string,
+): Promise<boolean> {
+  const hashFile = join(runtimeRoot, profileName, agentSubdir(agent), ".cue-hash");
+  const yamlPath = join(profilesDir(), profileName, "profile.yaml");
+  try {
+    const [hashStat, yamlStat] = await Promise.all([lstat(hashFile), lstat(yamlPath)]);
+    return yamlStat.mtimeMs > hashStat.mtimeMs;
+  } catch {
+    return false;
+  }
 }
 
 function appliesToAgent(scoped: { agents?: AgentKind[] }, agent: AgentKind): boolean {
@@ -118,6 +152,9 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
         // Re-overlay any source entries that aren't already present (e.g.
         // user added a new sessions/ entry, plugins/, etc.).
         await overlaySourceState(runtimeDir, effectiveInput.credentialsSource);
+        // Pre-seed the plugin cache so enabled-plugin hooks find their version
+        // dir immediately (avoids the "Plugin directory does not exist" race).
+        await linkPluginCache(runtimeDir, effectiveInput.credentialsSource);
       }
       if (agent === "claude-code") {
         await syncMcpsIntoClaudeJson(runtimeDir, mcpServers);
@@ -137,9 +174,11 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   const skillsDir = join(tmpDir, "skills");
   await mkdir(skillsDir, { recursive: true });
   const skippedSkills: string[] = [];
+  let attemptedSkills = 0;
   for (const skill of profile.skills.local) {
     if (!appliesToAgent(skill, agent)) continue;
     if (skill.when && !evaluateCondition(skill.when, process.cwd())) continue;
+    attemptedSkills++;
     try {
       const src = await input.skillSourceLookup(skill.id);
       const target = join(skillsDir, skill.id);
@@ -156,11 +195,51 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
       ` — run \`cue debug ${profile.name}\` for details\n`,
     );
   }
+  // Fail-loud guard: a single broken ref in a 20-skill profile is tolerable
+  // (warned above), but if MORE THAN HALF the skills failed to resolve, the
+  // materialized runtime is broken — almost always a misconfigured skill
+  // source root (e.g. resolveLocalSkill falling back to a stale default when
+  // CUE_REPO_ROOT is unset). Silently writing a near-empty CLAUDE.md is worse
+  // than crashing. Bypass with CUE_ALLOW_PARTIAL_SKILLS=1 for the rare profile
+  // that genuinely expects most skills to be unavailable.
+  const allowPartial =
+    process.env.CUE_ALLOW_PARTIAL_SKILLS === "1" ||
+    process.env.CUE_ALLOW_PARTIAL_SKILLS === "true";
+  if (
+    !allowPartial &&
+    attemptedSkills > 0 &&
+    skippedSkills.length / attemptedSkills > 0.5
+  ) {
+    await rm(tmpDir, { recursive: true, force: true });
+    throw new Error(
+      `[cue] skill resolution failed: ${skippedSkills.length}/${attemptedSkills} ` +
+      `skill(s) for profile "${profile.name}" could not be resolved. The runtime ` +
+      `would be broken, so the rebuild was aborted (old runtime left intact). ` +
+      `This usually means the skill source root is wrong — check CUE_REPO_ROOT / ` +
+      `the skillSourceLookup wiring, then run \`cue debug ${profile.name}\`. ` +
+      `Set CUE_ALLOW_PARTIAL_SKILLS=1 to bypass.`,
+    );
+  }
 
   // Defensive defaults — older fixtures may not declare these arrays.
   const profileRules = profile.rules ?? [];
   const profileCommands = profile.commands ?? [];
-  const profileHooks = profile.hooks ?? [];
+  const profileSubagents = profile.subagents ?? [];
+  // Effective hook list: profile-declared hooks PLUS the cue-quality-gates
+  // Stop hook when the profile declares any qualityGates. Keeps profile
+  // authors from having to remember to wire both `qualityGates` and the
+  // matching hook entry — declaring gates is enough. Same dedupe + merge
+  // logic runs again in buildClaudeSettings so the settings.json wiring
+  // stays consistent with the symlinked files here.
+  const profileHooks = [...(profile.hooks ?? [])];
+  const profileGatesForAutoHook = (profile as any).qualityGates ?? [];
+  if (
+    agent === "claude-code" &&
+    profileGatesForAutoHook.length > 0 &&
+    !profileHooks.includes("cue-quality-gates.json")
+  ) {
+    profileHooks.push("cue-quality-gates.json");
+  }
 
   // 1b. Commands — symlink each <ref>.md into commands/ (Claude reads .claude/commands/*.md)
   if (agent === "claude-code" && profileCommands.length > 0) {
@@ -171,6 +250,25 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
       try {
         await lstat(src);
         await symlink(src, join(commandsDir, basename(src)));
+      } catch { /* missing source — skip */ }
+    }
+  }
+
+  // 1b2. Subagents — symlink each <ref>.md FLAT into agents/ (Claude reads
+  // .claude/agents/*.md and delegates to them via the Task tool). Refs may be
+  // division-scoped (e.g. "design/design-ui-designer"); we flatten to the
+  // basename since agent file-stems are already globally unique. When a profile
+  // declares subagents, the real agents/ dir we create here causes the later
+  // overlay step to skip the user's ~/.claude/agents passthrough (existing real
+  // dir is left untouched) — the profile's curated set wins, by design.
+  if (agent === "claude-code" && profileSubagents.length > 0) {
+    const agentsDir = join(tmpDir, "agents");
+    await mkdir(agentsDir, { recursive: true });
+    for (const ref of profileSubagents) {
+      const src = resolveResourcePath(ref.endsWith(".md") ? ref : `${ref}.md`, RESOURCES_SUBAGENTS);
+      try {
+        await lstat(src);
+        await symlink(src, join(agentsDir, basename(src)));
       } catch { /* missing source — skip */ }
     }
   }
@@ -231,16 +329,21 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   // 1f. Quality gates (Phase 3) — symlink validator scripts into quality-gates/.
   // The Stop hook (cue-quality-gates.sh, see resources/hooks/) iterates this
   // directory and fails the session if any gate exits non-zero.
+  // Refs in profile.yaml typically omit the `.sh` extension, so we append it
+  // when missing — otherwise resolveResourcePath produces e.g.
+  // `.../resources/quality-gates/lint-skill-pass` (no such file) and the
+  // lstat fails silently, leaving the gate undeployed at Stop time.
   const profileGates = (profile as any).qualityGates ?? [];
   if (agent === "claude-code" && profileGates.length > 0) {
     const gDir = join(tmpDir, "quality-gates");
     await mkdir(gDir, { recursive: true });
     for (const ref of profileGates) {
-      const src = resolveResourcePath(ref, RESOURCES_QUALITY_GATES);
+      const fname = ref.endsWith(".sh") ? ref : `${ref}.sh`;
+      const src = resolveResourcePath(fname, RESOURCES_QUALITY_GATES);
       try {
         await lstat(src);
         await symlink(src, join(gDir, basename(src)));
-      } catch { /* missing source — skip */ }
+      } catch { /* missing source — skip; surfaced by `cue doctor` (D8) */ }
     }
   }
 
@@ -271,8 +374,27 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   // of everything that follows. Profiles without a persona keep the old
   // generic block (backwards-compatible).
   const profilePersona = (profile as any).persona ?? "";
-  if (profilePersona.trim()) {
-    stamp += `## Your Expertise\n\n${profilePersona.trim()}\n\n`;
+
+  // persona_includes: shared snippets prepended to the persona. Lets
+  // cross-profile policies (Integrity Protocol, voice rules) live in one
+  // file in resources/personas/ and fan out via the profile chain.
+  const personaIncludes: string[] = (profile as any).personaIncludes ?? [];
+  let includesText = "";
+  for (const ref of personaIncludes) {
+    const path = isAbsolute(ref)
+      ? ref
+      : join(RESOURCES_PERSONAS, ref.endsWith(".md") ? ref : `${ref}.md`);
+    try {
+      const content = (await readFile(path, "utf8")).trim();
+      if (content) includesText += content + "\n\n";
+    } catch {
+      // missing snippet — skip silently; cue validate will surface it
+    }
+  }
+
+  const fullPersona = (includesText + profilePersona).trim();
+  if (fullPersona) {
+    stamp += `## Your Expertise\n\n${fullPersona}\n\n`;
   }
 
   // Workspace context — inject active workspace's context into persona
@@ -309,7 +431,33 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
     }
   }
   const routerOverrides = (profile as { personaRouting?: { phrase?: string; capability?: string; skill: string; note?: string }[] }).personaRouting ?? [];
-  const routerBlock = renderRouter(routerParsed, { overrides: routerOverrides });
+
+  // Telemetry-driven router compaction. Read the same skill-usage data that
+  // `cue skill-report` shows; collapse zombies (0 hits in last 30d) into a
+  // single compact tail in the rendered router. Saves ~40% of router-block
+  // tokens on heavy profiles. Honors `CUE_LEAN=1` to drop zombies entirely.
+  // Best-effort: any failure (telemetry off, log unreadable) → render full.
+  let zombieIds: string[] = [];
+  try {
+    const { computeSkillUsage } = await import("./skill-report");
+    const usage = computeSkillUsage(profile, { windowDays: 30 });
+    zombieIds = usage.filter((u) => u.zombie).map((u) => u.id);
+  } catch { /* render full router on any failure */ }
+  const lean = process.env.CUE_LEAN === "1" || process.env.CUE_LEAN === "true";
+  // Default-on: the trigger-phrases table duplicates each SKILL.md's own
+  // frontmatter, and on heavy profiles it pushes the materialized CLAUDE.md
+  // past Claude Code's 40KB perf-warning threshold. Opt back in with
+  // CUE_TRIGGER_PHRASES=1.
+  const omitTriggerPhrases = !(
+    process.env.CUE_TRIGGER_PHRASES === "1" ||
+    process.env.CUE_TRIGGER_PHRASES === "true"
+  );
+  const routerBlock = renderRouter(routerParsed, {
+    overrides: routerOverrides,
+    zombies: zombieIds,
+    lean,
+    omitTriggerPhrases,
+  });
   if (routerBlock) stamp += routerBlock;
 
   // Role identity — tell Claude what it is
@@ -388,6 +536,32 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
       profileCommands.map((c) => `- /${basename(c, ".md")}`).join("\n") + "\n\n";
   }
 
+  // Subagents — a grouped roster of the delegatable specialists in agents/.
+  // Claude Code already routes to them natively by each agent's description;
+  // this section is the proactive nudge — a quick "who's on the floor" map so
+  // the model reaches for a specialist instead of improvising. Names only (the
+  // full descriptions Claude Code loads from agents/ would be too costly to
+  // repeat every turn). Grouped by the ref's division prefix.
+  if (agent === "claude-code" && profileSubagents.length > 0) {
+    const groups = new Map<string, string[]>();
+    for (const ref of profileSubagents) {
+      const slash = ref.indexOf("/");
+      const div = slash > 0 ? ref.slice(0, slash) : "general";
+      const stem = basename(ref, ".md");
+      if (!groups.has(div)) groups.set(div, []);
+      groups.get(div)!.push(stem);
+    }
+    stamp += `## Subagents (${profileSubagents.length})\n\n` +
+      `Delegatable specialists in \`agents/\`. **Prefer handing a matching task ` +
+      `to one of these via the Task tool over improvising it yourself.** Claude ` +
+      `Code routes by each agent's description; this is your quick map of who's ` +
+      `on the floor:\n\n`;
+    for (const [div, stems] of [...groups.entries()].sort()) {
+      stamp += `- **${div}** (${stems.length}): ${stems.join(", ")}\n`;
+    }
+    stamp += "\n";
+  }
+
   // Playbooks (Phase 2) — proven step-by-step protocols for common tasks.
   // Indexed only; bodies are read on demand when the matching task triggers.
   if (profilePlaybooks.length > 0) {
@@ -410,7 +584,22 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
 
   stamp += `---\n*generated ${new Date().toISOString()} — do not hand-edit*\n\n`;
 
-  await writeFile(join(tmpDir, agent === "claude-code" ? "CLAUDE.md" : "AGENTS.md"), stamp + input.userClaudeMd);
+  const memoryFileContent = stamp + input.userClaudeMd;
+  const memoryFileName = agent === "claude-code" ? "CLAUDE.md" : "AGENTS.md";
+  // Size-budget guard: Claude Code warns (and degrades performance) once a
+  // memory file crosses ~40k chars. Warn at materialize time — the moment the
+  // file is generated — so a bloated profile is caught before the user sees
+  // the runtime warning, with a pointer to the usual culprit.
+  if (memoryFileContent.length > MEMORY_FILE_WARN_CHARS) {
+    const kb = (memoryFileContent.length / 1000).toFixed(1);
+    process.stderr.write(
+      `[cue] ${memoryFileName} for profile "${profile.name}" is ${kb}k chars ` +
+      `(> ${(MEMORY_FILE_WARN_CHARS / 1000).toFixed(0)}k) — large memory files slow the agent ` +
+      `and trigger its perf warning. Trim the profile (fewer skills/rules) or the ` +
+      `appended user instructions.\n`,
+    );
+  }
+  await writeFile(join(tmpDir, memoryFileName), memoryFileContent);
 
   // 4. hash (no trailing newline so /^[a-f0-9]{64}$/ matches directly)
   await writeFile(join(tmpDir, ".cue-hash"), hash);
@@ -423,6 +612,10 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   // and CLAUDE.md.
   if (input.credentialsSource) {
     await overlaySourceState(tmpDir, input.credentialsSource);
+    // Pre-seed the plugin cache + marketplace metadata from the real config so
+    // enabled-plugin hooks find their version dir on the first prompt instead
+    // of racing Claude's lazy per-config-dir download.
+    await linkPluginCache(tmpDir, input.credentialsSource);
   }
 
   // 6. Atomic swap: rm -rf old, rename tmp.
@@ -516,6 +709,14 @@ async function syncMcpsIntoClaudeJson(
 // trustedDirectories, skipAutoPermissionPrompt) and overlays the profile's
 // plugins + MCPs.
 // Files/dirs cue actively manages — never overlay these from the source dir.
+// Also includes Claude Code internal per-session dirs (session-env, tasks,
+// plugins/data) so the overlay never re-creates a self-referential symlink.
+// Bug pattern: if a previous rematerialize left ~/.claude/<dir> as a symlink
+// pointing back into runtime/<profile>/claude/<dir>, a subsequent overlay
+// would symlink the runtime path back to itself, producing an ELOOP that
+// bricks every Bash/Task call until cleared by hand. Caught dirs so far:
+// session-env, tasks, plugins/data/<plugin-id>. Adding any Claude Code
+// internal write target here is cheap and forward-compatible.
 const CUE_MANAGED_ENTRIES = new Set([
   "settings.json",
   "skills",
@@ -526,6 +727,10 @@ const CUE_MANAGED_ENTRIES = new Set([
   "AGENTS.md",
   ".cue-hash",
   "config.toml",
+  // Claude Code internal per-session / plugin-data dirs — never overlay.
+  "session-env",
+  "tasks",
+  "plugins",
 ]);
 
 /**
@@ -608,6 +813,57 @@ async function overlaySourceState(targetDir: string, sourceDir: string): Promise
   }
 }
 
+/**
+ * Pre-seed the runtime's plugin cache + marketplace metadata by symlinking them
+ * from the real source config (`~/.claude/plugins`). `plugins` is excluded from
+ * the generic overlay (CUE_MANAGED_ENTRIES) because Claude writes per-session
+ * state under `plugins/data` — symlinking that whole tree risks the ELOOP
+ * documented above. But the *downloaded* plugin payload and marketplace
+ * metadata are read-mostly and identical across profiles, so sharing them is
+ * safe and fixes a real bug:
+ *
+ *   A fresh per-profile runtime starts with an empty plugin cache. When
+ *   settings.json enables a plugin (`enabledPlugins`), its hooks fire on the
+ *   first prompt — but Claude hasn't finished downloading the plugin into this
+ *   config dir's cache yet, so the hook fails with "Plugin directory does not
+ *   exist … run /plugin to reinstall". Symlinking `cache` (and the marketplace
+ *   metadata that resolves the enabled version) to the already-downloaded real
+ *   tree makes the version dir present from the first moment — no race.
+ *
+ * Deliberately NOT linked:
+ *   - `installed_plugins.json`: Claude rewrites this per-config-dir; symlinking
+ *     it risks clobbering the real registry with an empty `{plugins:{}}`.
+ *   - `data`: per-plugin writable state; the self-referential ELOOP source.
+ */
+export async function linkPluginCache(targetDir: string, sourceDir: string): Promise<void> {
+  const srcPlugins = join(sourceDir, "plugins");
+  try {
+    await lstat(srcPlugins);
+  } catch {
+    return; // source has no plugins tree — nothing to seed
+  }
+  const pluginsDir = join(targetDir, "plugins");
+  await mkdir(pluginsDir, { recursive: true });
+
+  for (const name of ["cache", "marketplaces", "known_marketplaces.json"]) {
+    const sourcePath = join(srcPlugins, name);
+    try {
+      await lstat(sourcePath);
+    } catch {
+      continue; // not present in source
+    }
+    const targetPath = join(pluginsDir, name);
+    // Replace whatever's there (Claude's lazy/empty copy or a stale symlink)
+    // with a symlink to the real, already-downloaded tree.
+    try {
+      await rm(targetPath, { recursive: true, force: true });
+    } catch { /* nothing to remove */ }
+    try {
+      await symlink(sourcePath, targetPath);
+    } catch { /* race or permission — skip silently */ }
+  }
+}
+
 async function buildClaudeSettings(
   profile: ResolvedProfile,
   agent: AgentKind,
@@ -635,7 +891,20 @@ async function buildClaudeSettings(
   for (const [k, v] of Object.entries(baseHooks)) {
     mergedHooks[k] = Array.isArray(v) ? [...v] : [];
   }
-  for (const ref of (profile.hooks ?? [])) {
+  // Auto-inject the cue-quality-gates Stop hook when the profile declares
+  // any qualityGates. This avoids the footgun where a profile lists gates
+  // but forgets to wire the hook, so gates would never actually fire.
+  // Explicit `hooks: [cue-quality-gates.json]` still works and is deduped.
+  const declaredHooks = [...(profile.hooks ?? [])];
+  const profileGatesForHook = (profile as any).qualityGates ?? [];
+  if (
+    agent === "claude-code" &&
+    profileGatesForHook.length > 0 &&
+    !declaredHooks.includes("cue-quality-gates.json")
+  ) {
+    declaredHooks.push("cue-quality-gates.json");
+  }
+  for (const ref of declaredHooks) {
     const src = resolveResourcePath(ref, RESOURCES_HOOKS);
     try {
       const raw = await readFile(src, "utf8");
@@ -645,6 +914,22 @@ async function buildClaudeSettings(
         mergedHooks[event] = [...(mergedHooks[event] ?? []), ...entries];
       }
     } catch { /* missing or malformed — skip */ }
+  }
+
+  // Dedupe entries per event by JSON signature — keeps the first occurrence.
+  // Closes the case where a previous rematerialize wrote cue's hooks to the
+  // runtime settings.json, then this rematerialize reads them back as
+  // baseSettings (line ~691) AND re-appends from declaredHooks below, silently
+  // 2× hooks per rematerialize cycle. Dedupe at the end is cheap and removes
+  // the symptom regardless of where dups came in.
+  for (const event of Object.keys(mergedHooks)) {
+    const seen = new Set<string>();
+    mergedHooks[event] = mergedHooks[event]!.filter((entry) => {
+      const sig = JSON.stringify(entry);
+      if (seen.has(sig)) return false;
+      seen.add(sig);
+      return true;
+    });
   }
 
   const settings: Record<string, unknown> = {

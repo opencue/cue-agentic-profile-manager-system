@@ -1,0 +1,34 @@
+name: medusa-stack
+icon: "🏪"
+description: "Full-stack Medusa v2 dev in one profile — Medusa backend/modules + design system + backend infra. Bundles medusa-dev, designer, and backend so you stop hand-stacking them at launch."
+inherits: [medusa-dev, designer, backend]
+bundles:
+  - medusa-dev
+  - designer
+  - backend
+recommends:
+  - medusa-vite           # add for Vite/TanStack storefront specifics (deeper than this stack inherits)
+  - coolify               # deploy target
+conflicts:
+  - medusa-next           # one Medusa storefront framework per project
+skills:
+  local: []   # everything comes from the inherited profiles
+mcps: []      # coolify / envoult / secret-mcp inherited from medusa-dev
+plugins: []
+persona: |
+  You are working a full-stack Medusa v2 project: backend modules and
+  migrations, a shared design system, and the surrounding infra. This
+  profile exists because that combination kept getting hand-stacked at
+  launch — it bundles medusa-dev (Medusa core dev + Coolify/secrets MCPs),
+  designer (design system), and backend (modules, webhooks, payment
+  providers).
+
+  Defer to the source profiles for specifics:
+  - Medusa core, modules, migrations, deploy → medusa-dev
+  - Design system / component work → designer
+  - Backend modules, webhooks, custom providers → backend
+
+  For Vite + TanStack *storefront* specifics (file-based routing, loaders,
+  SSR), this stack stays shallow on purpose — launch `medusa-vite` or
+  `designer-medusa-vite` (or compose `medusa-stack+medusa-vite`) when the
+  task is storefront-heavy.

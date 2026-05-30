@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadProfile } from "../lib/profile-loader";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
 
 export async function run(args: string[]): Promise<number> {

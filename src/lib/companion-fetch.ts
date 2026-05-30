@@ -6,7 +6,7 @@
  *
  * Features:
  *   1. Uses `gh` CLI for auth (5000 req/hr) with curl fallback (60 req/hr)
- *   2. True parallel downloads via Bun.spawn async
+ *   2. True parallel downloads via node child_process spawn
  *   3. Reads `companions:` from SKILL.md frontmatter for explicit file list
  *   4. Supports vendoring into resources/skills/ for offline use
  *   5. ETag/If-None-Match cache for GitHub API responses
@@ -213,15 +213,16 @@ function ghDownloadFile(url: string, dest: string): boolean {
   return res.status === 0;
 }
 
-/** Async download using Bun.spawn for true parallelism. */
+/** Async download via node child_process.spawn for true parallelism. */
 async function ghDownloadFileAsync(url: string, dest: string): Promise<boolean> {
   try {
-    const proc = Bun.spawn(["curl", "-fsSL", "-o", dest, url], {
-      stdout: "ignore",
-      stderr: "ignore",
+    return await new Promise<boolean>((resolve) => {
+      const proc = nodeSpawn("curl", ["-fsSL", "-o", dest, url], {
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+      proc.on("error", () => resolve(ghDownloadFile(url, dest)));
+      proc.on("close", (code) => resolve(code === 0));
     });
-    const code = await proc.exited;
-    return code === 0;
   } catch {
     // Fallback to sync
     return ghDownloadFile(url, dest);
@@ -337,7 +338,7 @@ export function fetchCompanionFiles(
   const files = toFetch.filter(e => e.type === "file" && e.download_url);
   const dirs = toFetch.filter(e => e.type === "dir");
 
-  // True parallel download via async (Bun.spawn)
+  // True parallel download via async (node child_process)
   const fileResults = parallelDownloadSync(files, localDir, fetcher, opts.verifySha !== false);
   fetched.push(...fileResults.fetched);
   errors.push(...fileResults.errors);
@@ -368,7 +369,7 @@ export function fetchCompanionFiles(
 }
 
 /**
- * Async version — uses true Bun.spawn parallelism.
+ * Async version — uses node child_process spawn for parallelism.
  * Call this from async contexts for maximum throughput.
  */
 export async function fetchCompanionFilesAsync(

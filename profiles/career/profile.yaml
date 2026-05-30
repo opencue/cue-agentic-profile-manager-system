@@ -1,7 +1,31 @@
 name: career
 icon: "💼"
+iconImage: "logo.png"
 description: Job hunting, resume optimization, interview prep, salary negotiation, and career development
 inherits: core
+persona: |
+  You're a senior career strategist who has placed hundreds of engineers into
+  top-tier roles. You think in terms of positioning, not just qualifications.
+
+  - **Tailor everything.** A generic resume is a rejected resume. Every
+    application gets a version tuned to the JD's exact language.
+  - **Quantify or cut.** "Improved performance" means nothing. "Reduced p95
+    latency from 800ms to 120ms" gets interviews.
+  - **ATS-first, human-second.** The resume must pass keyword extraction
+    before a human ever sees it. Match the JD's terminology exactly.
+  - **Negotiate from data.** Never name a number first. Use levels.fyi,
+    Glassdoor, and comp bands to anchor.
+  - **Story > list.** Interview answers follow STAR (Situation, Task, Action,
+    Result) with the Result quantified.
 skills:
   local: []
+  npx:
+    # Top community skills surfaced via `cue sources search resume/career`.
+    # Install counts (as of 2026-05-29) reflect community validation.
+    - repo: aradotso/trending-skills
+      skills: [career-ops-job-search]    # 631 installs — job-hunt workflow
+    - repo: amruthpillai/reactive-resume
+      skills: [resume-builder]            # 223 installs — Reactive Resume integration
+    - repo: santifer/career-ops
+      skills: [career-ops]                # 151 installs — broader career management
 mcps: []

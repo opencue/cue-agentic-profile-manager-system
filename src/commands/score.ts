@@ -12,65 +12,33 @@
  *   - --markdown: one-liner for README
  */
 
-import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { homedir } from "node:os";
 
 import { loadProfile, listProfiles } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
+import {
+  skillAlwaysOnTokens,
+  materializedClaudeMdTokens,
+  firedSkills,
+} from "../lib/profile-metrics";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
+// Baseline always-on CLAUDE.md tokens for an un-materialized profile (shared
+// core persona + integrity protocol dominate). Mirrors cost.ts.
+const BASE_CLAUDE_MD_TOKENS = 7000;
 
-function getSkillTokens(id: string): number {
-  const path = join(SKILLS_ROOT, id, "SKILL.md");
-  try { return estimateTokens(readFileSync(path, "utf8")); } catch { return 0; }
-}
-
+/**
+ * Which of `skillIds` were actually fired (per analytics `skill_hit` events)
+ * in sessions sharing a component with `profileName`. Replaces the old
+ * transcript substring-grep, which both false-positived (slug appears in any
+ * message text) and ignored the profile entirely.
+ */
 function getSkillUsage(profileName: string, skillIds: string[]): { used: Set<string>; total: number } {
-  const projectsDir = join(homedir(), ".claude", "projects");
-  const used = new Set<string>();
-  if (!existsSync(projectsDir)) return { used, total: 0 };
-
-  const slugs = skillIds.map(id => id.split("/").pop()!);
-  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // last 30 days
-
-  try {
-    const dirs = readdirSync(projectsDir).filter(d => {
-      try { return statSync(join(projectsDir, d)).isDirectory(); } catch { return false; }
-    });
-    outer:
-    for (const dir of dirs) {
-      const fullDir = join(projectsDir, dir);
-      const files = readdirSync(fullDir)
-        .filter(f => f.endsWith(".jsonl"))
-        .map(f => ({ name: f, mtime: statSync(join(fullDir, f)).mtimeMs }))
-        .filter(f => f.mtime > cutoff)
-        .sort((a, b) => b.mtime - a.mtime)
-        .slice(0, 5); // only check 5 most recent per project dir
-
-      for (const f of files) {
-        try {
-          // Read only first 50KB of each file to check for skill refs
-          const fd = require("node:fs").openSync(join(fullDir, f.name), "r");
-          const buf = Buffer.alloc(50_000);
-          const bytesRead = require("node:fs").readSync(fd, buf, 0, 50_000, 0);
-          require("node:fs").closeSync(fd);
-          const content = buf.toString("utf8", 0, bytesRead);
-
-          for (let i = 0; i < slugs.length; i++) {
-            if (content.includes(slugs[i]!)) used.add(skillIds[i]!);
-          }
-        } catch {}
-        if (used.size === skillIds.length) break outer;
-      }
-    }
-  } catch {}
+  const fired = firedSkills(profileName);
+  const used = new Set<string>(skillIds.filter((id) => fired.has(id)));
   return { used, total: skillIds.length };
 }
 
@@ -90,14 +58,20 @@ interface ScoreResult {
 
 function computeScore(profileName: string, profile: any): ScoreResult {
   const skillIds = profile.skills.local.map((s: any) => s.id);
-  const tokens = skillIds.reduce((sum: number, id: string) => sum + getSkillTokens(id), 0) + 200;
+  // Always-on budget: skill descriptions + the materialized CLAUDE.md. Skill
+  // bodies are lazy (loaded on invoke), so they don't count toward per-message
+  // cost — the old body-sum made every rich profile score F.
+  const skillDescTokens = skillIds.reduce((sum: number, id: string) => sum + skillAlwaysOnTokens(id), 0);
+  const claudeMdTokens = materializedClaudeMdTokens(profileName) ?? BASE_CLAUDE_MD_TOKENS;
+  const tokens = skillDescTokens + claudeMdTokens;
   const { used } = getSkillUsage(profileName, skillIds);
   const usedCount = used.size;
   const unusedCount = skillIds.length - usedCount;
   const usageRate = skillIds.length > 0 ? usedCount / skillIds.length : 1;
 
-  // Token score: 100 at ≤2k, 0 at ≥50k (linear)
-  const tokenScore = Math.max(0, Math.min(100, 100 - ((tokens - 2000) / 480)));
+  // Token score: 100 at ≤8k always-on, 0 at ≥20k (linear). Calibrated to the
+  // real always-on scale (CLAUDE.md ~7k baseline + descriptions).
+  const tokenScore = Math.max(0, Math.min(100, 100 - ((tokens - 8000) / 120)));
 
   // Usage score: 100 at 100% usage, 0 at 0%
   const usageScore = Math.round(usageRate * 100);
@@ -190,7 +164,7 @@ function generateBadgeSvg(result: ScoreResult): string {
   <text x="320" y="84" fill="#8B949E" font-size="11" font-weight="600" font-family="Segoe UI, sans-serif" letter-spacing="0.03em">Score</text>
   <text x="320" y="110" fill="${color}" font-size="22" font-weight="800" font-family="Segoe UI, sans-serif">${result.score}/100</text>
   <text x="18" y="148" fill="#8B949E" font-size="11" font-family="Segoe UI, sans-serif">${date}</text>
-  <text x="442" y="148" fill="#8B949E" font-size="11" font-family="Segoe UI, sans-serif" text-anchor="end">github.com/opencue/cue</text>
+  <text x="442" y="148" fill="#8B949E" font-size="11" font-family="Segoe UI, sans-serif" text-anchor="end">github.com/opencue/claude-code-skills</text>
 </svg>`;
 }
 
@@ -231,7 +205,7 @@ Usage:
   let profileName = profileIdx >= 0 ? args[profileIdx + 1] : args.find(a => !a.startsWith("-"));
 
   if (!profileName && !all) {
-    try { profileName = await resolveProfileForCwd(process.cwd()); } catch {}
+    profileName = (await resolveActiveProfile()) ?? undefined;
     if (!profileName) {
       process.stderr.write("No active profile. Use --profile <name> or --all.\n");
       return 1;

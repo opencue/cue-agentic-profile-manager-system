@@ -2,8 +2,8 @@
 # cue — one-line installer
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/recodeee/cue/main/get.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/recodeee/cue/main/get.sh | bash -s -- --yes
+#   curl -fsSL https://raw.githubusercontent.com/opencue/claude-code-skills/main/get.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/opencue/claude-code-skills/main/get.sh | bash -s -- --yes
 #
 # Environment variables:
 #   CUE_DIR     — where to clone (default: ~/Documents/cue)
@@ -13,7 +13,7 @@ set -euo pipefail
 
 CUE_DIR="${CUE_DIR:-$HOME/Documents/cue}"
 CUE_BRANCH="${CUE_BRANCH:-main}"
-CUE_REPO="https://github.com/recodeee/cue.git"
+CUE_REPO="https://github.com/opencue/claude-code-skills.git"
 
 # Colors
 if [ -t 2 ] && [ -t 1 ]; then
@@ -47,7 +47,7 @@ say "${ORANGE}  ╚██████╗╚██████╔╝████�
 say "${ORANGE}   ╚═════╝ ╚═════╝ ╚══════╝${RESET}"
 say ""
 say "  ${BOLD}Agent Profile Manager${RESET} for Claude Code & Codex"
-say "  ${DIM}https://github.com/recodeee/cue${RESET}"
+say "  ${DIM}https://github.com/opencue/claude-code-skills${RESET}"
 say "  ${DIM}npm: cue-ai${RESET}"
 say ""
 

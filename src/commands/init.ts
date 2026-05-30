@@ -1,16 +1,152 @@
 /**
  * `cue init` — project scanner + profile wizard.
+ *
+ * Two phases run end-to-end:
+ *   1. **Global onboarding** (first-run only, or `--re-onboard`): picks a
+ *      default-profile composite, opts into local analytics, and marks
+ *      `.onboarded` so subsequent `cue init` calls skip straight to phase 2.
+ *   2. **Per-directory pinning** (always): scan cwd, suggest the best
+ *      profile, write `.cue-profile`, offer to install discovered gems.
  */
 
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import * as p from "@clack/prompts";
 
 import { detectProfile } from "../lib/auto-detect";
 import { scanProject } from "../lib/project-scanner";
 import { listProfiles } from "../lib/profile-loader";
 import { getCachedGemsForProfile, autoInstallClis } from "./discover";
+import {
+  configDir,
+  enable as enableTelemetry,
+  isEnabled as telemetryEnabled,
+  analyticsPath,
+} from "../lib/telemetry-consent";
+
+/**
+ * Marker file: presence means the user has been through global onboarding
+ * at least once. Stored next to `default-profile` and `analytics.jsonl`
+ * under the same XDG config dir for parity.
+ */
+/**
+ * Marker file shared with `cue launch` so the wizard fires on the FIRST
+ * launch of cue, not only when the user explicitly runs `cue init`.
+ * Exported for that integration.
+ */
+export function onboardedMarkerPath(): string {
+  return join(configDir(), ".onboarded");
+}
+
+function defaultProfilePath(): string {
+  return join(configDir(), "default-profile");
+}
+
+/**
+ * First-run setup: default-profile composition + analytics opt-in. Returns
+ * `false` when the user cancels mid-wizard so the caller can short-circuit.
+ *
+ * Writes:
+ *   - `<configDir>/default-profile` (when a composite was chosen)
+ *   - `<configDir>/.telemetry-consent` (when user opts in)
+ *   - `<configDir>/.onboarded` (marker — written by the caller post-success)
+ */
+export async function runGlobalOnboarding(): Promise<boolean> {
+  p.log.info(
+    "👋 Welcome to cue. Quick 30-second setup before we pin a profile to this directory.",
+  );
+
+  // Step 1: default-profile composite.
+  const defaultPick = await p.select<string>({
+    message: "Default profile — loads when no .cue-profile is pinned to a directory:",
+    options: [
+      {
+        value: "core+skill-writer",
+        label: "core + skill-writer",
+        hint: "recommended — minimal base plus skill management",
+      },
+      { value: "core", label: "core only", hint: "smallest — just the base" },
+      {
+        value: "core+skill-writer+ecc",
+        label: "core + skill-writer + ecc",
+        hint: "+ workspace conventions (CLAUDE.md / AGENTS.md)",
+      },
+      { value: "__custom", label: "Custom…", hint: "type a +-separated composite" },
+      { value: "__skip", label: "Skip for now", hint: "falls back to plain `core`" },
+    ],
+    initialValue: "core+skill-writer",
+  });
+  if (p.isCancel(defaultPick)) return false;
+
+  let defaultComposite: string | null = null;
+  if (defaultPick === "__custom") {
+    const custom = await p.text({
+      message: "Composite (e.g., core+skill-writer+ecc):",
+      placeholder: "core+skill-writer",
+      validate: (v) => {
+        const parts = (v ?? "").split("+").map((s) => s.trim()).filter((s) => s.length > 0);
+        if (parts.length === 0) return "Must contain at least one profile name";
+        for (const part of parts) {
+          if (!/^[a-z][a-z0-9-]{1,63}$/.test(part)) {
+            return `"${part}" must be kebab-case (lowercase, hyphens)`;
+          }
+        }
+        return undefined;
+      },
+    });
+    if (p.isCancel(custom)) return false;
+    defaultComposite = (custom as string).trim();
+  } else if (defaultPick !== "__skip") {
+    defaultComposite = defaultPick as string;
+  }
+
+  if (defaultComposite) {
+    const path = defaultProfilePath();
+    mkdirSync(dirname(path), { recursive: true });
+    // File format: one profile name per line, `core` always implied.
+    const parts = defaultComposite
+      .split("+")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && s !== "core");
+    writeFileSync(path, ["core", ...parts].join("\n") + "\n");
+    p.log.success(`Default profile: ${["core", ...parts].join(" + ")}`);
+  } else {
+    p.log.message("Default profile left at `core`. Change anytime with `cue use --set-default`.");
+  }
+
+  // Step 2: local analytics opt-in. Skipped when already enabled.
+  // Default is YES — every active cue feature (skill-report, prune,
+  // pair-suggestions, CLAUDE.md compaction that just cut your medusa
+  // profile by 76%) reads from this log. Nothing leaves the machine.
+  if (!telemetryEnabled()) {
+    p.log.info(
+      "📊 Local analytics powers cue's best features:\n" +
+      "    • Recent profile picker (sorted by what you actually use)\n" +
+      "    • cue skill-report — flags dead skills wasting tokens\n" +
+      "    • cue prune --dead — removes them\n" +
+      "    • CLAUDE.md compaction (saves ~40-76% per profile)\n" +
+      "    • cue suggest-pairs — \"you usually pair X with Y\"\n" +
+      "  Stored ONLY on this machine. Never uploaded. Disable anytime: cue telemetry disable",
+    );
+    const optIn = await p.confirm({
+      message: "Enable local analytics? (recommended)",
+      initialValue: true,
+    });
+    if (p.isCancel(optIn)) return false;
+    if (optIn) {
+      const result = enableTelemetry();
+      const wiped = result.wipedLegacyBytes > 0
+        ? ` (wiped ${result.wipedLegacyBytes}B of pre-consent legacy data)`
+        : "";
+      p.log.success(`Analytics enabled${wiped}. Log: ${analyticsPath()}`);
+    } else {
+      p.log.message("Skipped — opt in later with `cue telemetry enable`.");
+    }
+  }
+
+  return true;
+}
 
 async function offerDiscoverGems(profile: string): Promise<void> {
   const gems = getCachedGemsForProfile(profile, 8).slice(0, 3);
@@ -36,8 +172,25 @@ async function offerDiscoverGems(profile: string): Promise<void> {
 
 export async function run(args: string[]): Promise<number> {
   const cwd = process.cwd();
+  const reOnboard = args.includes("--re-onboard");
+  const skipOnboarding = args.includes("--no-onboarding");
 
   p.intro("🎯 cue init — set up profile for this project");
+
+  // Global onboarding (first run only, or explicit --re-onboard).
+  const marker = onboardedMarkerPath();
+  if (!skipOnboarding && (!existsSync(marker) || reOnboard)) {
+    const ok = await runGlobalOnboarding();
+    if (!ok) {
+      p.cancel("Onboarding cancelled. Run `cue init` again anytime.");
+      return 130;
+    }
+    try {
+      mkdirSync(configDir(), { recursive: true });
+      writeFileSync(marker, new Date().toISOString() + "\n");
+    } catch { /* non-fatal — worst case we re-prompt next time */ }
+    p.log.message(""); // visual break before per-cwd section
+  }
 
   // Scan
   const project = scanProject(cwd);
@@ -95,7 +248,7 @@ export async function run(args: string[]): Promise<number> {
     const name = await p.text({
       message: "Profile name",
       placeholder: "my-project",
-      validate: v => !/^[a-z][a-z0-9-]{1,63}$/.test(v) ? "Must be kebab-case" : undefined,
+      validate: v => !/^[a-z][a-z0-9-]{1,63}$/.test(v ?? "") ? "Must be kebab-case" : undefined,
     });
     if (p.isCancel(name)) { p.cancel("Cancelled."); return 130; }
 

@@ -19,7 +19,7 @@ import { homedir } from "node:os";
 import { listAllSkillIds } from "../lib/resolver-local";
 import { loadProfile, listProfiles } from "../lib/profile-loader";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 const GLOBAL_SKILLS_ROOT = join(homedir(), ".claude", "skills");
 

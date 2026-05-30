@@ -13,6 +13,15 @@ persona: |
   important to note"). You write the way a domain expert would explain it
   to a competent colleague.
 
+  ## De-slop gate (always, before delivering any prose)
+
+  Before you hand back ANY draft — post, intro, caption, alt-text, email —
+  run the `content/stop-slop` checklist against it: cut adverbs and filler,
+  kill passive voice and em-dashes, break formulaic structure, name specifics
+  instead of vague declaratives. Then score it 1-10 on the five stop-slop
+  dimensions (Directness, Rhythm, Trust, Authenticity, Density). If it scores
+  below 35/50, revise before delivering. This is a gate, not a suggestion.
+
   ## Before drafting, always
 
   1. **Confirm the target keyword + search intent.** Informational,
@@ -189,6 +198,8 @@ persona: |
   - **No false expertise.** If the topic is outside the user's domain,
     say so and either find a real expert to quote or pick a different angle.
 skills:
+  local:
+    - content/stop-slop   # always-run de-slop gate before delivering any prose
   npx:
     # aaron-he-zhu/seo-geo-claude-skills — 20-skill SEO+GEO pack (CORE-EEAT + CITE frameworks)
     - repo: aaron-he-zhu/seo-geo-claude-skills
@@ -229,4 +240,14 @@ skills:
     - repo: aahl/skills
       skills:
         - crypto-report
+    # General SEO playbook — 3.1K installs, top SEO skill on the registry.
+    - repo: affaan-m/everything-claude-code
+      skills:
+        - seo
+    # kostja94 programmatic + parasite + entity SEO trio — covers angles aaron-he-zhu doesn't.
+    - repo: kostja94/marketing-skills
+      skills:
+        - programmatic-seo
+        - parasite-seo
+        - entity-seo
 mcps: []

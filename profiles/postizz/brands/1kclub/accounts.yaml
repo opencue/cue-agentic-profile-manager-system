@@ -1,0 +1,30 @@
+# 1KCLUB — Postiz account map
+#
+# Personal growth / engagement lane. Posts to the same @NagyVikt handle
+# as Volaria, but tagged as a separate brand for voice + visual
+# discipline. Cadence guardrails below also limit how often 1kclub
+# content can fire on the shared handle so it doesn't crowd Volaria.
+
+brand: 1kclub
+
+accounts:
+  x:
+    handle: "@NagyVikt"
+    integration_id: "cmpkbuwc70001rz98ksuq0ot6"
+    primary: true
+    note: "Shared handle with Volaria. Separate content lane only."
+
+defaults:
+  engagement-reach: [x]
+  bold-typo-card:   [x]
+
+# Tight guardrails — engagement-bait posts erode authority if overused.
+cadence:
+  max_posts_per_day:   1
+  min_minutes_between: 1440   # one per day cap
+  blackout_hours_utc:  [0, 1, 2, 3, 4]
+
+compliance:
+  - "Never run 1kclub content within 4h of a Volaria post on the same handle."
+  - "X cashtag limit still applies: max ONE $TICKER per tweet."
+  - "No follow-for-follow language in profile bio or pinned tweet."

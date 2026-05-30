@@ -27,10 +27,11 @@ import { listAllSkillIds } from "../lib/resolver-local";
 import { findIncompleteSkills, fetchCompanionFiles, detectSkillPath, readSourceFile } from "../lib/companion-fetch";
 import { detectMissingDependencies } from "../lib/skill-dependencies";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 const MCP_CONFIGS_DIR = join(REPO_ROOT, "resources", "mcps", "configs");
+const QUALITY_GATES_DIR = join(REPO_ROOT, "resources", "quality-gates");
 const RUNTIME_ROOT = join(process.env.HOME ?? "~", ".config", "cue", "runtime");
 
 interface Issue {
@@ -177,6 +178,25 @@ async function checkProfile(profileName: string, allSkillIds: Set<string>, allMc
     });
   }
 
+  // D8: Quality gates declared but the underlying script doesn't exist on
+  // disk. The materializer silently skips missing gates, so without this
+  // check a typo in qualityGates would just make the gate disappear at
+  // Stop time — visibly broken contract, no error.
+  const declaredGates = (profile as { qualityGates?: string[] }).qualityGates ?? [];
+  for (const ref of declaredGates) {
+    const fname = ref.endsWith(".sh") ? ref : `${ref}.sh`;
+    const gatePath = join(QUALITY_GATES_DIR, fname);
+    if (!existsSync(gatePath)) {
+      issues.push({
+        code: "D8",
+        severity: "warning",
+        profile: profileName,
+        message: `Quality gate "${ref}" declared but resources/quality-gates/${fname} doesn't exist`,
+        fix: `Add the script or remove "${ref}" from profile.yaml qualityGates`,
+      });
+    }
+  }
+
   return issues;
 }
 
@@ -288,6 +308,7 @@ Checks:
   D5  Stale runtime hash
   D6  Broken symlink in runtime
   D7  Incomplete skill (companions declared but missing)
+  D8  Quality gate declared but the .sh under resources/quality-gates/ is missing
 
 Flags:
   --fix             Auto-repair issues

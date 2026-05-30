@@ -8,9 +8,9 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadProfile } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 export async function run(args: string[]): Promise<number> {
   const sub = args[0];
@@ -23,10 +23,8 @@ async function cmdSnapshot(args: string[]): Promise<number> {
   const outputIdx = args.indexOf("--output");
   const outputPath = outputIdx >= 0 ? args[outputIdx + 1] : null;
 
-  let profileName: string;
-  try {
-    profileName = await resolveProfileForCwd(process.cwd());
-  } catch {
+  const profileName = await resolveActiveProfile();
+  if (!profileName) {
     process.stderr.write("No active profile. Pin one with `echo <name> > .cue-profile`\n");
     return 1;
   }

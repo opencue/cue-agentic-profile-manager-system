@@ -1,0 +1,551 @@
+{
+  "/status": {
+    "ok": true,
+    "data": {
+      "profile": {
+        "name": "medusa-vite+backend",
+        "description": "Medusa v2 + Vite + TanStack storefront, with backend conventions",
+        "skills": 47,
+        "mcps": 3,
+        "plugins": 1
+      },
+      "parts": [
+        {
+          "name": "medusa-vite",
+          "description": "Medusa v2 + Vite + TanStack storefront",
+          "skills": 31,
+          "mcps": 2,
+          "plugins": 1
+        },
+        {
+          "name": "backend",
+          "description": "Server-side conventions, APIs, deploys",
+          "skills": 22,
+          "mcps": 1,
+          "plugins": 0
+        }
+      ],
+      "source": "pin-file",
+      "warnings": [],
+      "gates": {
+        "ts": "2026-05-30T10:14:04.213Z",
+        "overall": "pass",
+        "failed": []
+      },
+      "totalProfiles": 53,
+      "totalSessions": 128,
+      "telemetryEnabled": true
+    }
+  },
+  "/profiles": {
+    "ok": true,
+    "data": [
+      {
+        "name": "medusa-vite+backend",
+        "claudeMdBytes": 6812
+      },
+      {
+        "name": "designer+medusa-vite",
+        "claudeMdBytes": 9104
+      },
+      {
+        "name": "postizz+blog-writer+trendradar",
+        "claudeMdBytes": 18634
+      },
+      {
+        "name": "google-ads+marketing+blog-writer",
+        "claudeMdBytes": 20503
+      },
+      {
+        "name": "skill-writer+core+ecc",
+        "claudeMdBytes": 13160
+      },
+      {
+        "name": "coolify+backend+hostinger",
+        "claudeMdBytes": 11492
+      },
+      {
+        "name": "rust+rust-core",
+        "claudeMdBytes": 7812
+      },
+      {
+        "name": "nextjs",
+        "claudeMdBytes": 5322
+      },
+      {
+        "name": "frontend",
+        "claudeMdBytes": 4905
+      },
+      {
+        "name": "core",
+        "claudeMdBytes": 3201
+      }
+    ]
+  },
+  "/skill-report": {
+    "ok": true,
+    "data": {
+      "profile": "medusa-vite+backend",
+      "windowDays": 30,
+      "rows": [
+        {
+          "id": "design/screenshot",
+          "hits": 47,
+          "lastUsed": "2026-05-30T11:14:04.213Z",
+          "zombie": false
+        },
+        {
+          "id": "design/design-taste-frontend",
+          "hits": 31,
+          "lastUsed": "2026-05-30T09:14:04.213Z",
+          "zombie": false
+        },
+        {
+          "id": "browser/playwright",
+          "hits": 22,
+          "lastUsed": "2026-05-29T12:14:04.213Z",
+          "zombie": false
+        },
+        {
+          "id": "medusa/db-migrate",
+          "hits": 15,
+          "lastUsed": "2026-05-28T12:14:04.213Z",
+          "zombie": false
+        },
+        {
+          "id": "design/image-to-code",
+          "hits": 9,
+          "lastUsed": "2026-05-25T12:14:04.213Z",
+          "zombie": false
+        },
+        {
+          "id": "design/ui-ux-pro-max",
+          "hits": 0,
+          "lastUsed": null,
+          "zombie": true
+        },
+        {
+          "id": "design/minimalist-ui",
+          "hits": 0,
+          "lastUsed": null,
+          "zombie": true
+        },
+        {
+          "id": "medusa/woocommerce-to-medusa-import",
+          "hits": 0,
+          "lastUsed": null,
+          "zombie": true
+        },
+        {
+          "id": "medusa/new-admin-via-api",
+          "hits": 0,
+          "lastUsed": null,
+          "zombie": true
+        },
+        {
+          "id": "medusa/gh-submodule-publish",
+          "hits": 0,
+          "lastUsed": null,
+          "zombie": true
+        },
+        {
+          "id": "medusa/db-generate",
+          "hits": 0,
+          "lastUsed": null,
+          "zombie": true
+        },
+        {
+          "id": "medusa/new-user",
+          "hits": 0,
+          "lastUsed": null,
+          "zombie": true
+        }
+      ]
+    }
+  },
+  "/pairs": {
+    "ok": true,
+    "data": [
+      {
+        "profile": "designer",
+        "partners": [
+          {
+            "name": "medusa-vite",
+            "count": 12,
+            "affinity": 0.86
+          },
+          {
+            "name": "backend",
+            "count": 9,
+            "affinity": 0.64
+          }
+        ]
+      },
+      {
+        "profile": "medusa-vite",
+        "partners": [
+          {
+            "name": "backend",
+            "count": 11,
+            "affinity": 0.79
+          },
+          {
+            "name": "designer",
+            "count": 8,
+            "affinity": 0.57
+          }
+        ]
+      },
+      {
+        "profile": "blog-writer",
+        "partners": [
+          {
+            "name": "postizz",
+            "count": 7,
+            "affinity": 0.7
+          }
+        ]
+      },
+      {
+        "profile": "rust",
+        "partners": [
+          {
+            "name": "rust-core",
+            "count": 6,
+            "affinity": 1
+          }
+        ]
+      }
+    ]
+  },
+  "/gates?all=1": {
+    "ok": true,
+    "data": [
+      {
+        "ts": "2026-05-30T10:14:04.213Z",
+        "profile": "medusa-vite+backend",
+        "overall": "pass",
+        "results": [
+          {
+            "name": "tests-pass.sh",
+            "ok": true,
+            "exit": 0,
+            "stderr": ""
+          },
+          {
+            "name": "typecheck-pass.sh",
+            "ok": true,
+            "exit": 0,
+            "stderr": ""
+          },
+          {
+            "name": "git-clean.sh",
+            "ok": true,
+            "exit": 0,
+            "stderr": ""
+          }
+        ]
+      },
+      {
+        "ts": "2026-05-30T06:14:04.213Z",
+        "profile": "skill-writer",
+        "overall": "fail",
+        "results": [
+          {
+            "name": "lint-skill-pass.sh",
+            "ok": false,
+            "exit": 2,
+            "stderr": "WARNING R009 — em dash found in prose."
+          },
+          {
+            "name": "skill-overlap-check.sh",
+            "ok": true,
+            "exit": 0,
+            "stderr": ""
+          }
+        ]
+      },
+      {
+        "ts": "2026-05-29T12:14:04.213Z",
+        "profile": "designer",
+        "overall": "pass",
+        "results": [
+          {
+            "name": "tests-pass.sh",
+            "ok": true,
+            "exit": 0,
+            "stderr": ""
+          }
+        ]
+      }
+    ]
+  },
+  "/trigger-gaps": {
+    "ok": true,
+    "data": {
+      "profile": "medusa-vite+backend",
+      "windowDays": 30,
+      "promptsScanned": 412,
+      "rows": [
+        {
+          "id": "design/awwwards-clone",
+          "name": "awwwards-clone",
+          "matchedPrompts": 18,
+          "recordedHits": 0,
+          "gap": 18,
+          "sampleTriggers": [
+            "clone this design",
+            "awwwards"
+          ]
+        },
+        {
+          "id": "medusa/db-migrate",
+          "name": "db-migrate",
+          "matchedPrompts": 14,
+          "recordedHits": 6,
+          "gap": 8,
+          "sampleTriggers": [
+            "run migration",
+            "db migrate"
+          ]
+        },
+        {
+          "id": "browser/playwright",
+          "name": "playwright",
+          "matchedPrompts": 31,
+          "recordedHits": 28,
+          "gap": 3,
+          "sampleTriggers": [
+            "take a screenshot",
+            "open in browser"
+          ]
+        }
+      ]
+    }
+  },
+  "/active-sessions": {
+    "ok": true,
+    "data": {
+      "supported": true,
+      "sessions": [
+        {
+          "pid": 38291,
+          "profile": "medusa-vite+backend",
+          "agent": "claude",
+          "cwd": "/home/jane/code/lifted-shop",
+          "startedAt": "2026-05-30T12:02:04.213Z"
+        },
+        {
+          "pid": 38540,
+          "profile": "medusa-vite+backend",
+          "agent": "claude",
+          "cwd": "/home/jane/code/brand-2-shop",
+          "startedAt": "2026-05-30T12:06:04.213Z"
+        },
+        {
+          "pid": 41552,
+          "profile": "designer",
+          "agent": "claude",
+          "cwd": "/home/jane/design/landing-v3",
+          "startedAt": "2026-05-30T12:10:04.213Z"
+        },
+        {
+          "pid": 43001,
+          "profile": "skill-writer",
+          "agent": "claude",
+          "cwd": "/home/jane/Documents/cue",
+          "startedAt": "2026-05-30T12:13:34.213Z"
+        }
+      ]
+    }
+  },
+  "/telemetry/timeline": {
+    "ok": true,
+    "data": {
+      "windowDays": 30,
+      "profiles": [
+        {
+          "profile": "medusa-vite+backend",
+          "sessions": 47,
+          "lastUsed": "2026-05-30T11:14:04.213Z"
+        },
+        {
+          "profile": "skill-writer",
+          "sessions": 31,
+          "lastUsed": "2026-05-30T08:14:04.213Z"
+        },
+        {
+          "profile": "designer",
+          "sessions": 18,
+          "lastUsed": "2026-05-29T12:14:04.213Z"
+        }
+      ]
+    }
+  },
+  "/profiles/full": {
+    "ok": true,
+    "data": [
+      {
+        "name": "medusa-dev",
+        "icon": "🦊",
+        "description": "Medusa v2 backend, storefront, admin, migration",
+        "skills": 15,
+        "npx": 2,
+        "mcps": 2,
+        "plugins": 1,
+        "bundles": [],
+        "conflicts": [],
+        "inheritsCore": true,
+        "error": null
+      },
+      {
+        "name": "medusa-vite",
+        "icon": "⚡",
+        "description": "Medusa v2 + Vite + TanStack storefront",
+        "skills": 22,
+        "npx": 1,
+        "mcps": 2,
+        "plugins": 1,
+        "bundles": [],
+        "conflicts": [
+          "medusa-next"
+        ],
+        "inheritsCore": true,
+        "error": null
+      },
+      {
+        "name": "medusa-next",
+        "icon": "▲",
+        "description": "Medusa v2 + Next.js storefront",
+        "skills": 21,
+        "npx": 1,
+        "mcps": 2,
+        "plugins": 1,
+        "bundles": [],
+        "conflicts": [
+          "medusa-vite"
+        ],
+        "inheritsCore": true,
+        "error": null
+      },
+      {
+        "name": "designer",
+        "icon": "🎨",
+        "description": "Premium UI/UX design, brand kits, image-to-code",
+        "skills": 18,
+        "npx": 2,
+        "mcps": 1,
+        "plugins": 2,
+        "bundles": [],
+        "conflicts": [],
+        "inheritsCore": true,
+        "error": null
+      },
+      {
+        "name": "backend",
+        "icon": "🐻",
+        "description": "APIs, webhooks, security review, CI, deploy",
+        "skills": 14,
+        "npx": 0,
+        "mcps": 1,
+        "plugins": 0,
+        "bundles": [],
+        "conflicts": [],
+        "inheritsCore": true,
+        "error": null
+      },
+      {
+        "name": "stripe",
+        "icon": "💳",
+        "description": "Stripe payments, Checkout, webhooks",
+        "skills": 4,
+        "npx": 1,
+        "mcps": 0,
+        "plugins": 0,
+        "bundles": [],
+        "conflicts": [],
+        "inheritsCore": true,
+        "error": null
+      },
+      {
+        "name": "marketing",
+        "icon": "📣",
+        "description": "Copywriting, SEO, CRO, growth, channels",
+        "skills": 12,
+        "npx": 0,
+        "mcps": 0,
+        "plugins": 0,
+        "bundles": [],
+        "conflicts": [],
+        "inheritsCore": true,
+        "error": null
+      },
+      {
+        "name": "core",
+        "icon": "🐣",
+        "description": "Always-on baseline",
+        "skills": 22,
+        "npx": 0,
+        "mcps": 1,
+        "plugins": 1,
+        "bundles": [],
+        "conflicts": [],
+        "inheritsCore": true,
+        "error": null
+      }
+    ]
+  },
+  "POST /merge/preview": {
+    "ok": true,
+    "data": {
+      "preview": {
+        "names": [
+          "medusa-dev",
+          "designer"
+        ],
+        "name": "commerce",
+        "icon": "🦊",
+        "description": "Merged loadout — medusa-dev + designer (33 skills, 5 MCPs)",
+        "skills": [
+          "medusa/medusa-reference",
+          "medusa/db-migrate",
+          "design/brandkit",
+          "design/redesign-skill",
+          "design/minimalist-skill"
+        ],
+        "dropped": [],
+        "mcps": [
+          "medusadocs",
+          "gbrain",
+          "Higgsfield"
+        ],
+        "plugins": [
+          "frontend-design@claude-plugins-official"
+        ],
+        "profileConflicts": [],
+        "skillConflicts": [],
+        "usage": [
+          {
+            "id": "design/brandkit",
+            "references": 31,
+            "lastSeen": "2026-05-30T11:14:04.213Z"
+          },
+          {
+            "id": "medusa/db-migrate",
+            "references": 6,
+            "lastSeen": "2026-05-29T12:14:04.213Z"
+          }
+        ],
+        "estTokens": 40000,
+        "appliedOptimizations": [
+          "dedupe",
+          "router"
+        ]
+      },
+      "yaml": {
+        "static": "name: commerce\nicon: \"🦊\"\ndescription: \"Merged loadout — medusa-dev + designer\"\ninherits: core\nbundles:\n  - medusa-dev\n  - designer\nskills:\n  local:\n    - medusa/medusa-reference\n    - design/brandkit\n",
+        "alias": "name: commerce\nicon: \"🦊\"\ndescription: \"Merged loadout — medusa-dev + designer\"\ninherits:\n  - medusa-dev\n  - designer\nbundles:\n  - medusa-dev\n  - designer\n"
+      }
+    }
+  }
+}

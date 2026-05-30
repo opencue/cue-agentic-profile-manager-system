@@ -89,6 +89,7 @@ skills:
     - meta/just                 # justfile task runner
     - meta/prompt-master        # /prompt-master — refine prompts for any AI tool
     - meta/liedetector          # confidence-calibration tags (🟢🟡🟠🔴) on every claim
+    - meta/integrity-tags       # explains the 7-tag confidence system the liedetector applies
     - meta/kiro-powers          # Kiro CLI integration
     - meta/smart-loader         # soft-loads non-profile skills from disk when topic matches (coolify, resend, etc.)
     - meta/roi-estimator        # auto-attaches ROI column (dimension, %, confidence tier) to any improvement list
@@ -106,16 +107,40 @@ skills:
     - gstack/context-restore    # /context-restore — resume from saved context
     # ── Security ──
     - security/cso              # /cso — OWASP Top 10 + STRIDE
+    # ── Browser / scraping ──
+    - browser/lightpanda        # Lightpanda — fast headless browser for scraping, DOM dump, CDP. Falls back to playwright for pixel screenshots.
+    # ── Source-fetching ──
+    - tools/opensrc             # opensrc — fetch dependency source (npm/PyPI/crates/GitHub) so agents read implementations, not just types
+    - tools/learn-from-repo     # learn-from-repo — fetch an external repo via opensrc and mine it for patterns to adopt into cue
+    - tools/prior-art           # prior-art — search open-source prior art before building so we don't reinvent what exists
+    - meta/mcp-finder           # mcp-finder — discover/wire MCP servers (local registry, awesome-mcp-servers, Smithery, GitHub); match to profile skills
     # Removed for size: meta/builtin-manager, meta/profile-fit-monitor,
     # nvidia/skill-evolution, meta/acpx, meta/kiro-powers, meta/plugin-creator,
     # meta/profile-optimizer, meta/profile-suggest, meta/save-profile,
     # meta/skill-discovery, meta/skill-suggestion, meta/skill-reviewer,
     # meta/description-optimizer, meta/smithery-usage, meta/soul,
     # meta/upgrade-stack, meta/retro, marketing/cue-rec
+  npx:
+    # ── Office document toolkit (anthropics/skills) ──
+    # Promoted to core 2026-05-29: every profile inherits PDF / Word / PowerPoint
+    # output. Marketing exports, career resumes, research deliverables, docs-writer
+    # decks all gain doc-format capability without per-profile wiring.
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    # GitHub Actions docs — highest-installed skill on the registry (177.4K).
+    # Universal value: any profile that ever touches CI workflows benefits.
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
 mcps:
   - cue-tty-watch    # Claude's eyes inside X displays / tmux panes (screenshot, capture-pane, send-keys)
+  - lightpanda       # Fast headless browser MCP — fetch/render/scrape URLs without Chromium. Pairs with browser/lightpanda skill.
 plugins:
   - claude-mem@thedotmack
+  # Disabled 2026-05-30: OMC's PreToolUse auto-mode classifier was intermittently
+  # halting ~70-90% of Bash/Read tool calls (batch stopped, no reason). Also
+  # contradicts minimal-safe-mode ("do not start OMC unless explicitly asked").
+  # Re-enable by uncommenting + `cue` relaunch.
+  # - oh-my-claudecode@omc      # OMC multi-agent orchestration — inherited by every profile
 # Universal commands: useful in every profile, not domain-specific.
 # Bodies are lazy-loaded (only when the user types /name), so per-message cost
 # is just the entry in CLAUDE.md's "Available Commands" list (~25 tokens).
@@ -148,7 +173,7 @@ hooks:
   # Every profile inherits core, so every cue user gets this for free.
   - bash-quality-preflight.json
   # Universal analytics: append one line per session-end to ~/.config/cue/session-log.jsonl
-  # so `cue eval` sees real usage data for every profile, not just ecc.
+  # so `cue eval` sees real usage data for every profile, not just gstack.
   - session-summary.json
   # Refuse writes to .env, id_rsa, credentials.json, .pem/.key, ~/.ssh, ~/.aws, etc.
   - secrets-guard.json
@@ -184,6 +209,13 @@ hooks:
   # block so Claude can offer them instead of needing to "notice" the gap.
   # Pairs with meta/smart-loader — this is the proactive trigger.
   - smart-loader-suggest.json
+  # UserPromptSubmit hook: on a prompt expressing build intent ("let's build",
+  # "implement X", "add a feature"), inject a "💡 Prior-art check" block
+  # reminding Claude to search open-source prior art (GitHub + registries)
+  # before writing net-new code. Pairs with tools/prior-art — the proactive
+  # "don't reinvent the wheel" trigger. Non-blocking, throttled 5min/session,
+  # suppress a turn with [skip-prior-art].
+  - prior-art-nudge.json
   # Stricter destructive-command guard, opt-in via /careful. No-op until
   # ~/.config/cue/careful-mode exists.
   - careful-mode.json

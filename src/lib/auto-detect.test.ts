@@ -71,6 +71,45 @@ describe("detectProfileV2", () => {
     expect(results).toEqual([]);
   });
 
+  test("medusa-config.ts → medusa-dev 0.9", () => {
+    writeFileSync(join(tmp, "medusa-config.ts"), "export default {}");
+    const results = detectProfileV2(tmp);
+    const medusa = results.find(r => r.profile === "medusa-dev");
+    expect(medusa).toBeDefined();
+    expect(medusa!.confidence).toBe(0.9);
+  });
+
+  test("@medusajs/* dep + vite → medusa-vite storefront", () => {
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({
+      dependencies: { "@medusajs/js-sdk": "2.0.0", vite: "5.0.0" },
+    }));
+    const results = detectProfileV2(tmp);
+    const vite = results.find(r => r.profile === "medusa-vite");
+    expect(vite).toBeDefined();
+  });
+
+  test("corroborating signals boost confidence above the lone-signal base", () => {
+    // next.config.* alone is 0.85; package.json `next` alone is 0.9. Together
+    // they corroborate and should clear the lone-signal 0.9.
+    writeFileSync(join(tmp, "next.config.ts"), "export default {}");
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({ dependencies: { next: "14" } }));
+    const results = detectProfileV2(tmp);
+    const nextjs = results.find(r => r.profile === "nextjs");
+    expect(nextjs).toBeDefined();
+    expect(nextjs!.confidence).toBeGreaterThan(0.9);
+    expect(nextjs!.confidence).toBeLessThanOrEqual(0.97);
+  });
+
+  test("confidence never exceeds the 0.97 cap", () => {
+    writeFileSync(join(tmp, "go.mod"), "module x");
+    writeFileSync(join(tmp, "go.sum"), "");
+    writeFileSync(join(tmp, "main.go"), "package main");
+    mkdirSync(join(tmp, "cmd"));
+    mkdirSync(join(tmp, "internal"));
+    const results = detectProfileV2(tmp);
+    for (const r of results) expect(r.confidence).toBeLessThanOrEqual(0.97);
+  });
+
   test("results sorted by confidence descending, max 5", () => {
     writeFileSync(join(tmp, "Cargo.toml"), "");
     mkdirSync(join(tmp, "src"));

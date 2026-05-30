@@ -52,6 +52,7 @@ interface Frontmatter {
   description?: unknown;
   capability?: unknown;
   when_to_invoke?: unknown;
+  triggers?: unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -298,6 +299,31 @@ export interface RouterRenderOptions {
   maxTriggersPerSkill?: number;
   /** Hand-tuned override entries from `persona_routing:` in profile.yaml. */
   overrides?: RouterOverride[];
+  /**
+   * Skill ids (or trailing slugs) that registered zero hits in the telemetry
+   * window. They're pulled out of the capability + trigger tables and
+   * surfaced as a single compact "Rarely-used skills" tail section — same
+   * skill stays loadable via the Skill tool, just not advertised in full.
+   * Cuts ~40% off the router block for profiles with lots of dead weight.
+   *
+   * Empty / undefined → behave exactly like before (no filtering).
+   */
+  zombies?: Iterable<string>;
+  /**
+   * When true, zombie skills are omitted entirely from the rendered router
+   * (no row in the capability/trigger tables AND no tail entry). Saves
+   * maximum tokens but means Claude won't even SEE the skill name; it
+   * remains loadable on disk if a tool call explicitly references it.
+   */
+  lean?: boolean;
+  /**
+   * When true, skip the "Trigger phrases" table entirely. The same phrases
+   * already live in each SKILL.md's frontmatter `description:`, which Claude
+   * reads when deciding to invoke a skill — so the table is a duplication.
+   * On heavy profiles it adds ~6KB to the materialized CLAUDE.md and can
+   * push the file past Claude Code's 40KB perf-warning threshold.
+   */
+  omitTriggerPhrases?: boolean;
 }
 
 /**
@@ -325,11 +351,27 @@ export function renderRouter(
   const maxTriggers = options.maxTriggersPerSkill ?? 6;
   const overrides = options.overrides ?? [];
 
+  // Build a zombie lookup that matches either the full id (`category/slug`)
+  // or the bare slug — telemetry events can land tagged either way depending
+  // on emitter, and the parsed `skill.name` is the slug while `skill.id` is
+  // the full path. Matching both removes a brittle equality footgun.
+  const zombieKeys = new Set<string>();
+  for (const z of options.zombies ?? []) {
+    zombieKeys.add(z);
+    const slug = z.split("/").pop();
+    if (slug) zombieKeys.add(slug);
+  }
+  const isZombie = (s: ParsedSkill): boolean =>
+    zombieKeys.size > 0 && (zombieKeys.has(s.id) || zombieKeys.has(s.name));
+
+  const activeSkills = skills.filter((s) => !isZombie(s));
+  const zombieSkills = skills.filter((s) => isZombie(s));
+
   // Capability rows: any skill with a capability blurb OR explicit
   // when_to_invoke entries. We surface up to 3 task-shapes per skill;
   // skills with only a capability blurb render a single "any X work" row.
   const capabilityRows: { task: string; skill: string; manual?: boolean; note?: string }[] = [];
-  for (const s of skills) {
+  for (const s of activeSkills) {
     if (s.whenToInvoke.length > 0) {
       for (const task of s.whenToInvoke.slice(0, 3)) {
         capabilityRows.push({ task, skill: s.name });
@@ -342,7 +384,7 @@ export function renderRouter(
 
   // Trigger rows: every quoted phrase, capped per skill.
   const triggerRows: { phrase: string; skill: string; manual?: boolean; note?: string }[] = [];
-  for (const s of skills) {
+  for (const s of activeSkills) {
     for (const phrase of s.triggers.slice(0, maxTriggers)) {
       triggerRows.push({ phrase: `"${phrase}"`, skill: s.name });
     }
@@ -369,10 +411,23 @@ export function renderRouter(
     }
   }
 
-  // Tail: skills that yielded nothing or are missing on disk.
-  const otherSkills = skills.filter((s) => s.quality === "none");
+  // Tail: skills that yielded nothing or are missing on disk. Zombies that
+  // already match the "no metadata" criterion are deduped here so they don't
+  // appear in both the "Other skills" tail AND the "Rarely-used" tail.
+  const otherSkills = activeSkills.filter((s) => s.quality === "none");
 
-  if (capabilityRows.length === 0 && triggerRows.length === 0 && otherSkills.length === 0) {
+  // Lean mode entirely omits zombies; non-lean emits a compact rarely-used
+  // tail with just names. Either way the bodies remain on disk under
+  // <runtime>/skills/<id>/SKILL.md — Claude can still load them via the
+  // Skill tool if a tool call or trigger phrase pulls them in directly.
+  const showRarelyUsed = !options.lean && zombieSkills.length > 0;
+
+  if (
+    capabilityRows.length === 0 &&
+    triggerRows.length === 0 &&
+    otherSkills.length === 0 &&
+    !showRarelyUsed
+  ) {
     return "";
   }
 
@@ -395,7 +450,7 @@ export function renderRouter(
       "worse output.\n\n";
   }
 
-  if (triggerRows.length > 0) {
+  if (triggerRows.length > 0 && !options.omitTriggerPhrases) {
     out += `${heading} Trigger phrases (when user says these, jump straight to the skill)\n\n`;
     out += "| Phrase | Skill |\n";
     out += "|---|---|\n";
@@ -421,6 +476,32 @@ export function renderRouter(
           ? " — (no local SKILL.md)"
           : "";
       out += `- \`${s.id}\`${desc}\n`;
+    }
+    out += "\n";
+  }
+
+  if (showRarelyUsed) {
+    out += `${heading} Rarely-used skills (${zombieSkills.length})\n\n`;
+    out +=
+      "These haven't fired in the recent telemetry window. Loadable on demand " +
+      "via the Skill tool; not advertised in the tables above to save tokens. " +
+      "Run `cue prune --dead` to drop them entirely.\n\n";
+    // Group by category so the list stays scannable when there are many.
+    const groups = new Map<string, string[]>();
+    for (const s of zombieSkills) {
+      const cat = s.id.includes("/") ? s.id.split("/")[0]! : "_";
+      const slug = s.id.includes("/") ? s.id.split("/").slice(1).join("/") : s.id;
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(slug);
+    }
+    const sortedCats = [...groups.keys()].sort();
+    for (const cat of sortedCats) {
+      const skills = groups.get(cat)!.sort();
+      if (cat === "_") {
+        out += `- ${skills.map((s) => `\`${s}\``).join(", ")}\n`;
+      } else {
+        out += `- **${cat}/** ${skills.map((s) => `\`${s}\``).join(", ")}\n`;
+      }
     }
     out += "\n";
   }

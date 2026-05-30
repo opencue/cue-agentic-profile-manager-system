@@ -4,7 +4,7 @@
 
 import { resolve } from "node:path";
 import { loadProfile } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 import { detectKittyTerminal, transmitKittyImage, kittyPlaceholderLabel } from "../lib/kitty-image";
 
 export async function run(args: string[]): Promise<number> {
@@ -12,7 +12,8 @@ export async function run(args: string[]): Promise<number> {
   let profileName = args.find(a => !a.startsWith("-"));
 
   if (!profileName) {
-    try { profileName = await resolveProfileForCwd(process.cwd()); } catch {
+    profileName = (await resolveActiveProfile()) ?? undefined;
+    if (!profileName) {
       process.stderr.write("No active profile. Specify one: cue tree <profile>\n");
       return 1;
     }

@@ -64,4 +64,10 @@ skills:
         - compliance-checker
         - self-improver
         - category-designer
+    # Highest-installed marketing skill on the registry (52.5K) — referral programs are the core affiliate revenue lever.
+    - repo: coreyhaines31/marketingskills
+      skills: [referral-program]
+    # Direct affiliate marketing playbook (881 installs).
+    - repo: kostja94/marketing-skills
+      skills: [affiliate-marketing, affiliate-page-generator]
 mcps: []

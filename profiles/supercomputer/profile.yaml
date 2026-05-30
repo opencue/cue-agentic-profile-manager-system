@@ -1,6 +1,6 @@
 name: supercomputer
 icon: "🧠"
-description: "All-in-one video production powerhouse — cinematic AI, UGC, product photoshoots, motion design, TV ads, podcasts, Amazon listings, and video adaptation. Bundles Higgsfield Cinema Studio, Seedance, Kling, Argil flows, and every creative skill."
+description: "All-in-one AI video production — cinematic, UGC, product photoshoots, motion design, TV ads, podcasts, Amazon listings via Higgsfield + Seedance + Kling"
 inherits: core
 
 persona: |
@@ -54,5 +54,7 @@ skills:
 mcps:
   - Higgsfield
   - marva-blog
+  - secret-mcp
+  - trendradar
 plugins:
   - claude-video-vision@jordanrendric

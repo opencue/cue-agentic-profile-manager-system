@@ -1,0 +1,10 @@
+name: backend-base
+icon: "🔧"
+description: Shared baseline for backend API profiles — review tooling and ship/review gstack helpers common to python, go-api, etc.
+inherits: core
+skills:
+  local:
+    - review/api-tester
+    - gstack/ship
+    - gstack/review
+mcps: []

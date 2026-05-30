@@ -48,7 +48,7 @@ export function hasKittyAncestor(): boolean {
     try {
       // /proc/<pid>/stat: pid (comm) state ppid …
       // comm can contain spaces and parens, so split on the last `)`
-      const stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+      const stat: string = readFileSync(`/proc/${pid}/stat`, "utf8");
       const lastParen = stat.lastIndexOf(")");
       const after = stat.slice(lastParen + 1).trim().split(/\s+/);
       ppid = Number(after[1]);

@@ -18,6 +18,7 @@
  */
 
 import { mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -53,6 +54,7 @@ const DEFAULT_CONFIGS_ROOT = join(REPO_ROOT, "resources", "mcps", "configs");
 const DEFAULT_RULES_ROOT = join(REPO_ROOT, "resources", "rules");
 const DEFAULT_COMMANDS_ROOT = join(REPO_ROOT, "resources", "commands");
 const DEFAULT_HOOKS_ROOT = join(REPO_ROOT, "resources", "hooks");
+const DEFAULT_SUBAGENTS_ROOT = join(REPO_ROOT, "resources", "subagents");
 
 export type LintRuleId =
   | "W1" | "W2" | "W3" | "W4" | "W5" | "W6" | "W7" | "W8"
@@ -313,6 +315,7 @@ async function checkResourceRefs(
     { label: "rules",    refs: profile.rules,    root: DEFAULT_RULES_ROOT,    addExt: true },
     { label: "commands", refs: profile.commands, root: DEFAULT_COMMANDS_ROOT, addExt: true },
     { label: "hooks",    refs: profile.hooks,    root: DEFAULT_HOOKS_ROOT,    addExt: false },
+    { label: "subagents", refs: profile.subagents ?? [], root: DEFAULT_SUBAGENTS_ROOT, addExt: true },
   ];
 
   for (const { label, refs, root, addExt } of buckets) {
@@ -393,7 +396,7 @@ async function checkNameCollisions(
 }
 
 async function readRawProfileNames(root: string): Promise<RawProfileRecord[]> {
-  let entries: Awaited<ReturnType<typeof readdir>>;
+  let entries: Dirent[];
   try {
     entries = await readdir(root, { withFileTypes: true });
   } catch {

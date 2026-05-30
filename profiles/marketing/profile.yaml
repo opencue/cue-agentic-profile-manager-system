@@ -19,6 +19,51 @@ skills:
     - higgsfield/higgsfield-product-photoshoot
     - higgsfield/higgsfield-marketplace-cards
     - marketing/cue-rec
+    # Ryze AI marketing skills (vendored from irinabuht12-oss/marketing-skills)
+    - marketing/ab-test-analyzer
+    - marketing/ab-test-setup-and-analysis
+    - marketing/account-structure-review
+    - marketing/ad-copy-variant-generator
+    - marketing/ad-extension-audit
+    - marketing/ad-spend-allocator
+    - marketing/anomaly-detection
+    - marketing/attribution-model-comparison
+    - marketing/audience-overlap-analysis
+    - marketing/bid-strategy-recommendations
+    - marketing/budget-scenario-planner
+    - marketing/campaign-naming-convention-builder
+    - marketing/channel-mix-optimizer
+    - marketing/client-report-narratives
+    - marketing/competitor-creative-analysis
+    - marketing/competitor-teardown
+    - marketing/content-repurposer
+    - marketing/conversion-path-analysis
+    - marketing/cpa-diagnostics
+    - marketing/creative-fatigue-detection
+    - marketing/day-hour-performance-breakdown
+    - marketing/device-performance-split
+    - marketing/e2e-seo-assistant
+    - marketing/email-sequence-writer
+    - marketing/frequency-cap-recommendations
+    - marketing/geo-performance-analysis
+    - marketing/google-ads-audit
+    - marketing/icp-research-assistant
+    - marketing/keyword-cannibalization-check
+    - marketing/landing-page-audit
+    - marketing/landing-page-audit-quick
+    - marketing/linkedin-ads-audit
+    - marketing/meta-ads-audit
+    - marketing/pacing-monitor
+    - marketing/performance-benchmarking
+    - marketing/programmatic-seo-builder
+    - marketing/quality-score-breakdown
+    - marketing/reddit-ads-audit
+    - marketing/retargeting-window-analysis
+    - marketing/roas-forecasting
+    - marketing/search-term-mining
+    - marketing/utm-tracking-generator
+    - marketing/wasted-spend-finder
+    - marketing/weekly-account-summary
     - content/article-writer
     - content/article-to-everywhere
     - content/trend-to-thread
@@ -27,6 +72,18 @@ skills:
   npx:
     - repo: AgriciDaniel/claude-ads
       skills: [claude-ads]
+    # Top-installed marketing skill on the registry (20.5K) — fills the video-marketing gap.
+    - repo: coreyhaines31/marketingskills
+      skills: [video]
+    # Instagram research — top-installed IG skill (765); complements postizz scheduling.
+    - repo: bradautomates/head-of-content
+      skills: [instagram-research]
+    # Programmatic SEO — pages-at-scale playbook for marketing site builds.
+    - repo: kostja94/marketing-skills
+      skills: [programmatic-seo]
+    # General SEO playbook (3.1K installs) — top SEO skill on the registry.
+    - repo: affaan-m/everything-claude-code
+      skills: [seo]
 mcps:
   - x-api
   - reddit

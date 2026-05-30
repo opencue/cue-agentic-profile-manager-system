@@ -22,7 +22,7 @@ import { loadProfile, listProfiles } from "../lib/profile-loader";
 import { resolveProfileForCwd } from "../lib/cwd-resolver";
 import type { ResolvedProfile } from "../../profiles/_types";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const EVALS_ROOT = join(REPO_ROOT, "resources", "evals");
 
 const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;

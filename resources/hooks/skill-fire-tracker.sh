@@ -52,13 +52,26 @@ fi
 ts="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
 agent="claude-code"
 
+# Capture the first user prompt of the session so description-optimizer can
+# correlate skill_hit events with the prompts that triggered them. Strategy:
+# find the first transcript line with `"type":"user"`, extract the first 200
+# chars of message content, then JSON-escape for safe embedding.
+first_prompt=""
+raw_prompt="$(grep -m1 '"type":"user"' "$transcript_path" 2>/dev/null \
+  | sed -E 's/.*"message"[[:space:]]*:[[:space:]]*\{[^}]*"content"[[:space:]]*:[[:space:]]*"([^"]{0,200}).*/\1/' \
+  || true)"
+if [[ -n "$raw_prompt" && "$raw_prompt" != *'"type":"user"'* ]]; then
+  # Already JSON-escaped in the transcript; pass through verbatim.
+  first_prompt="$raw_prompt"
+fi
+
 # Append one skill_hit event per detected skill. We include session_id (the
 # in-process recorder doesn't), which is what `cue profile evolve` uses to
-# group skills into co-firing sets.
+# group skills into co-firing sets, plus first_prompt for trigger-attribution.
 while IFS= read -r skill; do
   [[ -z "$skill" ]] && continue
-  printf '{"ts":"%s","event":"skill_hit","profile":"%s","agent":"%s","cwd":"%s","skill":"%s","session_id":"%s","source":"hook"}\n' \
-    "$ts" "$profile" "$agent" "$cwd" "$skill" "$session_id" >> "$log"
+  printf '{"ts":"%s","event":"skill_hit","profile":"%s","agent":"%s","cwd":"%s","skill":"%s","session_id":"%s","first_prompt":"%s","source":"hook"}\n' \
+    "$ts" "$profile" "$agent" "$cwd" "$skill" "$session_id" "$first_prompt" >> "$log"
 done <<< "$skills"
 
 exit 0

@@ -14,7 +14,7 @@ import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 
-import yaml from "js-yaml";
+import { parse as parseYaml } from "yaml";
 
 import {
   clusterByKeywords,
@@ -23,7 +23,7 @@ import {
   type ClusterItem,
 } from "../lib/cluster-skills";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = join(REPO_ROOT, "profiles");
 const DISCOVER_CACHE = join(
   process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
@@ -46,7 +46,7 @@ function readProfileSkills(): Record<string, string[]> {
     const yamlPath = join(PROFILES_DIR, entry, "profile.yaml");
     if (!existsSync(yamlPath) || !statSync(yamlPath).isFile()) continue;
     try {
-      const doc = yaml.load(readFileSync(yamlPath, "utf8")) as RawProfile;
+      const doc = parseYaml(readFileSync(yamlPath, "utf8")) as RawProfile;
       const skills = (doc?.skills?.local ?? []).map(s => typeof s === "string" ? s : s.id).filter(Boolean);
       out[entry] = skills;
     } catch {

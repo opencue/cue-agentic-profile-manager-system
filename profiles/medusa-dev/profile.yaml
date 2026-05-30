@@ -3,6 +3,26 @@ icon: "🦊"
 iconImage: "logo.png"
 description: Medusa v2 backend, storefront, admin, migration, and shop setup work
 inherits: core
+recommends:
+  - medusa-vite      # Vite + TanStack storefront
+  - medusa-next      # Next.js storefront
+  - designer         # combine with medusa-vite/-next for storefront design
+  - creative-media   # product photoshoots + visual assets
+persona: |
+  You're a senior Medusa v2 platform engineer. You know the module system,
+  the subscriber pattern, the workflow engine, and the JS SDK inside out.
+
+  - **Modules over hacks.** Every customization goes through a proper Medusa
+    module with service, repository, and migration. Never monkey-patch core.
+  - **Migrations are sacred.** `db:generate` then `db:migrate` — never edit
+    a migration after it's been applied. New migration for every schema change.
+  - **SDK-first for storefronts.** The JS SDK is the canonical way to talk to
+    Medusa from any frontend. Never raw-fetch `/store/*` endpoints.
+  - **Admin customizations use widgets + routes.** Don't fork the admin — extend
+    it through the official extension points.
+  - **Test with real data.** Use `medusa seed` or the shop-setup skill to get
+    products, regions, shipping options, and payment providers in place before
+    testing any flow.
 skills:
   local:
     - medusa/medusa-reference
@@ -20,5 +40,16 @@ skills:
     - medusa/gh-submodule-publish
     - medusa/medusa-local-dev
     - medusa/provision-medusa-s3-bucket
+  npx:
+    # Supabase patterns (532 installs) — pairs with the local myvps-managed self-hosted Supabase used as auth/storage backend.
+    - repo: mindrally/skills
+      skills: [supabase]
+    # Stripe official patterns (25.5K installs) — webshops sell, this is the canonical Stripe skill on the registry.
+    - repo: docs.stripe.com
+      skills: [stripe-projects]
+plugins:
+  - resend@claude-plugins-official
 mcps:
   - coolify
+  - envoult
+  - secret-mcp   # AWS S3 + Higgsfield job MCP from recodee/tools/secret-mcp — required by higgsfield-to-medusa-products and woocommerce-to-medusa-import skills

@@ -1,230 +1,522 @@
 /**
- * `cue share <profile>` — publish a profile to the cue marketplace.
- * `cue browse` — browse shared profiles from the community.
+ * `cue share` — install, list, and remove community profiles.
  *
- * Profiles are published as GitHub Gists (no backend needed).
- * The marketplace index is a JSON file in the cue repo's GitHub Pages.
+ * v1 subcommands (this turn):
+ *   cue share install <user>/<repo>[@ref][:subpath]
+ *   cue share list
+ *   cue share remove <user>/<repo>
+ *
+ * Stubbed for the next turn (advertised here so users know they're coming):
+ *   cue share push <name>     — opens PR against opencue/claude-code-skills-profiles
+ *   cue share search <query>  — needs the central registry to exist
+ *   cue share update          — re-pull installed profiles
+ *
+ * Installed profiles land under `~/.config/cue/shared/<user>/<repo>/`
+ * and are namespaced as `<user>-<repo>` (kebab-case so the existing
+ * profile-name schema pattern still validates). The profile loader was
+ * patched to fall back to this dir, so `cue use jane-medusa-shop`
+ * resolves shared profiles transparently.
+ *
+ * Trust posture: install prompts for confirmation in a TTY (`--yes` to
+ * skip). The profile.yaml is shown via path in the success output so the
+ * user can audit hooks/qualityGates before `cue use`.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { homedir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
-import { loadProfile } from "../lib/profile-loader";
+import * as p from "@clack/prompts";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+import {
+  fetchProfileYaml,
+  indexCachePath,
+  listInstalled,
+  parseShareRef,
+  readCachedIndex,
+  registryIndexUrl,
+  removeInstall,
+  searchIndex,
+  sharedProfileDir,
+  sharedProfileName,
+  sharedRoot,
+  writeIndexCache,
+  writeInstall,
+  type RegistryEntry,
+} from "../lib/shared-profiles";
+
+const REPO_ROOT = resolve(new URL(import.meta.url).pathname, "..", "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
-const MARKETPLACE_URL = "https://raw.githubusercontent.com/opencue/cue-marketplace/main/index.json";
-const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 
-export async function run(args: string[]): Promise<number> {
-  const sub = args[0];
-
-  if (args.includes("-h") || args.includes("--help") || !sub) {
-    process.stdout.write(`cue share — publish & browse community profiles
-
-Usage:
-  cue share <profile>        Publish a profile to the marketplace
-  cue share browse [query]   Browse shared profiles
-  cue share install <id>     Install a shared profile
-
-Examples:
-  cue share backend          # publish your backend profile
-  cue share browse           # see what others shared
-  cue share browse "medusa"  # search shared profiles
-  cue share install user/backend  # install someone's profile
-`);
-    return 0;
-  }
-
-  switch (sub) {
-    case "browse": return cmdBrowse(args.slice(1));
-    case "install": return cmdInstall(args[1] ?? "");
-    default: return cmdShare(sub);
-  }
+/** GitHub repo the push flow targets. Overridable for forks / dev mirrors. */
+function registryRepoSlug(): string {
+  return process.env.CUE_REGISTRY_REPO ?? "opencue/claude-code-skills-profiles";
 }
 
-async function cmdShare(profileName: string): Promise<number> {
-  // Check gh CLI
-  const ghCheck = spawnSync("gh", ["auth", "status"], { encoding: "utf8" });
-  if (ghCheck.status !== 0) {
-    process.stderr.write("Not authenticated with GitHub. Run `gh auth login` first.\n");
-    return 1;
-  }
+interface ParsedArgs {
+  sub: "install" | "list" | "remove" | "push" | "search" | "update" | "help";
+  positional: string[];
+  json: boolean;
+  yes: boolean;
+}
 
-  // Get username
-  const whoami = spawnSync("gh", ["api", "user", "--jq", ".login"], { encoding: "utf8" });
-  const username = whoami.stdout.trim();
-
-  // Load profile
-  let profile;
-  try { profile = await loadProfile(profileName); } catch {
-    process.stderr.write(`Profile "${profileName}" not found.\n`);
-    return 1;
-  }
-
-  // Build shareable YAML
-  const yaml = require("yaml");
-  const shareData = {
-    name: profile.name,
-    description: profile.description,
-    icon: profile.icon,
-    author: username,
-    shared_at: new Date().toISOString(),
-    skills: { local: profile.skills.local.map(s => s.id) },
-    mcps: profile.mcps.map(m => m.id),
-    plugins: profile.plugins.map(p => p.id),
-    stats: {
-      skill_count: profile.skills.local.length,
-      mcp_count: profile.mcps.length,
-    },
+export function parseArgs(argv: string[]): ParsedArgs {
+  const out: ParsedArgs = {
+    sub: "help",
+    positional: [],
+    json: false,
+    yes: false,
   };
+  if (argv.length === 0) return out;
+  const first = argv[0]!;
+  if (first === "--help" || first === "-h") return out;
+  switch (first) {
+    case "install":
+    case "list":
+    case "remove":
+    case "push":
+    case "search":
+    case "update":
+      out.sub = first;
+      break;
+    default:
+      return out;
+  }
+  for (let i = 1; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--json") out.json = true;
+    else if (a === "--yes" || a === "-y") out.yes = true;
+    else if (!a.startsWith("-")) out.positional.push(a);
+  }
+  return out;
+}
 
-  const content = yaml.stringify(shareData);
+function helpText(): string {
+  return [
+    "cue share — install, push, and discover community profiles",
+    "",
+    "Usage:",
+    "  cue share install <user>/<repo>[@ref][:subpath]",
+    "  cue share install https://github.com/<user>/<repo>",
+    "  cue share list    [--json]",
+    "  cue share remove  <user>/<repo>",
+    "  cue share push    <profile-name>     [-y]",
+    "  cue share search  [<query>]          [--json]",
+    "  cue share update  [<user>/<repo>]",
+    "",
+    "Examples:",
+    "  cue share install jane/medusa-shop",
+    "  cue share install jane/medusa-shop@v1.2",
+    "  cue share install jane/dotfiles:profiles/storefront",
+    "  cue share push my-shop",
+    "  cue share search medusa",
+    "  cue share update",
+    "",
+    "Installed shared profiles are namespaced as `<user>-<repo>` so they",
+    "can never silently shadow a builtin. Use them like any other profile:",
+    "  cue use jane-medusa-shop",
+    "  cue use jane-medusa-shop+backend",
+    "",
+    "Env overrides:",
+    "  CUE_REGISTRY_URL   index.json source for `search` (default opencue/claude-code-skills-profiles)",
+    "  CUE_REGISTRY_REPO  target repo for `push`        (default opencue/claude-code-skills-profiles)",
+    "",
+  ].join("\n");
+}
 
-  // Create a GitHub Gist
-  process.stdout.write(`📤 Sharing profile "${profileName}" as ${username}/${profileName}...\n`);
+async function runInstall(args: ParsedArgs): Promise<number> {
+  const target = args.positional[0];
+  if (!target) {
+    process.stderr.write("cue share install: missing <user>/<repo> argument\n");
+    return 1;
+  }
+  const ref = parseShareRef(target);
+  if (!ref) {
+    process.stderr.write(
+      `cue share install: cannot parse "${target}".\n` +
+      "Supported forms:\n" +
+      "  <user>/<repo>\n" +
+      "  <user>/<repo>@<ref>\n" +
+      "  <user>/<repo>:<subpath>\n" +
+      "  https://github.com/<user>/<repo>\n",
+    );
+    return 1;
+  }
 
-  const gistRes = spawnSync("gh", [
-    "gist", "create",
-    "--public",
-    "--desc", `cue profile: ${profileName} — ${profile.description}`,
-    "--filename", `${profileName}.cue-profile.yaml`,
-    "-"
-  ], {
-    input: content,
-    encoding: "utf8",
-    timeout: 15000,
+  const spinner = p.spinner();
+  spinner.start(`Fetching ${ref.user}/${ref.repo}…`);
+  let result;
+  try {
+    result = await fetchProfileYaml(ref);
+  } catch (err) {
+    spinner.stop(`Failed: ${(err as Error).message}`);
+    return 1;
+  }
+  const sourceShort = result.source.replace("https://raw.githubusercontent.com/", "");
+  spinner.stop(`Found profile.yaml at ${sourceShort}`);
+
+  // Confirm before writing — shared profiles can declare hooks that fire
+  // on every Stop / PreToolUse. Showing the user the source they're about
+  // to install is the v1 trust model.
+  if (!args.yes && process.stdin.isTTY) {
+    const ok = await p.confirm({
+      message: `Install ${ref.user}/${ref.repo} as "${sharedProfileName(ref)}"?`,
+      initialValue: true,
+    });
+    if (p.isCancel(ok) || !ok) {
+      p.cancel("Cancelled.");
+      return 130;
+    }
+  }
+
+  const { dir, namespacedName } = writeInstall(ref, result.body, {
+    source_url: result.source,
+    installed_at: new Date().toISOString(),
+    sha: result.sha,
   });
 
-  if (gistRes.status !== 0) {
-    process.stderr.write(`Failed to create gist: ${gistRes.stderr}\n`);
-    return 1;
-  }
-
-  const gistUrl = gistRes.stdout.trim();
-
-  process.stdout.write(`\n✅ Profile shared!\n\n`);
-  process.stdout.write(`  🔗 ${gistUrl}\n`);
-  process.stdout.write(`  📋 Others install with: cue share install ${username}/${profileName}\n\n`);
-  process.stdout.write(`  Profile: ${profile.icon} ${profileName}\n`);
-  process.stdout.write(`  Skills:  ${profile.skills.local.length}\n`);
-  process.stdout.write(`  MCPs:    ${profile.mcps.length}\n`);
-  process.stdout.write(`  Author:  ${username}\n\n`);
-
-  // Save the share record locally
-  const sharesFile = join(homedir(), ".config", "cue", "shares.json");
-  mkdirSync(dirname(sharesFile), { recursive: true });
-  let shares: Record<string, unknown>[] = [];
-  try { shares = JSON.parse(readFileSync(sharesFile, "utf8")); } catch {}
-  shares.push({ id: `${username}/${profileName}`, url: gistUrl, ts: new Date().toISOString() });
-  writeFileSync(sharesFile, JSON.stringify(shares, null, 2));
-
+  process.stdout.write(`\n✓ Installed ${namespacedName}\n`);
+  process.stdout.write(`  Source: ${result.source}\n`);
+  process.stdout.write(`  Local:  ${dir}\n`);
+  process.stdout.write(`\n  Audit before launch:\n`);
+  process.stdout.write(`    cat ${dir}/profile.yaml\n`);
+  process.stdout.write(`\n  Use it:\n`);
+  process.stdout.write(`    cue use ${namespacedName}\n`);
   return 0;
 }
 
-async function cmdBrowse(args: string[]): Promise<number> {
-  const query = args.filter(a => !a.startsWith("-")).join(" ");
-
-  // Search GitHub Gists with cue-profile tag
-  process.stdout.write(`🔍 Searching shared cue profiles${query ? ` for "${query}"` : ""}...\n\n`);
-
-  const searchQuery = `cue profile ${query}`.trim();
-  const res = spawnSync("gh", [
-    "search", "code",
-    "--json", "repository,path,textMatch",
-    "--limit", "10",
-    "filename:cue-profile.yaml", searchQuery,
-  ], { encoding: "utf8", timeout: 15000 });
-
-  if (res.status !== 0) {
-    // Fallback: search gists
-    const gistRes = spawnSync("gh", [
-      "gist", "list", "--public", "--limit", "10"
-    ], { encoding: "utf8", timeout: 10000 });
-
-    if (gistRes.stdout.trim()) {
-      process.stdout.write("  Recent public gists (filter by 'cue-profile'):\n\n");
-      process.stdout.write(gistRes.stdout);
-    } else {
-      process.stdout.write("  No shared profiles found yet.\n");
-      process.stdout.write("  Be the first! Run: cue share <profile>\n");
-    }
+async function runList(args: ParsedArgs): Promise<number> {
+  const installed = listInstalled();
+  if (args.json) {
+    process.stdout.write(JSON.stringify(installed, null, 2) + "\n");
     return 0;
   }
-
-  try {
-    const results = JSON.parse(res.stdout);
-    if (!results.length) {
-      process.stdout.write("  No shared profiles found.\n");
-      process.stdout.write("  Be the first! Run: cue share <profile>\n");
-      return 0;
-    }
-    for (const r of results) {
-      const repo = r.repository?.fullName ?? "unknown";
-      process.stdout.write(`  📦 ${repo}\n`);
-      process.stdout.write(`     ${r.path}\n\n`);
-    }
-  } catch {
-    process.stdout.write("  Could not parse results. Try: cue share browse\n");
+  if (installed.length === 0) {
+    process.stdout.write(`No shared profiles installed under ${sharedRoot()}\n`);
+    process.stdout.write(`\nInstall one with:\n  cue share install <user>/<repo>\n`);
+    return 0;
   }
-
+  const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
+  const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
+  process.stdout.write(`Installed shared profiles (${installed.length}):\n\n`);
+  for (const e of installed) {
+    const age = e.meta?.installed_at
+      ? ` ${dim(`installed ${e.meta.installed_at.slice(0, 10)}`)}`
+      : "";
+    process.stdout.write(`  ${bold(e.namespacedName)}${age}\n`);
+    if (e.meta?.source_url) {
+      process.stdout.write(`    ${dim(e.meta.source_url)}\n`);
+    }
+  }
   return 0;
 }
 
-async function cmdInstall(id: string): Promise<number> {
-  if (!id) {
-    process.stderr.write("Usage: cue share install <user/profile>\n");
+async function runRemove(args: ParsedArgs): Promise<number> {
+  const target = args.positional[0];
+  if (!target) {
+    process.stderr.write("cue share remove: missing <user>/<repo> argument\n");
     return 1;
   }
-
-  const [user, name] = id.includes("/") ? id.split("/") : [null, id];
-
-  if (!user) {
-    process.stderr.write("Specify user: cue share install <user>/<profile>\n");
+  const ref = parseShareRef(target);
+  if (!ref) {
+    process.stderr.write(`cue share remove: cannot parse "${target}".\n`);
     return 1;
   }
-
-  process.stdout.write(`📥 Installing profile "${id}"...\n`);
-
-  // Try to find the gist
-  const res = spawnSync("gh", [
-    "gist", "list", "--public", "--limit", "50"
-  ], { encoding: "utf8", timeout: 10000 });
-
-  // Alternative: try fetching from a known URL pattern
-  const gistUrl = `https://gist.githubusercontent.com/${user}/raw/${name}.cue-profile.yaml`;
-
-  try {
-    const fetchRes = await fetch(gistUrl, { signal: AbortSignal.timeout(10000) });
-    if (fetchRes.ok) {
-      const content = await fetchRes.text();
-      const yaml = require("yaml");
-      const parsed = yaml.parse(content);
-      const profileName = parsed.name ?? name;
-
-      const profileDir = join(PROFILES_DIR, profileName!);
-      mkdirSync(profileDir, { recursive: true });
-
-      // Convert shared format back to profile.yaml
-      const profileYaml: Record<string, unknown> = {
-        name: profileName,
-        description: parsed.description ?? `Shared by ${user}`,
-        icon: parsed.icon ?? "📦",
-      };
-      if (parsed.skills?.local?.length) profileYaml.skills = { local: parsed.skills.local };
-      if (parsed.mcps?.length) profileYaml.mcps = parsed.mcps;
-
-      writeFileSync(join(profileDir, "profile.yaml"), yaml.stringify(profileYaml));
-      process.stdout.write(`✅ Installed "${profileName}" from ${user}\n`);
-      process.stdout.write(`   Activate: echo ${profileName} > .cue-profile\n`);
-      return 0;
-    }
-  } catch { /* gist not found at that URL */ }
-
-  // Fallback: use cue import
-  process.stdout.write(`  Could not find gist. Try: cue import https://gist.github.com/${user}/<gist-id>/raw\n`);
-  return 1;
+  const dir = sharedProfileDir(ref);
+  const removed = removeInstall(ref);
+  if (!removed) {
+    process.stderr.write(`Not installed: ${sharedProfileName(ref)} (would have been at ${dir})\n`);
+    return 1;
+  }
+  process.stdout.write(`✓ Removed ${sharedProfileName(ref)}\n`);
+  return 0;
 }
+
+async function runPush(args: ParsedArgs): Promise<number> {
+  const profileName = args.positional[0];
+  if (!profileName) {
+    process.stderr.write("cue share push: missing <profile-name> argument\n");
+    return 1;
+  }
+
+  const profileYaml = join(PROFILES_DIR, profileName, "profile.yaml");
+  if (!existsSync(profileYaml)) {
+    process.stderr.write(`cue share push: profile not found at ${profileYaml}\n`);
+    return 1;
+  }
+
+  // Auth + identity via gh CLI. Fail with a clear pointer when missing.
+  const ghCheck = spawnSync("gh", ["auth", "status"], { encoding: "utf8" });
+  if (ghCheck.status !== 0) {
+    process.stderr.write(
+      "cue share push: GitHub CLI not authenticated.\n" +
+      "Install + log in: https://cli.github.com  →  gh auth login\n",
+    );
+    return 1;
+  }
+  const whoami = spawnSync("gh", ["api", "user", "--jq", ".login"], { encoding: "utf8" });
+  const ghUser = whoami.stdout.trim();
+  if (!ghUser) {
+    process.stderr.write("cue share push: could not resolve GitHub login.\n");
+    return 1;
+  }
+
+  const registry = registryRepoSlug();
+  const branchName = `share/${ghUser}-${profileName}-${Date.now()}`;
+  const remotePath = `profiles/${ghUser}/${profileName}/profile.yaml`;
+  const profileBody = readFileSync(profileYaml, "utf8");
+
+  process.stdout.write(`\nPushing ${profileName} to ${registry} as ${ghUser}/${profileName}…\n`);
+
+  if (!args.yes && process.stdin.isTTY) {
+    const ok = await p.confirm({
+      message: `Open a PR adding ${remotePath} to ${registry}?`,
+      initialValue: true,
+    });
+    if (p.isCancel(ok) || !ok) {
+      p.cancel("Cancelled.");
+      return 130;
+    }
+  }
+
+  // Stage the file in a single API call via `gh api`. Uses the GitHub
+  // contents endpoint so we don't need a local checkout of the registry.
+  const fileContentB64 = Buffer.from(profileBody, "utf8").toString("base64");
+
+  // 1. Ensure the user has forked the registry. `gh repo fork --remote=false`
+  //    is idempotent and silent on already-forked.
+  const forkRes = spawnSync("gh", ["repo", "fork", registry, "--clone=false", "--remote=false"], {
+    encoding: "utf8",
+  });
+  if (forkRes.status !== 0 && !/already exists/i.test(forkRes.stderr ?? "")) {
+    process.stderr.write(`cue share push: fork failed:\n${forkRes.stderr}\n`);
+    return 1;
+  }
+
+  // 2. Get default branch of the registry to base the PR branch off.
+  const defaultBranchRes = spawnSync(
+    "gh",
+    ["api", `repos/${registry}`, "--jq", ".default_branch"],
+    { encoding: "utf8" },
+  );
+  const baseBranch = (defaultBranchRes.stdout || "main").trim();
+
+  // 3. Get the base branch's tip sha from the fork.
+  const fork = `${ghUser}/${registry.split("/")[1]}`;
+  const baseShaRes = spawnSync(
+    "gh",
+    ["api", `repos/${fork}/git/ref/heads/${baseBranch}`, "--jq", ".object.sha"],
+    { encoding: "utf8" },
+  );
+  const baseSha = baseShaRes.stdout.trim();
+  if (!baseSha) {
+    process.stderr.write(
+      `cue share push: could not resolve base sha on the fork. Sync your fork first: gh repo sync ${fork}\n`,
+    );
+    return 1;
+  }
+
+  // 4. Create the PR branch on the fork.
+  const createBranchRes = spawnSync(
+    "gh",
+    [
+      "api", "-X", "POST", `repos/${fork}/git/refs`,
+      "-f", `ref=refs/heads/${branchName}`,
+      "-f", `sha=${baseSha}`,
+    ],
+    { encoding: "utf8" },
+  );
+  if (createBranchRes.status !== 0) {
+    process.stderr.write(`cue share push: branch create failed:\n${createBranchRes.stderr}\n`);
+    return 1;
+  }
+
+  // 5. PUT the profile.yaml on that branch.
+  const putRes = spawnSync(
+    "gh",
+    [
+      "api", "-X", "PUT", `repos/${fork}/contents/${remotePath}`,
+      "-f", `message=share: add ${ghUser}/${profileName}`,
+      "-f", `content=${fileContentB64}`,
+      "-f", `branch=${branchName}`,
+    ],
+    { encoding: "utf8" },
+  );
+  if (putRes.status !== 0) {
+    process.stderr.write(`cue share push: file write failed:\n${putRes.stderr}\n`);
+    return 1;
+  }
+
+  // 6. Open the PR.
+  const prRes = spawnSync(
+    "gh",
+    [
+      "pr", "create",
+      "--repo", registry,
+      "--head", `${ghUser}:${branchName}`,
+      "--base", baseBranch,
+      "--title", `share: add ${ghUser}/${profileName}`,
+      "--body",
+      [
+        `Profile contributed by @${ghUser} via \`cue share push\`.`,
+        "",
+        "**Reviewer checklist:**",
+        "- [ ] profile.yaml validates against the cue schema",
+        "- [ ] `description:` is meaningful (not a placeholder)",
+        "- [ ] no embedded secrets",
+        "- [ ] inherits chain resolves to public profiles",
+      ].join("\n"),
+    ],
+    { encoding: "utf8" },
+  );
+  if (prRes.status !== 0) {
+    process.stderr.write(`cue share push: PR create failed:\n${prRes.stderr}\n`);
+    return 1;
+  }
+  const prUrl = prRes.stdout.trim();
+  process.stdout.write(`\n✓ Opened PR: ${prUrl}\n`);
+  process.stdout.write(
+    `  Once merged, anyone can install with:\n    cue share install ${ghUser}/${profileName}\n`,
+  );
+  return 0;
+}
+
+async function runSearch(args: ParsedArgs): Promise<number> {
+  const query = args.positional.join(" ");
+
+  // Try cache first; refresh on miss or stale.
+  let cache = readCachedIndex();
+  if (!cache) {
+    const url = registryIndexUrl();
+    const spinner = p.spinner();
+    spinner.start(`Fetching registry index (${url})…`);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        spinner.stop(`Registry index unreachable (HTTP ${res.status}).`);
+        process.stderr.write(
+          `\nThe central registry hasn't been published yet, or the URL has moved.\n` +
+          `You can still install directly: cue share install <user>/<repo>\n` +
+          `Override the index URL: CUE_REGISTRY_URL=https://… cue share search …\n`,
+        );
+        return 1;
+      }
+      const entries = (await res.json()) as RegistryEntry[];
+      if (!Array.isArray(entries)) {
+        spinner.stop(`Registry index malformed (expected JSON array).`);
+        return 1;
+      }
+      writeIndexCache(entries, url);
+      cache = { fetched_at: new Date().toISOString(), source: url, entries };
+      spinner.stop(`Cached ${entries.length} entr${entries.length === 1 ? "y" : "ies"}.`);
+    } catch (err) {
+      spinner.stop(`Network error: ${(err as Error).message}`);
+      return 1;
+    }
+  }
+
+  const matches = searchIndex(cache.entries, query);
+
+  if (args.json) {
+    process.stdout.write(JSON.stringify({ query, count: matches.length, results: matches }, null, 2) + "\n");
+    return 0;
+  }
+  if (matches.length === 0) {
+    process.stdout.write(`No matches${query ? ` for "${query}"` : ""}.\n`);
+    return 0;
+  }
+  const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
+  const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
+  process.stdout.write(
+    `${matches.length} match${matches.length === 1 ? "" : "es"}${query ? ` for "${query}"` : ""}:\n\n`,
+  );
+  for (const e of matches.slice(0, 30)) {
+    const slug = `${e.author}/${e.name}`;
+    const stars = e.stars != null ? dim(`  ★${e.stars}`) : "";
+    process.stdout.write(`  ${bold(slug)}${stars}\n`);
+    if (e.description) process.stdout.write(`    ${dim(e.description)}\n`);
+  }
+  if (matches.length > 30) {
+    process.stdout.write(`\n  …and ${matches.length - 30} more. Refine with more search terms.\n`);
+  }
+  process.stdout.write(`\nInstall any: cue share install <user>/<repo>\n`);
+  return 0;
+}
+
+async function runUpdate(args: ParsedArgs): Promise<number> {
+  const installed = listInstalled();
+  if (installed.length === 0) {
+    process.stdout.write(`Nothing to update — no shared profiles installed.\n`);
+    return 0;
+  }
+  const target = args.positional[0]; // optional: limit to a single ref
+  const targetRef = target ? parseShareRef(target) : null;
+  if (target && !targetRef) {
+    process.stderr.write(`cue share update: cannot parse "${target}".\n`);
+    return 1;
+  }
+  const targetName = targetRef ? sharedProfileName(targetRef) : null;
+
+  let updated = 0;
+  let unchanged = 0;
+  let failed = 0;
+
+  for (const entry of installed) {
+    if (targetName && entry.namespacedName !== targetName) continue;
+    const ref = { user: entry.user, repo: entry.repo };
+    process.stdout.write(`→ ${entry.namespacedName}\n`);
+    let result;
+    try {
+      result = await fetchProfileYaml(ref);
+    } catch (err) {
+      process.stderr.write(`  ✗ ${(err as Error).message}\n`);
+      failed++;
+      continue;
+    }
+    const localPath = join(entry.dir, "profile.yaml");
+    let same = false;
+    try {
+      const local = readFileSync(localPath, "utf8");
+      // Compare ignoring the locally-rewritten `name:` line so unchanged
+      // upstream content doesn't show as "updated" each run.
+      const stripName = (s: string) => s.replace(/^(\s*)name\s*:\s*.+$/m, "");
+      same = stripName(local) === stripName(result.body);
+    } catch { /* ignore — treat as updated */ }
+    if (same) {
+      process.stdout.write(`  · no change\n`);
+      unchanged++;
+      continue;
+    }
+    writeInstall(ref, result.body, {
+      source_url: result.source,
+      installed_at: new Date().toISOString(),
+      sha: result.sha,
+    });
+    process.stdout.write(`  ✓ updated\n`);
+    updated++;
+  }
+
+  process.stdout.write(
+    `\nDone: ${updated} updated, ${unchanged} unchanged${failed > 0 ? `, ${failed} failed` : ""}.\n`,
+  );
+  return failed > 0 ? 1 : 0;
+}
+
+export async function run(argv: string[]): Promise<number> {
+  const args = parseArgs(argv);
+  switch (args.sub) {
+    case "install": return runInstall(args);
+    case "list":    return runList(args);
+    case "remove":  return runRemove(args);
+    case "push":    return runPush(args);
+    case "search":  return runSearch(args);
+    case "update":  return runUpdate(args);
+    case "help":
+    default:
+      process.stdout.write(helpText());
+      return 0;
+  }
+}
+
+// Re-export for tests/integrations that want to point at a custom cache path.
+export { indexCachePath };

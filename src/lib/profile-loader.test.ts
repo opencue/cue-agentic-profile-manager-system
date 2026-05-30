@@ -150,6 +150,63 @@ describe("loadProfile", () => {
     expect(resolved.agents).toEqual(["claude-code"]);
   });
 
+  test("subagents fold through inheritance: parent first, child appended, deduped", async () => {
+    await writeProfile(
+      "sa-parent",
+      [
+        "name: sa-parent",
+        "description: parent",
+        "subagents:",
+        "  - design/design-ui-designer",
+        "  - sales/sales-coach",
+        "",
+      ].join("\n"),
+    );
+    await writeProfile(
+      "sa-child",
+      [
+        "name: sa-child",
+        "description: child",
+        "inherits: sa-parent",
+        "subagents:",
+        "  - sales/sales-coach", // duplicate — should collapse
+        "  - testing/testing-api-tester",
+        "",
+      ].join("\n"),
+    );
+
+    const resolved = await loadProfile("sa-child");
+    expect(resolved.subagents).toEqual([
+      "design/design-ui-designer",
+      "sales/sales-coach",
+      "testing/testing-api-tester",
+    ]);
+  });
+
+  test("subagents union across a composite (a+b) selector, deduped", async () => {
+    await writeProfile(
+      "sa-a",
+      ["name: sa-a", "description: a", "subagents:", "  - design/design-ui-designer", ""].join("\n"),
+    );
+    await writeProfile(
+      "sa-b",
+      [
+        "name: sa-b",
+        "description: b",
+        "subagents:",
+        "  - design/design-ui-designer", // shared — dedupe
+        "  - finance/finance-tax-strategist",
+        "",
+      ].join("\n"),
+    );
+
+    const resolved = await loadProfile("sa-a+sa-b");
+    expect(resolved.subagents).toEqual([
+      "design/design-ui-designer",
+      "finance/finance-tax-strategist",
+    ]);
+  });
+
   test("schema violation: missing required `description`", async () => {
     await writeProfile("broken", "name: broken\n");
 

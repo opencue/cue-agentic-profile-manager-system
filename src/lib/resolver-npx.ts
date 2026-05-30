@@ -2,7 +2,7 @@
  * Resolver for `skills.npx` profile entries.
  *
  * Each entry { repo, pin?, skills } expands into one cache slot
- *   <repoRoot>/profiles/_cache/npx/<sha256(repo + (pin || "HEAD"))>/
+ *   <xdgCache>/cue/npx/<sha256(repo + (pin || "HEAD"))>/  (XDG; tests pin via repoRoot)
  * containing one subdir per skill. The resolver returns a LinkPlan[] mapping
  * each cached skill dir into `.claude/skills/<skill>`.
  *
@@ -22,8 +22,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import type { LinkPlan, NpxSkillRef, Profile } from "../../profiles/_types";
 import { ProfileError } from "../../profiles/_types";
@@ -189,7 +188,7 @@ export function flattenNpxLayout(destDir: string, skill: string): void {
 // ---------------------------------------------------------------------------
 
 export interface ResolveNpxOptions {
-  /** Repo root for the cache layout. Defaults to CUE_REPO_ROOT or the CLI root. */
+  /** Legacy: pin the cache under `<repoRoot>/profiles/_cache`. Omit to use the XDG cache (~/.cache/cue). */
   repoRoot?: string;
   /** Fetcher; defaults to the real `npx skills add` shellout. */
   fetch?: NpxFetchFn;
@@ -237,7 +236,9 @@ export async function resolveNpxDetailed(
     return { plans, keys };
   }
 
-  const layout: CacheLayout = { repoRoot: opts.repoRoot ?? defaultRepoRoot() };
+  // Default cache lives in the XDG cache dir (~/.cache/cue), never inside the
+  // install tree. Tests/legacy callers may still pin it via opts.repoRoot.
+  const layout: CacheLayout = opts.repoRoot ? { repoRoot: opts.repoRoot } : {};
   const fetcher = opts.fetch ?? npxFetch;
   const offline = opts.offline ?? (process.env.CUE_OFFLINE ?? process.env.SOUL_OFFLINE) === "1";
 
@@ -362,14 +363,6 @@ function isNonEmptyDir(p: string): boolean {
 
 function entryId(e: NpxSkillRef): string {
   return `${e.repo}@${e.pin ?? "HEAD"}`;
-}
-
-function defaultRepoRoot(): string {
-  if (process.env.CUE_REPO_ROOT) return resolve(process.env.CUE_REPO_ROOT);
-  if (process.env.SOUL_REPO_ROOT) return resolve(process.env.SOUL_REPO_ROOT);
-  // src/lib/resolver-npx.ts  →  repo root is three levels up (file → lib → src → repo).
-  const here = fileURLToPath(import.meta.url);
-  return resolve(here, "..", "..", "..");
 }
 
 // Re-export cachePath for callers that want to print the slot for debugging.

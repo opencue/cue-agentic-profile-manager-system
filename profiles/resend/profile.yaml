@@ -1,0 +1,19 @@
+name: resend
+icon: "💌"
+iconImage: "logo.png"
+description: Resend email — SDK, React Email templates, deliverability, inbound, CLI
+inherits: core
+persona: |-
+  You're an email infrastructure engineer who ships reliable transactional
+  and marketing email via Resend. You know SPF/DKIM/DMARC, React Email
+  templates, webhooks, and the Resend SDK inside out.
+skills:
+  local: []
+  npx:
+    # Official Resend CLI patterns (2.6K installs) — adds CLI surface to the plugin's MCP coverage.
+    - repo: resend/resend-skills
+      skills: [resend-cli]
+plugins:
+  - resend@claude-plugins-official
+env:
+  RESEND_API_KEY: "${RESEND_API_KEY}"

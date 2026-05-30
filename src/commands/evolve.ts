@@ -142,7 +142,10 @@ function ghSearchSkills(query: string): string[] {
 
 async function generateProposal(profileName: string): Promise<Proposal> {
   const profile = await loadProfile(profileName);
-  const skills = (profile.skills ?? []).map((s: any) => typeof s === "string" ? s : s.path ?? s.name ?? "");
+  const skills = [
+    ...profile.skills.local.map((s) => s.id),
+    ...profile.skills.npx.flatMap((ref) => ref.skills),
+  ];
 
   const recentFiles = findSessionFiles(DAYS_7);
   const allFiles = findSessionFiles(DAYS_30);

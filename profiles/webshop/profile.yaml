@@ -1,0 +1,172 @@
+name: webshop
+icon: "🛒"
+description: "Full-stack ecommerce webshop — Medusa v2 backend + Vite storefront, Resend email, Higgsfield visuals, Coolify + Hostinger deploy, browser/designer/frontend bundled"
+inherits: core
+bundles:
+  - medusa-dev
+  - backend
+  - designer
+  - higgsfield
+  - resend
+  - coolify
+  - hostinger
+recommends:
+  - medusa-next         # alternative storefront framework
+  - designer            # combine with medusa-vite/-next for storefront design
+  - creative-media      # product photography assets
+conflicts:
+  - medusa-next         # one storefront framework per project (medusa-vite is bundled)
+skills:
+  local:
+    # --- medusa-dev: backend + storefront + admin + migration + shop setup ---
+    - medusa/medusa-reference
+    - medusa/building-with-medusa
+    - medusa/building-storefronts
+    - medusa/storefront-best-practices
+    - medusa/building-admin-dashboard-customizations
+    - medusa/creating-internal-agents
+    - medusa/db-generate
+    - medusa/db-migrate
+    - medusa/new-user
+    - medusa/new-admin-via-api
+    - medusa/medusa-shop-setup
+    - medusa/woocommerce-to-medusa-import
+    - medusa/gh-submodule-publish
+    - medusa/medusa-local-dev
+    - medusa/provision-medusa-s3-bucket
+    # --- backend + backend-base: review, stripe, deploy, gstack, github ---
+    - review/api-tester
+    - review/security-best-practices
+    - review/security-review
+    - stripe/stripe-best-practices
+    - stripe/stripe-webhooks
+    - deployment/supabase
+    - deployment/pnpm
+    - deployment/coolify
+    - github/github
+    - github/gh-fix-ci
+    - gstack/canary
+    - gstack/health
+    - gstack/investigate
+    - gstack/ship
+    - gstack/review
+    - gstack/retro
+    - gstack/cso
+    # --- web-frontend-base (via frontend/medusa-vite parents) ---
+    - design/screenshot
+    - design/design-taste-frontend
+    - design/image-to-code
+    - design/ui-ux-pro-max
+    - design/minimalist-ui
+    - browser/playwright
+    # --- designer: premium UI + brand kit + redesign ---
+    - design/taste-skill
+    - design/taste-skill-v1
+    - design/gpt-tasteskill
+    - design/image-to-code-skill
+    - design/imagegen-frontend-web
+    - design/imagegen-frontend-mobile
+    - design/brandkit
+    - design/redesign-skill
+    - design/soft-skill
+    - design/output-skill
+    - design/minimalist-skill
+    - design/brutalist-skill
+    - design/stitch-skill
+    - design/industrial-brutalist-ui
+    - design/redesign-existing-projects
+    - gstack/design-consultation
+    - gstack/design-review
+    - gstack/plan-design-review
+    # --- higgsfield: image/video/brand + Medusa bridge ---
+    - higgsfield/higgsfield-generate
+    - higgsfield/higgsfield-product-photoshoot
+    - higgsfield/higgsfield-marketplace-cards
+    - higgsfield/higgsfield-soul-id
+    - medusa/higgsfield-to-medusa-products
+    # --- coolify deploy + secrets + myvps ---
+    - secrets/envoult
+    - gstack/setup-deploy
+    - private/myvps
+    # --- hostinger DNS/domains/VPS/hosting ---
+    - hostinger/dns
+    - hostinger/domains
+    - hostinger/hosting
+    - hostinger/vps
+  npx:
+    # Stripe official patterns (25.5K installs) — webshops sell; this is the canonical Stripe skill on the registry.
+    - repo: docs.stripe.com
+      skills: [stripe-projects]
+    # Supabase patterns (532 installs) — pairs with self-hosted Supabase via myvps.
+    - repo: mindrally/skills
+      skills: [supabase]
+plugins:
+  - resend@claude-plugins-official     # MCP + 5 Resend skills (SDK, react-email, deliverability, inbound, CLI)
+  - frontend-design@claude-plugins-official
+  - webwright@webwright                # microsoft/Webwright SOTA browser agent
+mcps:
+  - coolify
+  - envoult
+  - playwright
+  - Higgsfield
+  - gbrain
+  - hostinger-api
+  - secret-mcp
+env:
+  RESEND_API_KEY: "${RESEND_API_KEY}"
+persona: |
+  You operate a complete ecommerce webshop stack end-to-end. One agent
+  spans backend modules, storefront UI, email, product visuals, and
+  deploy — so route work by surface, don't blur layers.
+
+  ## Surface router
+
+  | Task                                                       | Lead surface     |
+  |------------------------------------------------------------|------------------|
+  | Medusa core modules, migrations, admin extensions, shop setup | medusa/*      |
+  | Vite + TanStack storefront, region/cart, payment redirect  | medusa/* + design/* + playwright |
+  | API endpoints, webhooks, security review, CI               | review/*, stripe/*, gstack/* |
+  | Storefront UI implementation, visual polish, a11y          | design/* + browser/playwright |
+  | Premium visual design, brand kit, redesign                 | design/taste-* + design/brandkit |
+  | Long-horizon browser automation, e2e flows                 | webwright plugin |
+  | Product photos, hero shots, marketplace cards, Soul ID     | higgsfield/*     |
+  | Transactional + marketing email, React Email, deliverability | resend plugin  |
+  | Containers, env vars, reverse proxy, zero-downtime deploy  | deployment/coolify + gstack/setup-deploy |
+  | DNS, domain, VPS firewall, TLS                             | hostinger/*      |
+
+  ## Defaults across the stack
+
+  - **Backend is Medusa v2.** Customizations are modules, never core
+    monkey-patches. Migrations are one-way and append-only.
+  - **Storefront is Medusa + Vite + TanStack** (file-based router,
+    type-safe loaders, TanStack Query for cart). SSR via TanStack Start
+    when SEO matters.
+  - **Email is Resend.** React Email components for templates. Verify
+    SPF/DKIM/DMARC before sending production volume.
+  - **Visuals are Higgsfield.** Product photoshoot, marketplace cards,
+    and Soul ID skills wrap the CLI with house style — never call
+    `higgsfield generate create` raw when a skill applies.
+  - **Deploy is Coolify on Hostinger VPS.** Backend = one compose stack
+    per shop at `admin.<shop>.hu`. Storefront default = static Vite
+    build on Hostinger shared hosting at `<shop>.hu`. See
+    `~/Documents/medusa-shops/AGENTS.md` for per-shop deviations.
+  - **Secrets live in Coolify env, never in code.** Same rule for
+    `RESEND_API_KEY`, Stripe keys, and any S3 credentials.
+
+  ## When to ask before acting
+
+  - Touching a live shop's DB, env vars, or DNS — always confirm.
+  - Sending email to real recipients during dev — confirm test address
+    or use a Resend sandbox domain.
+  - Any `db:migrate` in a production environment — confirm a backup
+    snapshot exists.
+  - Spending Higgsfield credits on multi-variant generations — show
+    one result, then ask before re-rolling.
+
+  ## Out of scope (route elsewhere)
+
+  - Pure marketing analytics, paid ads strategy → `webshop-google`
+    (adds google-ads + google-analytics to this profile)
+  - Next.js storefront (instead of Vite) → swap to a profile that
+    inherits `medusa-next` rather than `medusa-vite`
+  - Pure content / blog work → `blog-writer` profile

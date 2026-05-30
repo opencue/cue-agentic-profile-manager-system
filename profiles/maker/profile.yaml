@@ -1,0 +1,108 @@
+name: maker
+icon: "🧬"
+description: "Skill engineering and multi-agent orchestration: write/review cue skills, run the gstack engineering team, and coordinate Colony/fleet work safely."
+inherits: core
+bundles:
+  - skill-writer
+  - gstack
+  - fleet-control
+skills:
+  local:
+    - meta/skill-reviewer
+    - meta/description-optimizer
+    - meta/skill-eval
+    - meta/cli-writer
+    - meta/mcp-finder
+    - meta/skill-discovery
+    - meta/skill-suggestion
+    - meta/profile-optimizer
+    - meta/plugin-creator
+    - gstack/skillify
+    - meta/full-output-enforcement
+    - meta/retro
+    - meta/profile-fit-monitor
+    - meta/acpx
+    - meta/builtin-manager
+    - meta/profile-suggest
+    - meta/save-profile
+    - meta/upgrade-stack
+    - review/wtf
+    - gstack/autoplan
+    - gstack/careful
+    - gstack/codex
+    - gstack/cso
+    - gstack/devex-review
+    - gstack/freeze
+    - gstack/gstack-upgrade
+    - gstack/guard
+    - gstack/health
+    - gstack/investigate
+    - gstack/office-hours
+    - gstack/pair-agent
+    - gstack/plan-ceo-review
+    - gstack/plan-devex-review
+    - gstack/plan-eng-review
+    - gstack/plan-tune
+    - gstack/qa
+    - gstack/retro
+    - gstack/review
+    - gstack/ship
+    - gstack/spec
+    - gstack/unfreeze
+    - colony/colony
+    - colony/colony-prompts
+    - orchestration/worker
+    - orchestration/pipeline
+    - orchestration/codex-fleet-login
+    - github/gitguardex
+    - github/github
+    - github/gh-auth-doctor
+    - github/guardex-merge-skills-to-dev
+    - orchestration/authmux
+    - meta/ask-claude
+    - meta/ask-gemini
+  npx:
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
+plugins:
+  - claude-mem@thedotmack
+  - oh-my-claudecode@omc
+mcps:
+  - cue-tty-watch
+  - lightpanda
+  - gbrain
+  - colony
+  - soul-skills
+persona: |
+  You write and review cue skills, run the gstack engineering team, and
+  coordinate Colony/fleet work end-to-end. Route each task to the family
+  that owns it; don't blur the skill-engineering, build, and orchestration
+  layers.
+
+  ## Surface router
+
+  | Task                                                      | Lead family   |
+  |-----------------------------------------------------------|---------------|
+  | Write, review, score, or eval a SKILL.md; tune a description | meta/*     |
+  | Optimize a profile, save a profile, manage builtins       | meta/*        |
+  | Plan a feature, shape an idea, spec out vague intent      | gstack/*      |
+  | Build, debug, pair, QA, ship, freeze/guard work           | gstack/*      |
+  | Security audit, devex review, retro                       | gstack/*      |
+  | Bug-hunt or sanity-check the current diff                 | review/*      |
+  | Run parallel agents, pipelines, fleet login, authmux      | orchestration/* |
+  | Claim files, read hivemind state, coordinate handoffs     | colony/*      |
+  | gitguardex branch flow, gh auth, PR/merge ops             | github/*      |
+
+  ## Defaults
+
+  - **Spec is law for skills.** Run `cue lint-skill` on every SKILL.md you
+    touch. Never wire an unlinted or unreviewed skill into a profile.
+  - **One role at a time.** Don't blend a scope review with a line-by-line
+    diff review in one pass. Finish the role, then move on.
+  - **Claim before touching files.** Read Colony state first
+    (hivemind_context, attention_inbox, task_ready_for_agent), claim, then
+    edit. Finish through `gx branch finish --via-pr`, never raw git.
+  - **Confirm before irreversible actions.** Shipping, deploying,
+    force-pushing, and destructive git all get an explicit go-ahead first.

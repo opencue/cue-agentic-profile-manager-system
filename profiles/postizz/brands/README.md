@@ -19,6 +19,7 @@ brands/<brand>/
 | Brand | Status | Notes |
 |---|---|---|
 | [volaria](./volaria/brand.md) | active | Financial / markets — cinematic editorial card format |
+| [1kclub](./1kclub/brand.md) | active | Growth / engagement lane on @NagyVikt — magenta/yellow, photo-led |
 | [slopix](./slopix/brand.md) | placeholder | Assets + accounts not yet filled in |
 
 ## Account confirmation

@@ -1,0 +1,177 @@
+name: builder
+icon: "🐻"
+description: "General software dev: backend APIs, React frontends (Next.js, Vite, React Native), Python, Go, Rust, WordPress, and Claude API apps with prompt caching."
+inherits: core
+bundles:
+  - backend
+  - frontend
+  - nextjs
+  - vite
+  - python
+  - go-api
+  - react-native
+  - wordpress
+  - claude-api
+  - rust
+conflicts:
+  - nextjs
+  - vite
+skills:
+  local:
+    - review/api-tester
+    - test/scenario-explorer
+    - meta/autoresearch
+    - review/security-best-practices
+    - review/security-review
+    - stripe/stripe-best-practices
+    - stripe/stripe-webhooks
+    - deployment/supabase
+    - deployment/pnpm
+    - github/github
+    - github/gh-fix-ci
+    - deployment/coolify
+    - gstack/canary
+    - gstack/health
+    - gstack/investigate
+    - gstack/ship
+    - gstack/review
+    - gstack/retro
+    - gstack/cso
+    - design/screenshot
+    - design/design-taste-frontend
+    - design/image-to-code
+    - design/ui-ux-pro-max
+    - design/minimalist-ui
+    - browser/playwright
+    - research/awesome-rust-search
+    - rust/cargo-basics
+    - rust/clippy-and-fmt
+    - rust/cargo-nextest
+    - rust/bacon-watch
+    - rust/cargo-edit
+    - rust/cargo-expand
+    - rust/sccache
+    - rust/cargo-audit
+    - rust/error-handling
+    - rust/just-runner
+    - rust/chisel-tool
+    - rust/async-tokio
+    - rust/serde
+    - rust/tracing
+    - rust/axum-api
+    - rust/reqwest
+    - rust/sqlx-cli
+    - rust/cargo-chef
+    - rust/clap-cli
+    - rust/ratatui-tui
+    - rust/embedded
+    - rust/no-std
+    - rust/pyo3
+    - rust/napi-rs
+    - rust/uniffi
+    - rust/bindgen
+    - rust/cbindgen
+    - rust/wasm-rust
+    - rust/bevy
+    - rust/cargo-flamegraph
+    - rust/cargo-hack
+    - rust/cargo-mutants
+    - rust/cargo-fuzz
+    - rust/snapshot-testing
+    - rust/property-testing
+    - rust/typos-spellcheck
+    - rust/mdbook
+    - rust/cargo-readme
+    - rust/release-plz
+    - rust/cargo-msrv
+    - rust/cross-compile
+  npx:
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
+    - repo: oakoss/agent-skills
+      skills: [playwright]
+    - repo: vercel/vercel-plugin
+      skills: [auth]
+    - repo: getsentry/sentry-for-ai
+      skills: [sentry-react-sdk]
+    - repo: wshobson/agents
+      skills: [python-design-patterns]
+    - repo: fastapi/fastapi
+      skills: [fastapi]
+    - repo: dagster-io/skills
+      skills: [dignified-python]
+    - repo: github/awesome-copilot
+      skills: [pytest-coverage]
+    - repo: samber/cc-skills-golang
+      skills: [golang-code-style, golang-performance, golang-design-patterns]
+    - repo: heroui-inc/heroui
+      skills: [heroui-native]
+    - repo: react-native-community/skills
+      skills: [upgrade-react-native]
+    - repo: gentleman-programming/gentleman-skills
+      skills: [react-native]
+    - repo: margelo/react-native-skills
+      skills: [nitro-fetch]
+    - repo: jeffallan/claude-skills
+      skills: [wordpress-pro]
+    - repo: mindrally/skills
+      skills: [wordpress]
+    - repo: jezweb/claude-skills
+      skills: [wordpress-elementor, wordpress-setup]
+    - repo: automattic/agent-skills
+      skills: [wp-wpcli-and-ops]
+    - repo: affaan-m/everything-claude-code
+      skills: [claude-api]
+    - repo: jamesrochabrun/skills
+      skills: [anthropic-architect]
+    - repo: membranedev/application-skills
+      skills: [anthropic]
+    - repo: actionbook/rust-skills
+      skills: [rust-daily]
+plugins:
+  - claude-mem@thedotmack
+  - oh-my-claudecode@omc
+  - resend@claude-plugins-official
+mcps:
+  - cue-tty-watch
+  - lightpanda
+  - coolify
+  - playwright
+env:
+  WORDPRESS_URL: "${WORDPRESS_URL}"
+  WORDPRESS_ADMIN_USER: "${WORDPRESS_ADMIN_USER}"
+  WORDPRESS_ADMIN_PASSWORD: "${WORDPRESS_ADMIN_PASSWORD}"
+  ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+persona: |
+  You operate the merged `builder` loadout end-to-end across backend
+  APIs, React frontends, Python, Go, Rust, WordPress, and Claude API
+  apps. Route work by surface, don't blur layers; reach for the skill
+  family that owns the task.
+
+  ## Surface router
+
+  | Task                                                       | Lead family      |
+  |------------------------------------------------------------|------------------|
+  | Rust crates, cargo tooling, async/tokio, axum, FFI, wasm   | rust/*           |
+  | Plan, ship, canary, health, investigate, retro, security   | gstack/*         |
+  | UI implementation, visual polish, image-to-code, a11y      | design/*         |
+  | API tests, security best practices, security review        | review/*         |
+  | Supabase, pnpm, Coolify container deploy                    | deployment/*     |
+  | Stripe payments and webhooks                                | stripe/*         |
+  | Repo ops, fix broken CI                                     | github/*         |
+  | Browser automation, e2e flows, screenshots                  | browser/*        |
+  | Find a Rust crate or pattern fast                           | research/*       |
+
+  ## Defaults
+
+  - **Validate at the boundary, secrets stay in env.** Every endpoint
+    validates input with a schema; never hardcode or log a credential.
+  - **Migrations are one-way.** Never edit an applied migration; add a
+    new file for each schema change.
+  - **Verify, don't assume.** Run the test, build, or actual behavior
+    check that proves it works. A green build is not a working page;
+    screenshot the route before claiming a UI task done.
+  - **Claude API apps cache prompts.** Add `cache_control` on system
+    prompts over 1024 tokens and always cap `max_tokens`.

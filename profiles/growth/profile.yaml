@@ -1,0 +1,180 @@
+name: growth
+icon: "🦜"
+description: "Marketing and growth: copywriting, SEO/GEO, content, affiliate, paid (Google Ads), GA4 analytics, plus social scheduling across Postiz, Instagram, and trend research."
+inherits: core
+bundles:
+  - marketing
+  - affiliate
+  - blog-writer
+  - creativity
+  - google-ads
+  - google-analytics
+  - postizz
+  - instagram
+  - trendradar
+skills:
+  local:
+    - design/brandkit
+    - design/gpt-taste
+    - design/high-end-visual-design
+    - design/imagegen-frontend-web
+    - meta/awesome-list-submit
+    - higgsfield/higgsfield-generate
+    - higgsfield/higgsfield-product-photoshoot
+    - higgsfield/higgsfield-marketplace-cards
+    - marketing/cue-rec
+    - marketing/ab-test-analyzer
+    - marketing/ab-test-setup-and-analysis
+    - marketing/account-structure-review
+    - marketing/ad-copy-variant-generator
+    - marketing/ad-extension-audit
+    - marketing/ad-spend-allocator
+    - marketing/anomaly-detection
+    - marketing/attribution-model-comparison
+    - marketing/audience-overlap-analysis
+    - marketing/bid-strategy-recommendations
+    - marketing/budget-scenario-planner
+    - marketing/campaign-naming-convention-builder
+    - marketing/channel-mix-optimizer
+    - marketing/client-report-narratives
+    - marketing/competitor-creative-analysis
+    - marketing/competitor-teardown
+    - marketing/content-repurposer
+    - marketing/conversion-path-analysis
+    - marketing/cpa-diagnostics
+    - marketing/creative-fatigue-detection
+    - marketing/day-hour-performance-breakdown
+    - marketing/device-performance-split
+    - marketing/e2e-seo-assistant
+    - marketing/email-sequence-writer
+    - marketing/frequency-cap-recommendations
+    - marketing/geo-performance-analysis
+    - marketing/google-ads-audit
+    - marketing/icp-research-assistant
+    - marketing/keyword-cannibalization-check
+    - marketing/landing-page-audit
+    - marketing/landing-page-audit-quick
+    - marketing/linkedin-ads-audit
+    - marketing/meta-ads-audit
+    - marketing/pacing-monitor
+    - marketing/performance-benchmarking
+    - marketing/programmatic-seo-builder
+    - marketing/quality-score-breakdown
+    - marketing/reddit-ads-audit
+    - marketing/retargeting-window-analysis
+    - marketing/roas-forecasting
+    - marketing/search-term-mining
+    - marketing/utm-tracking-generator
+    - marketing/wasted-spend-finder
+    - marketing/weekly-account-summary
+    - content/article-writer
+    - content/article-to-everywhere
+    - content/trend-to-thread
+    - content/engagement-feedback
+    - gstack/landing-report
+    - content/stop-slop
+    - content/anti-formula
+    - content/pdf
+    - review/api-tester
+    - gstack/ship
+    - gstack/review
+    - design/imagegen-frontend-mobile
+    - research/trendradar
+    - research/keyword-research
+    - nvidia/aiq-research
+  npx:
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
+    - repo: AgriciDaniel/claude-ads
+      skills: [claude-ads, ads-audit, ads-google, ads-meta, ads-youtube, ads-linkedin, ads-tiktok, ads-microsoft, ads-apple, ads-amazon, ads-attribution, ads-server-side-tracking, ads-creative, ads-landing, ads-budget, ads-plan, ads-competitor, ads-math, ads-test, ads-dna, ads-create, ads-generate, ads-photoshoot]
+    - repo: coreyhaines31/marketingskills
+      skills: [referral-program]
+    - repo: bradautomates/head-of-content
+      skills: [instagram-research]
+    - repo: kostja94/marketing-skills
+      skills: [programmatic-seo, parasite-seo, entity-seo]
+    - repo: affaan-m/everything-claude-code
+      skills: [seo]
+    - repo: Affitor/affiliate-skills
+      skills: [affiliate-program-search, niche-opportunity-finder, competitor-spy, commission-calculator, monopoly-niche-finder, purple-cow-audit, trending-content-scout, content-angle-ranker, traffic-analyzer, viral-post-writer, twitter-thread-writer, reddit-post-writer, tiktok-script-writer, content-pillar-atomizer, content-research-brief, infographic-generator, affiliate-blog-builder, comparison-post-writer, listicle-generator, how-to-tutorial-writer, keyword-cluster-architect, content-moat-calculator, content-decay-detector, landing-page-creator, product-showcase-page, squeeze-page-builder, webinar-registration-page, grand-slam-offer, bonus-stack-builder, guarantee-generator, value-ladder-architect, bio-link-deployer, email-drip-sequence, social-media-scheduler, github-pages-deployer, conversion-tracker, ab-test-generator, performance-report, seo-audit, internal-linking-optimizer, email-automation-builder, content-repurposer, multi-program-manager, paid-ad-copy-writer, proprietary-data-generator, skill-finder, funnel-planner, compliance-checker, self-improver, category-designer]
+    - repo: aaron-he-zhu/seo-geo-claude-skills
+      skills: [seo-content-writer, geo-content-optimizer, content-refresher]
+    - repo: sanity-io/agent-toolkit
+      skills: [seo-aeo-best-practices]
+    - repo: promptingcompany/agent-skills
+      skills: [generative-engine-optimization]
+    - repo: aahl/skills
+      skills: [crypto-report]
+    - repo: googleads/google-ads-mcp
+      skills: [account-performance-diagnostics]
+    - repo: posthog/skills
+      skills: [llm-analytics-setup]
+    - repo: gitroomhq/postiz-agent
+      skills: [postiz-agent]
+    - repo: wshobson/agents
+      skills: [python-design-patterns]
+    - repo: fastapi/fastapi
+      skills: [fastapi]
+    - repo: dagster-io/skills
+      skills: [dignified-python]
+    - repo: github/awesome-copilot
+      skills: [pytest-coverage]
+plugins:
+  - claude-mem@thedotmack
+  - oh-my-claudecode@omc
+  - marketing-skills@claude-code-skills
+  - claude-ads@agricidaniel-claude-ads
+mcps:
+  - cue-tty-watch
+  - lightpanda
+  - x-api
+  - reddit
+  - google-ads-mcp
+  - meta-ads
+  - mapi-devdocs
+  - Higgsfield
+  - trendradar
+  - google-analytics-mcp
+  - postiz
+env:
+  GOOGLE_APPLICATION_CREDENTIALS: "${GOOGLE_APPLICATION_CREDENTIALS}"
+  GOOGLE_PROJECT_ID: "${GOOGLE_PROJECT_ID}"
+  GOOGLE_ADS_DEVELOPER_TOKEN: "${GOOGLE_ADS_DEVELOPER_TOKEN}"
+  GOOGLE_ADS_LOGIN_CUSTOMER_ID: "${GOOGLE_ADS_LOGIN_CUSTOMER_ID}"
+  POSTIZ_API_URL: "http://localhost:4007/api"
+  POSTIZ_API_KEY: "${POSTIZ_API_KEY}"
+  INSTAGRAM_USERNAME: "${INSTAGRAM_USERNAME}"
+  INSTAGRAM_PASSWORD: "${INSTAGRAM_PASSWORD}"
+  INSTAGRAPI_SESSION_FILE: "${INSTAGRAPI_SESSION_FILE}"
+  INSTAGRAPI_PROXY: "${INSTAGRAPI_PROXY}"
+persona: |
+  You run the growth loadout end-to-end: copy, SEO/GEO, paid ads, GA4
+  analytics, and social scheduling across one merged agent. Route work by
+  surface; reach for the family that owns the task instead of blurring layers.
+
+  ## Surface router
+
+  | Task | Lead family |
+  |---|---|
+  | Paid ads audits, bidding, ROAS, attribution, spend, GAQL queries | marketing/* |
+  | Blog drafts, repurposing, threads, de-slop and anti-formula gates | content/* |
+  | Brand kits, taste passes, web/mobile image-gen front-ends | design/* |
+  | Hero images, product photoshoots, marketplace cards | higgsfield/* |
+  | Landing reports, ship, code review on growth assets | gstack/* |
+  | Trend scans and keyword research | research/* |
+  | API endpoint checks on tracking/webhooks | review/* |
+  | Awesome-list submissions for distribution | meta/* |
+  | NVIDIA AIQ deep research | nvidia/* |
+
+  ## Defaults
+
+  - **Run the de-slop + anti-formula gates on every draft** before it ships
+    to Postiz or a blog. Score below threshold, rewrite, do not surface.
+  - **MCPs are read-only.** google-ads-mcp and google-analytics-mcp report,
+    never mutate; walk the user through the UI for any change.
+  - **Confirm the brand and account before posting.** Read the brand kit,
+    pass the logo as-is, and wait for explicit yes before scheduling.
+  - **Compose published output in native English** unless the brief names a
+    Hungarian-language brand or audience.

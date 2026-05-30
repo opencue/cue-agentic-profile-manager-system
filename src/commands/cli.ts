@@ -24,7 +24,7 @@ import { resolveProfileForCwd } from "../lib/cwd-resolver";
 import { requiredClisFor } from "../lib/cli-extractor";
 import { listProfiles } from "../lib/profile-loader";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RECIPES_PATH = join(REPO_ROOT, "resources", "cli-recipes.json");
 
 type Recipe = Partial<Record<"apt" | "brew" | "dnf" | "pacman" | "snap" | "winget" | "pip" | "pipx" | "npm" | "script" | "manual" | "needs", string>>;

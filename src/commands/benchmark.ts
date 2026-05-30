@@ -16,9 +16,9 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 interface BenchmarkResult {
   profile: string;
@@ -218,7 +218,7 @@ Metrics:
   let profileName: string | null = profileIdx >= 0 ? args[profileIdx + 1] ?? null : null;
 
   if (!profileName && !all) {
-    try { profileName = await resolveProfileForCwd(process.cwd()); } catch {}
+    try { profileName = await resolveActiveProfile(); } catch {}
     if (!profileName) {
       process.stderr.write("No active profile. Use --profile <name> or --all.\n");
       return 1;

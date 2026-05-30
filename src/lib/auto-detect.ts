@@ -137,8 +137,37 @@ function readPackageDeps(cwd: string): { deps: Set<string>; devDeps: Set<string>
   return { deps, devDeps };
 }
 
+/** True when any dependency name starts with `prefix` (for scoped packages). */
+function hasPrefix(deps: Set<string>, prefix: string): boolean {
+  for (const d of deps) if (d.startsWith(prefix)) return true;
+  return false;
+}
+
+/** True when any of `names` is present in the dependency set. */
+function hasAny(deps: Set<string>, names: string[]): boolean {
+  for (const n of names) if (deps.has(n)) return true;
+  return false;
+}
+
+const ex = (cwd: string, rel: string): boolean => existsSync(join(cwd, rel));
+const exAny = (cwd: string, rels: string[]): boolean => rels.some((r) => ex(cwd, r));
+
+/**
+ * Per-extra-signal confidence boost. A profile backed by several independent
+ * signals (e.g. `medusa-config.ts` + `@medusajs/*` dep) is a stronger match
+ * than one backed by a single file, so corroboration nudges confidence toward
+ * the cap. Single-signal detections are untouched.
+ */
+const CORROBORATION_STEP = 0.05;
+const CONFIDENCE_CAP = 0.97;
+
 /**
  * Enhanced v2 detection with package.json awareness and 0-1 confidence.
+ *
+ * Each `add()` records the strongest single signal for a profile (max
+ * confidence) and accumulates the reasons. After all signals are gathered,
+ * profiles corroborated by 2+ independent signals get a small per-signal boost
+ * (capped), so an agreement of weak signals can out-rank a lone strong one.
  */
 export function detectProfileV2(cwd: string): DetectionResultV2[] {
   const results = new Map<string, { confidence: number; reasons: string[] }>();
@@ -146,38 +175,90 @@ export function detectProfileV2(cwd: string): DetectionResultV2[] {
   function add(profile: string, confidence: number, reason: string) {
     const entry = results.get(profile) ?? { confidence: 0, reasons: [] };
     entry.confidence = Math.max(entry.confidence, confidence);
-    entry.reasons.push(reason);
+    // Dedupe reasons so the same file counted twice doesn't inflate the boost.
+    if (!entry.reasons.includes(reason)) entry.reasons.push(reason);
     results.set(profile, entry);
   }
 
-  // File-based signals
-  if (existsSync(join(cwd, "Cargo.toml"))) {
+  // ── Rust ──
+  if (ex(cwd, "Cargo.toml")) {
     add("rust", 0.9, "Cargo.toml");
-    if (existsSync(join(cwd, "src/main.rs"))) add("rust-cli", 0.7, "src/main.rs");
+    if (ex(cwd, "src/main.rs")) add("rust-cli", 0.7, "src/main.rs");
+    if (ex(cwd, "src/lib.rs")) add("rust", 0.6, "src/lib.rs");
   }
-  if (existsSync(join(cwd, "go.mod"))) add("go-api", 0.8, "go.mod");
-  if (existsSync(join(cwd, "pyproject.toml"))) add("python-api", 0.7, "pyproject.toml");
-  if (existsSync(join(cwd, "requirements.txt"))) add("python-api", 0.7, "requirements.txt");
-  if (existsSync(join(cwd, "docker-compose.yml")) || existsSync(join(cwd, "Dockerfile"))) {
-    add("backend", 0.5, "docker-compose.yml/Dockerfile");
-  }
-  if (existsSync(join(cwd, ".github/workflows"))) add("backend", 0.3, ".github/workflows/");
-  if (existsSync(join(cwd, "CLAUDE.md")) || existsSync(join(cwd, ".claude"))) {
-    add("ecc", 0.4, "CLAUDE.md or .claude/");
-  }
-  if (existsSync(join(cwd, "profiles"))) add("full", 0.3, "profiles/ dir");
 
-  // package.json-based signals
-  if (existsSync(join(cwd, "package.json"))) {
+  // ── Go ──
+  if (ex(cwd, "go.mod")) add("go-api", 0.8, "go.mod");
+  if (ex(cwd, "main.go")) add("go-api", 0.6, "main.go");
+  if (exAny(cwd, ["cmd", "internal"])) add("go-api", 0.4, "cmd/ or internal/");
+
+  // ── Python ──
+  if (ex(cwd, "pyproject.toml")) add("python-api", 0.7, "pyproject.toml");
+  if (ex(cwd, "requirements.txt")) add("python-api", 0.7, "requirements.txt");
+  if (ex(cwd, "manage.py")) add("python-api", 0.8, "manage.py");
+  if (exAny(cwd, ["alembic.ini", "app/main.py"])) add("python-api", 0.6, "alembic.ini or app/main.py");
+
+  // ── Backend (containers / CI / DB) ──
+  if (exAny(cwd, ["docker-compose.yml", "docker-compose.yaml", "Dockerfile"])) {
+    add("backend", 0.5, "docker-compose / Dockerfile");
+  }
+  if (exAny(cwd, ["prisma/schema.prisma", "drizzle.config.ts"])) add("backend", 0.5, "prisma / drizzle");
+  if (ex(cwd, ".github/workflows")) add("backend", 0.3, ".github/workflows/");
+
+  // ── On-disk framework config files (corroborate the package.json deps below) ──
+  if (exAny(cwd, ["next.config.js", "next.config.ts", "next.config.mjs"])) {
+    add("nextjs", 0.85, "next.config.*");
+  }
+  if (exAny(cwd, ["vite.config.ts", "vite.config.js"])) add("frontend", 0.6, "vite.config.*");
+  if (exAny(cwd, ["tailwind.config.js", "tailwind.config.ts"])) add("frontend", 0.4, "tailwind.config.*");
+
+  // ── Docs ──
+  if (exAny(cwd, ["astro.config.mjs", "docusaurus.config.js", "mkdocs.yml"])) {
+    add("docs-writer", 0.7, "astro / docusaurus / mkdocs config");
+  }
+
+  // ── Medusa (commerce) — its own strongest signals ──
+  const isMedusaBackend = exAny(cwd, ["medusa-config.js", "medusa-config.ts", "packages/medusa"]);
+  if (isMedusaBackend) add("medusa-dev", 0.9, "medusa-config.*");
+
+  // ── Fleet / meta ──
+  if (exAny(cwd, [".colony", ".omx", "scripts/codex-fleet"])) add("fleet-control", 0.6, "fleet markers");
+  if (exAny(cwd, ["CLAUDE.md", ".claude"])) add("ecc", 0.4, "CLAUDE.md or .claude/");
+  if (ex(cwd, "profiles")) add("full", 0.3, "profiles/ dir");
+
+  // ── package.json deps ──
+  if (ex(cwd, "package.json")) {
     const { deps, devDeps } = readPackageDeps(cwd);
     const allDeps = new Set([...deps, ...devDeps]);
-    if (allDeps.has("next")) add("nextjs", 0.9, "package.json has next");
-    else if (allDeps.has("react")) add("frontend", 0.8, "package.json has react");
-    else add("backend", 0.6, "package.json (no framework)");
+    const isMedusaPkg = hasPrefix(allDeps, "@medusajs/");
+    if (isMedusaPkg && allDeps.has("next")) {
+      // Medusa storefront on Next.js.
+      add("medusa-next", 0.85, "package.json @medusajs + next");
+    } else if (isMedusaPkg && hasAny(allDeps, ["vite"])) {
+      // Medusa storefront on Vite (the canonical storefront pattern).
+      add("medusa-vite", 0.85, "package.json @medusajs + vite");
+    } else if (isMedusaPkg) {
+      add("medusa-dev", 0.85, "package.json @medusajs/*");
+    } else if (allDeps.has("next")) {
+      add("nextjs", 0.9, "package.json has next");
+    } else if (hasAny(allDeps, ["astro", "@docusaurus/core"])) {
+      add("docs-writer", 0.8, "package.json docs framework");
+    } else if (allDeps.has("react")) {
+      add("frontend", 0.8, "package.json has react");
+    } else {
+      add("backend", 0.6, "package.json (no framework)");
+    }
   }
 
   return [...results.entries()]
-    .map(([profile, { confidence, reasons }]) => ({ profile, confidence, reasons }))
+    .map(([profile, { confidence, reasons }]) => {
+      // Corroboration boost: each signal beyond the first nudges confidence up
+      // toward the cap. Lone signals keep their base value (tested contract).
+      const boosted = reasons.length > 1
+        ? Math.min(CONFIDENCE_CAP, confidence + CORROBORATION_STEP * (reasons.length - 1))
+        : confidence;
+      return { profile, confidence: boosted, reasons };
+    })
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 5);
 }

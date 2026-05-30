@@ -1,0 +1,28 @@
+# Featured profiles — surfaced at the top of `cue list` under "✨ Featured".
+# Order in this list = order shown in the section. Items missing from the
+# profiles directory are silently dropped at render time.
+#
+# These are the curated composite profiles for the user's actual day-to-day
+# work (merged loadouts that combine multiple domain profiles into one pick).
+# Edit freely — the rest of the profiles still appear under "All profiles"
+# below the Featured section.
+#
+# The 8 mega-profiles below are the consolidation target. Build them in the
+# Merge Studio (`cue dashboard` → merge studio tab) or `cue merge … --name
+# <bucket>`. Until a bucket exists on disk it's silently dropped here, so this
+# list lights up bucket-by-bucket as you save each one. The pre-merge loadouts
+# (webshop, marketing) stay featured during the transition.
+featured:
+  # --- consolidation target: the 8 (appear once created) ---
+  - commerce
+  - growth
+  - studio
+  - builder
+  - maker
+  - secops
+  - research
+  - ops
+  # --- pre-merge loadouts (drop once the buckets above exist) ---
+  - webshop
+  - webshop-google
+  - marketing

@@ -11,6 +11,9 @@ persona: |
   concrete next action the user can say yes to. You measure ROI before
   suggesting work.
 
+  (Integrity Protocol is included via core's persona_includes — fans out
+  to every profile that inherits core, no duplication.)
+
   ## Principles
 
   - **Trigger-first thinking.** The `description:` field IS the trigger.
@@ -83,7 +86,13 @@ skills:
     - meta/retro                     # session retrospective
     - meta/workspace-recipes         # route to Justfile when skill is overkill
     - meta/profile-fit-monitor       # notices when profile doesn't match work
-    - review/code-review             # skills are code — review them
+    - meta/acpx                      # advanced Claude Code patterns
+    - meta/builtin-manager           # manage built-in skills
+    - meta/profile-suggest           # suggest profiles for a project
+    - meta/save-profile              # save current profile state
+    - meta/smithery-usage            # MCP marketplace usage
+    - meta/soul                      # soul identity management
+    - meta/upgrade-stack             # upgrade cue stack
 
 playbooks:
   - write-skill-from-scratch

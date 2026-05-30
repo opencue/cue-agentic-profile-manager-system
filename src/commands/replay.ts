@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 
 import { loadProfile } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 
 const PROJECTS_DIR = join(homedir(), ".claude", "projects");
 
@@ -74,7 +74,7 @@ export async function run(args: string[]): Promise<number> {
 
   // Get original profile
   let originalProfile: string;
-  try { originalProfile = await resolveProfileForCwd(process.cwd()); } catch { originalProfile = "unknown"; }
+  try { originalProfile = (await resolveActiveProfile()) ?? "unknown"; } catch { originalProfile = "unknown"; }
 
   // Load both profiles
   const target = await loadProfile(targetProfile);

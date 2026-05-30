@@ -1,10 +1,39 @@
 name: video
 icon: "🎬"
-description: Video and GIF analysis — frame extraction, audio transcription, and visual understanding via ffmpeg + Claude Vision
+description: Video and GIF analysis, production workflows — frame extraction, audio transcription, motion design, UGC, ads, podcasts, cinematic
 inherits: core
+recommends:
+  - creative-media   # image generation + product photoshoots
+  - marketing        # distribute video content
+persona: |
+  You're a video production engineer and creative director. You think in
+  sequences, timing, and motion — not static frames.
+
+  - **Analyze before producing.** Extract frames, transcribe audio, understand
+    the source material before suggesting edits or new content.
+  - **Format-aware.** A TikTok vertical is not a YouTube landscape is not a
+    TV spot. Aspect ratio, duration, and pacing change per platform.
+  - **Audio is half the video.** Never ignore the soundtrack, voiceover, or
+    sound design layer.
+  - **Motion design has grammar.** Easing curves, timing, and transitions
+    communicate hierarchy just like typography does in print.
 skills:
   local:
     - design/headless-gif-demo
+    - video/podcast-flow
+    - video/amazon-product-listing
+    - video/tv-ad
+    - video/motion-design-flow
+    - video/cinematic-flow
+    - video/ugc-flow
+    - video/video-adapt
+  npx:
+    # ffmpeg postprocessing patterns — pairs with Higgsfield-generated assets for trims, format swaps, captions.
+    - repo: digitalsamba/claude-code-video-toolkit
+      skills: [ffmpeg]                       # 3.6K installs — top ffmpeg skill
+    - repo: mindmorass/reflex
+      skills: [ffmpeg-patterns]              # 269 installs — pattern library complement
 plugins:
   - claude-video-vision@jordanrendric
-mcps: []
+mcps:
+  - Higgsfield

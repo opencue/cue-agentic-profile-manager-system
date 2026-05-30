@@ -10,9 +10,9 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadProfile } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 
@@ -38,7 +38,7 @@ Press Ctrl+C to stop.
 
   if (!profileName) {
     try {
-      profileName = await resolveProfileForCwd(process.cwd()) ?? undefined;
+      profileName = await resolveActiveProfile() ?? undefined;
     } catch { /* fallback below */ }
   }
 
@@ -100,8 +100,7 @@ Press Ctrl+C to stop.
         agent: "claude-code",
         runtimeRoot,
         skillSourceLookup: async (id) => {
-          const plan = await resolveLocalSkill(id, freshProfile);
-          return plan.source;
+          return await resolveLocalSkill(id);
         },
         mcpRegistry: {},
         userClaudeMd: "",

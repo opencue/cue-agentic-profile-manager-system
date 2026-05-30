@@ -425,7 +425,7 @@ Want out? Add `<!-- cue: ignore -->` to your README.
 ---
 
 <p align="center">
-  <a href="https://github.com/opencue/cue">
+  <a href="https://github.com/opencue/claude-code-skills">
     <img src="https://img.shields.io/badge/powered_by-cue-6366f1?style=flat-square&labelColor=1e1b4b" alt="powered by cue">
   </a>
 </p>

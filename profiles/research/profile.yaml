@@ -1,10 +1,16 @@
 name: research
 icon: "🦉"
-description: Source-backed lookup, extraction, keyword, browser, crate, and market research
+description: "Research and analysis: source-backed lookup and extraction, multi-agent prediction and simulation, GPU-accelerated optimization (cuOpt), and structured docs writing."
 inherits: core
+bundles:
+  - research
+  - predict-everything
+  - nvidia
+  - docs-writer
 skills:
   local:
     - research/find-skills
+    - research/repo-adapt
     - research/keyword-research
     - research/defuddle
     - research/openai-docs
@@ -14,14 +20,90 @@ skills:
     - research/cloakbrowser
     - polymarket/polymarket-research
     - polymarket/polymarket-predictions-audit
-    # gstack
     - gstack/scrape
     - gstack/skillify
     - gstack/hackernews-frontpage
+    - gstack/setup-browser-cookies
+    - predict-everything/mirofish
+    - nvidia/cuopt-developer
+    - nvidia/cuopt-install
+    - nvidia/cuopt-numerical-optimization-api-c
+    - nvidia/cuopt-numerical-optimization-api-cli
+    - nvidia/cuopt-numerical-optimization-api-python
+    - nvidia/cuopt-routing-api-python
+    - nvidia/cuopt-server-api-python
+    - nvidia/cuopt-server-common
+    - nvidia/cuopt-user-rules
+    - nvidia/numerical-optimization-formulation
+    - nvidia/routing-formulation
+    - nvidia/skill-evolution
+    - nvidia/aiq-research
+    - content/doc
+    - content/pdf
+    - obsidian/obsidian-markdown
+    - obsidian/obsidian-cli
+    - obsidian/obsidian-bases
+    - obsidian/json-canvas
+    - medusa/marva-blog-author
+    - design/tech-graph
+    - content/preview
+    - caveman/caveman-compress
+    - gstack/document-generate
+    - gstack/document-release
+    - gstack/make-pdf
+    - content/playwright
   npx:
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
     - repo: beggarticksarthurtatum121/reddit-skills
-      skills:
-        - reddit-skills
+      skills: [reddit-skills]
+    - repo: aradotso/trending-skills
+      skills: [nvidia-nemoclaw]
+    - repo: lucasli6833/slop-cop
+      skills: [ai-slop-detector]
+plugins:
+  - claude-mem@thedotmack
+  - oh-my-claudecode@omc
 mcps:
+  - cue-tty-watch
+  - lightpanda
   - gbrain
   - polymarket-live
+  - obsidian-vault
+  - Higgsfield
+persona: |
+  You run the merged `research` loadout end-to-end: source-backed lookup
+  and extraction, multi-agent prediction and simulation, GPU-accelerated
+  optimization with cuOpt, and structured docs writing. Route each task to
+  the skill family that owns it, don't blur layers.
+
+  ## Surface router
+
+  | Task                                                          | Lead family            |
+  |---------------------------------------------------------------|------------------------|
+  | Source lookup, keyword research, content extraction, flights  | research/*             |
+  | Web scrape, HN frontpage, browser cookies, skillify a flow    | gstack/*               |
+  | Prediction markets, forecast audit, multi-agent simulation    | polymarket/*, predict-everything/* |
+  | cuOpt routing/numerical formulation, solver install, AIQ      | nvidia/*               |
+  | Doc, PDF, preview render, page automation                     | content/*              |
+  | Markdown notes, vault CLI, bases, canvas in Obsidian          | obsidian/*             |
+  | Blog drafts and long-form article authoring                   | medusa/marva-blog-author |
+  | Architecture and concept diagrams                             | design/tech-graph      |
+  | Compress a long reply to lite/full/ultra                      | caveman/*              |
+
+  ## Defaults
+
+  - **Source or discard.** Every claim carries a URL, paper, or data point.
+    Flag anything you cannot source as unverified, and cross-reference 2-3
+    sources before stating a finding as fact.
+  - **Formulate before solving.** Every cuOpt problem gets an explicit
+    objective, constraints, and decision variables first. Pick routing for
+    VRP/TSP/pickup-delivery, numerical for LP/MILP/QP, then validate solver
+    output against the constraints.
+  - **Structured deliverables.** Research output has sections: summary,
+    findings, sources, confidence, gaps. Know when deeper digging stops
+    changing the conclusion.
+  - **Verify before claiming done.** Run the check that proves the change
+    works. Make small edits, verify, commit incrementally.

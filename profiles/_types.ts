@@ -50,6 +50,25 @@ export interface Profile {
   // composes via foldComposite. Recommendations are NOT inherited and do NOT
   // auto-merge skills/MCPs — purely a discovery hint.
   recommends?: string[];
+  /**
+   * Mutually-exclusive profile names. Used by the picker's combine-multiselect
+   * to disable rows that would conflict with an already-checked option (e.g.
+   * picking medusa-vite greys out medusa-next, since both are Medusa
+   * storefront frameworks and cannot reasonably coexist). Symmetric is
+   * recommended (both sides declare each other) but the picker also derives
+   * the inverse so a one-sided declaration still works.
+   */
+  conflicts?: string[];
+  /**
+   * Human-facing list of the profiles this one conceptually bundles. Purely a
+   * display hint — the picker renders it as `includes: a + b + c` next to the
+   * row so a fat profile (e.g. `webshop`, which inlines medusa-dev/backend/
+   * designer/… rather than composing them via `+`) advertises what it packs.
+   * Does NOT drive resolution; skills/mcps/plugins are still the source of
+   * truth for what actually loads. Inherited leaf-wins (a child that omits it
+   * keeps its parent's list).
+   */
+  bundles?: string[];
   skills?: ProfileSkills;
   mcps?: MCPRef[];
   plugins?: PluginRef[];
@@ -57,9 +76,20 @@ export interface Profile {
   rules?: string[];
   commands?: string[];
   hooks?: string[];
+  // Claude Code subagents (relative to resources/subagents/, no .md). Each ref
+  // points at a subagent definition (frontmatter + system prompt) that cue
+  // symlinks flat into the runtime's agents/ dir so Claude Code can delegate to
+  // it via the Task tool. Inheritance: concat + dedupe across the chain.
+  subagents?: string[];
   // Phase 1: Persona — multi-line role-priming text injected at the top of
   // CLAUDE.md. Defines who the agent IS, not just what tools it has.
   persona?: string;
+  // Shared persona snippets (relative to resources/personas/, no .md). Each
+  // snippet is read at materialize-time and PREPENDED to the persona, so
+  // cross-profile policies (Integrity Protocol, voice rules) live in one file
+  // instead of being copy-pasted into every persona. Inheritance: concat +
+  // dedupe across the chain — children inherit parent includes automatically.
+  persona_includes?: string[];
   // Phase 2: Playbooks — markdown files under resources/playbooks/ with
   // proven step-by-step protocols for common tasks ("ship-feature",
   // "triage-bug"). Symlinked into runtime, indexed in CLAUDE.md.
@@ -113,11 +143,14 @@ export interface ResolvedProfile extends Omit<Profile, "skills" | "mcps" | "plug
   rules: string[];
   commands: string[];
   hooks: string[];
+  subagents: string[];
   persona: string;        // empty string when not declared
+  personaIncludes: string[];  // resolved persona snippet refs (concat+dedupe across chain)
   playbooks: string[];
   qualityGates: string[];
   evals: string[];
   recommends: string[];
+  conflicts: string[];
   inheritanceChain: string[];
   personaRouting: PersonaRoutingEntry[];
 }

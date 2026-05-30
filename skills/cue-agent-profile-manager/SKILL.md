@@ -4,8 +4,8 @@ description: "When user asks about managing Claude Code or Codex profiles, skill
 tags: [agent, profiles, skills, mcp, claude-code, codex, configuration]
 category: meta
 version: 0.3.0
-author: recodeee
-repository: https://github.com/recodeee/cue
+author: NagyVikt
+repository: https://github.com/opencue/claude-code-skills
 ---
 
 # cue — Agent Profile Manager for Claude Code & Codex
@@ -15,9 +15,9 @@ Pick a profile. Launch with the right skills, MCPs, and plugins. Nothing else.
 ## Install
 
 ```bash
-npm install -g @recodeee/cue
+npm install -g @opencue/claude-code-skills
 # or
-gh repo clone recodeee/cue ~/Documents/cue && ~/Documents/cue/install.sh
+gh repo clone opencue/claude-code-skills ~/Documents/cue && ~/Documents/cue/install.sh
 ```
 
 ## Quick Start

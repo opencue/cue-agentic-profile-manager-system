@@ -1,0 +1,125 @@
+name: studio
+icon: "🎨"
+description: "Visual and creative production: premium UI/UX design, brand kits, Higgsfield image/video, cinematic AI video, event collateral, Three.js 3D, and README design."
+inherits: core
+bundles:
+  - designer
+  - creative-media
+  - higgsfield
+  - supercomputer
+  - video
+  - event-design
+  - threejs
+  - readme-writer
+skills:
+  local:
+    - design/taste-skill
+    - design/taste-skill-v1
+    - design/gpt-tasteskill
+    - design/image-to-code-skill
+    - design/imagegen-frontend-web
+    - design/imagegen-frontend-mobile
+    - design/brandkit
+    - design/redesign-skill
+    - design/soft-skill
+    - design/output-skill
+    - design/minimalist-skill
+    - design/brutalist-skill
+    - design/stitch-skill
+    - design/industrial-brutalist-ui
+    - design/redesign-existing-projects
+    - gstack/design-consultation
+    - gstack/design-review
+    - gstack/plan-design-review
+    - higgsfield/higgsfield-generate
+    - higgsfield/higgsfield-product-photoshoot
+    - higgsfield/higgsfield-marketplace-cards
+    - higgsfield/higgsfield-soul-id
+    - design/kitty-visualize
+    - design/remotion-best-practices
+    - design/png-alpha-cleaner
+    - design/high-end-visual-design
+    - design/gpt-taste
+    - design/stitch-design-taste
+    - design/screenshot
+    - medusa/higgsfield-to-medusa-products
+    - video/video-adapt
+    - video/ugc-flow
+    - video/cinematic-flow
+    - video/motion-design-flow
+    - video/tv-ad
+    - video/amazon-product-listing
+    - video/podcast-flow
+    - design/headless-gif-demo
+    - design/image-to-code
+    - content/article-to-everywhere
+    - content/trend-to-thread
+    - event-design/wedding-invitations
+    - design/readme-svg-design
+  npx:
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
+    - repo: nextlevelbuilder/ui-ux-pro-max-skill
+      skills: [ckm:design]
+    - repo: sickn33/antigravity-awesome-skills
+      skills: [ui-ux-designer]
+    - repo: OSideMedia/higgsfield-ai-prompt-skill
+      skills: [higgsfield-ai-prompt-skill]
+    - repo: op7418/Seedance-Product-Video
+      skills: [seedance-product-video]
+    - repo: digitalsamba/claude-code-video-toolkit
+      skills: [ffmpeg]
+    - repo: mindmorass/reflex
+      skills: [ffmpeg-patterns]
+    - repo: CloudAI-X/threejs-skills
+      skills: [threejs-fundamentals, threejs-geometry, threejs-materials, threejs-lighting, threejs-textures, threejs-animation, threejs-loaders, threejs-shaders, threejs-postprocessing, threejs-interaction]
+    - repo: freshtechbro/claudedesignskills
+      skills: [threejs-webgl]
+    - repo: omer-metin/skills-for-antigravity
+      skills: [threejs-3d-graphics]
+    - repo: yizhiyanhua-ai/fireworks-tech-graph
+      skills: [fireworks-tech-graph]
+    - repo: cathrynlavery/diagram-design
+      skills: [diagram-design]
+plugins:
+  - claude-mem@thedotmack
+  - oh-my-claudecode@omc
+  - frontend-design@claude-plugins-official
+  - claude-video-vision@jordanrendric
+mcps:
+  - cue-tty-watch
+  - lightpanda
+  - Higgsfield
+  - secret-mcp
+  - marva-blog
+  - trendradar
+persona: |
+  You run visual and creative production end-to-end: premium UI/UX, brand
+  systems, AI image and video, 3D scenes, and README design. Route work by
+  surface and reach for the family that owns the task.
+
+  ## Surface router
+
+  | Task                                                        | Lead surface        |
+  |-------------------------------------------------------------|---------------------|
+  | Premium UI/UX, design taste, redesign, brand kit, README SVG | design/*           |
+  | Design consultation and pre-merge design review             | gstack/*            |
+  | AI image/video generation, product photoshoot, Soul ID      | higgsfield/*        |
+  | Cinematic video, UGC, TV ad, motion design, podcast cuts     | video/*            |
+  | Repurpose an article or trend into multi-channel posts       | content/*          |
+  | Import Higgsfield assets into Medusa products               | medusa/*            |
+  | Wedding and event collateral                                 | event-design/*     |
+
+  ## Defaults
+
+  - **Ship complete.** No placeholder images, no lorem ipsum, no half-built
+    sections. Typography and motion carry hierarchy, never decoration.
+  - **Visuals run through skills.** Higgsfield product-photoshoot,
+    marketplace-cards, and Soul ID wrap the CLI with house style. Never call
+    `higgsfield generate create` raw when a skill applies.
+  - **Spend credits with care.** Each generation debits credits. Show one
+    result, then ask before re-rolling instead of auto-looping variants.
+  - **Match the format.** Aspect ratio, duration, and pacing change per
+    platform. A vertical reel is not a widescreen spot.

@@ -4,17 +4,19 @@
   "description": "cue — Agent Profile Manager for Claude Code & Codex. Pick a profile, launch with the right skills, MCPs, and plugins.",
   "type": "module",
   "bin": {
-    "cue": "bin/cue"
+    "cue": "bin/cue.mjs"
   },
   "engines": {
-    "bun": ">=1.0.0",
     "node": ">=20.0.0"
   },
   "scripts": {
     "cue": "bun src/index.ts",
     "test": "bun test",
+    "typecheck": "tsc --noEmit",
     "build": "bun build src/index.ts --no-bundle",
-    "postinstall": "echo '' && echo '  ✅ cue installed. Run: cue init' && echo '  Docs: https://github.com/opencue/cuecards' && echo ''"
+    "build:bundle": "bun build src/index.ts --target=node --outfile=dist/cue.js",
+    "prepack": "bash scripts/prepack-check.sh && bun run build:bundle",
+    "postinstall": "echo '' && echo '  ✅ cue installed. Run: cue init' && echo '  Docs: https://github.com/opencue/claude-code-skills' && echo ''"
   },
   "keywords": [
     "claude-code",
@@ -31,14 +33,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/opencue/cuecards.git"
+    "url": "https://github.com/opencue/claude-code-skills.git"
   },
-  "homepage": "https://github.com/opencue/cuecards",
+  "homepage": "https://github.com/opencue/claude-code-skills",
   "bugs": {
-    "url": "https://github.com/opencue/cuecards/issues"
+    "url": "https://github.com/opencue/claude-code-skills/issues"
   },
   "files": [
     "bin/",
+    "dist/",
     "src/",
     "profiles/*/profile.yaml",
     "profiles/*/logo.png",
@@ -63,5 +66,9 @@
     "@clack/prompts": "^1.4.0",
     "ajv": "^8.17.1",
     "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.14",
+    "typescript": "^6.0.3"
   }
 }

@@ -4,7 +4,6 @@ description: Foundation shared by every rust sub-profile — toolchain essential
 inherits: core
 skills:
   local:
-    - review/code-review
     - research/awesome-rust-search   # crate discovery against awesome-rust catalog
     # Toolchain essentials — everyone needs these
     - rust/cargo-basics

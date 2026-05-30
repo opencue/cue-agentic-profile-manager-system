@@ -15,7 +15,7 @@ import { homedir } from "node:os";
 
 import { loadProfile, listProfiles } from "../lib/profile-loader";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKILLS_LOCK = join(homedir(), "skills-lock.json");
 const CLAUDE_SKILLS_DIR = join(homedir(), ".claude", "skills");
 
@@ -74,7 +74,7 @@ function cmdList(json: boolean): number {
         } catch { /* skip */ }
       }
     } catch { /* skip */ }
-    results.push({ repo: "opencue/cue (local)", url: "https://github.com/opencue/cue", skillCount: count, type: "local" });
+    results.push({ repo: "opencue/claude-code-skills (local)", url: "https://github.com/opencue/claude-code-skills", skillCount: count, type: "local" });
   }
 
   if (json) {
@@ -126,7 +126,7 @@ async function cmdProfile(profileName: string, json: boolean): Promise<number> {
   process.stdout.write(`Skill sources for "${profileName}":\n\n`);
 
   if (localSkills.length) {
-    process.stdout.write(`  📁 opencue/cue (local) — ${localSkills.length} skills\n`);
+    process.stdout.write(`  📁 opencue/claude-code-skills (local) — ${localSkills.length} skills\n`);
     for (const s of localSkills.slice(0, 8)) process.stdout.write(`       - ${s}\n`);
     if (localSkills.length > 8) process.stdout.write(`       ... +${localSkills.length - 8} more\n`);
     process.stdout.write("\n");

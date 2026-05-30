@@ -45,4 +45,8 @@ skills:
     - rust/release-plz
     - rust/cargo-msrv
     - rust/cross-compile
+  npx:
+    # Daily-pattern playbook from the actionbook team (720 installs) — complements the local pack with idiomatic recipes.
+    - repo: actionbook/rust-skills
+      skills: [rust-daily]
 mcps: []

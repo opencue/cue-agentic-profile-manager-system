@@ -6,7 +6,17 @@ inherits: python
 recommends:
   - postizz         # scheduled multi-platform posting once content is built
   - creative-media  # image/video generation for posts, reels, stories
-skills: {}
+skills:
+  local:
+    - content/article-to-everywhere
+    - content/engagement-feedback
+    - higgsfield/higgsfield-generate
+    - higgsfield/higgsfield-product-photoshoot
+    - design/imagegen-frontend-mobile
+  npx:
+    # Top community Instagram skill (765 installs) — adds research/competitor surface that the execution-focused persona lacks.
+    - repo: bradautomates/head-of-content
+      skills: [instagram-research]
 mcps: []
 env:
   # Required for any flow beyond login_by_sessionid().

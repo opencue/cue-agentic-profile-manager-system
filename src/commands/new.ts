@@ -10,7 +10,7 @@ import { createInterface } from "node:readline/promises";
 
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
-import type { ProfileDomain } from "../lib/profile-generator";
+import type { GeneratedProfile, ProfileDomain } from "../lib/profile-generator";
 import {
   ProfileAlreadyExists,
   bucketSkills,
@@ -182,7 +182,7 @@ async function createFromSeed(args: NewArgs): Promise<number> {
 
 async function createEmpty(args: NewArgs): Promise<number> {
   const description = `Custom cue profile ${args.name}`;
-  const generated = {
+  const generated: GeneratedProfile = {
     profile: { name: args.name!, description, agents: ["claude-code", "codex"] },
     yaml: [
       `name: ${JSON.stringify(args.name)}`,

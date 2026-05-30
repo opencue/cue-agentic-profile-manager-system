@@ -1,0 +1,110 @@
+name: ops
+icon: "☁️"
+description: "Infra and SaaS ops: AWS, Vercel, Coolify, Hostinger (DNS/VPS/hosting), Google Drive, Slack, and Linear project management."
+inherits: core
+bundles:
+  - aws
+  - vercel
+  - coolify
+  - hostinger
+  - google-drive
+  - slack
+  - linear
+skills:
+  local:
+    - deployment/coolify
+    - deployment/pnpm
+    - github/github
+    - github/gh-fix-ci
+    - review/security-review
+    - secrets/envoult
+    - gstack/setup-deploy
+    - private/myvps
+    - hostinger/dns
+    - hostinger/domains
+    - hostinger/hosting
+    - hostinger/vps
+    - google-workspace/google-drive
+  npx:
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
+    - repo: aws/agent-toolkit-for-aws
+      skills: [aws-iam]
+    - repo: aj-geddes/useful-ai-prompts
+      skills: [aws-s3-management]
+    - repo: zxkane/aws-skills
+      skills: [aws-mcp-setup]
+    - repo: oldwinter/skills
+      skills: [aws-cli]
+    - repo: mindrally/skills
+      skills: [docker]
+    - repo: ajmcclary/coolify-manager
+      skills: [coolify-manager]
+    - repo: v1truv1us/ai-eng-system
+      skills: [coolify-deploy]
+    - repo: membranedev/application-skills
+      skills: [linear]
+    - repo: sickn33/antigravity-awesome-skills
+      skills: [google-drive-automation]
+    - repo: stablyai/agent-slack
+      skills: [agent-slack]
+    - repo: letta-ai/skills
+      skills: [agent-slack]
+    - repo: schpet/linear-cli
+      skills: [linear-cli]
+    - repo: openai/skills
+      skills: [linear]
+    - repo: davila7/claude-code-templates
+      skills: [linear]
+plugins:
+  - claude-mem@thedotmack
+  - oh-my-claudecode@omc
+  - vercel@claude-plugins-official
+mcps:
+  - cue-tty-watch
+  - lightpanda
+  - aws-docs
+  - coolify
+  - gbrain
+  - hostinger-api
+  - google-drive-mcp
+  - slack
+  - linear
+env:
+  AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+  AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+  AWS_REGION: "${AWS_REGION}"
+  AWS_PROFILE: "${AWS_PROFILE}"
+  VERCEL_TOKEN: "${VERCEL_TOKEN}"
+  GOOGLE_DRIVE_OAUTH_CREDENTIALS: "${GOOGLE_DRIVE_OAUTH_CREDENTIALS}"
+  SLACK_BOT_TOKEN: "${SLACK_BOT_TOKEN}"
+  SLACK_TEAM_ID: "${SLACK_TEAM_ID}"
+  SLACK_SIGNING_SECRET: "${SLACK_SIGNING_SECRET}"
+  LINEAR_API_KEY: "${LINEAR_API_KEY}"
+persona: |
+  You run infrastructure and SaaS operations end-to-end across AWS,
+  Vercel, Coolify, and Hostinger, plus Google Drive, Slack, and Linear.
+  Route every task by surface, never blur layers.
+
+  ## Surface router
+
+  | Task                                                  | Lead surface          |
+  |-------------------------------------------------------|-----------------------|
+  | Container deploys, env vars, reverse proxy, rollbacks | deployment/*          |
+  | DNS, domains, VPS firewall, shared hosting, TLS       | hostinger/*           |
+  | Self-hosted VPS schema and server ops                 | private/myvps         |
+  | Repo automation, Actions, CI failures                 | github/*              |
+  | Secrets and env injection                             | secrets/envoult       |
+  | One-shot deploy bootstrap                             | gstack/setup-deploy   |
+  | Diff and dependency security audit                    | review/security-review|
+  | Drive, Docs, Sheets, Slides, Calendar                 | google-workspace/*    |
+
+  ## Defaults
+
+  - Confirm before any destructive or production op: DNS changes, VPS
+    rebuilds, `s3 rm --recursive`, IAM deletes, prod deploys.
+  - Secrets stay in Coolify env or envoult, never in code.
+  - Least-privilege everywhere. No `*:*` IAM, no `latest` image tags.
+  - Warn on DNS propagation lag (5 to 60 minutes) after every change.

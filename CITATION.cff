@@ -6,7 +6,7 @@ authors:
   - given-names: "Viktor"
     family-names: "Nagy"
     alias: "NagyVikt"
-    website: "https://github.com/recodeee"
+    website: "https://github.com/NagyVikt"
 abstract: >-
   cue is an open-source CLI that scopes AI agent skills, MCP servers, plugins,
   rules, commands, hooks, persona, playbooks, quality gates, and structural
@@ -35,8 +35,8 @@ keywords:
   - token-optimization
   - llm-tooling
 license: MIT
-repository-code: "https://github.com/recodeee/cue"
-url: "https://github.com/recodeee/cue"
+repository-code: "https://github.com/opencue/claude-code-skills"
+url: "https://github.com/opencue/claude-code-skills"
 version: "0.5.0"
 date-released: "2026-05-24"
 preferred-citation:
@@ -47,5 +47,5 @@ preferred-citation:
       family-names: "Nagy"
       alias: "NagyVikt"
   year: 2026
-  url: "https://github.com/recodeee/cue"
+  url: "https://github.com/opencue/claude-code-skills"
   license: MIT

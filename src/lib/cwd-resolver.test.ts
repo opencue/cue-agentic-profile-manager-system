@@ -1,9 +1,9 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { resolveProfileForCwd } from "./cwd-resolver";
+import { resolveProfileForCwd, resolveActiveProfile } from "./cwd-resolver";
 
 let root: string;
 beforeEach(async () => {
@@ -85,6 +85,20 @@ describe("resolveProfileForCwd", () => {
     expect(out).toEqual({ source: "global-default", profile: "core" });
   });
 
+  test("composes multi-line default-profile into a core+ selector", async () => {
+    await mkdir(join(root, ".config", "cue"), { recursive: true });
+    await writeFile(
+      join(root, ".config", "cue", "default-profile"),
+      "core\nskill-writer\n",
+    );
+    const out = await resolveProfileForCwd({
+      cwd: root,
+      homeDir: root,
+      configDir: join(root, ".config", "cue"),
+    });
+    expect(out).toEqual({ source: "global-default", profile: "core+skill-writer" });
+  });
+
   test("--cue-profile flag (passed via override) wins over everything", async () => {
     await writeFile(join(root, ".cue-profile"), "frontend");
     const out = await resolveProfileForCwd({
@@ -94,5 +108,60 @@ describe("resolveProfileForCwd", () => {
       override: "backend",
     });
     expect(out).toEqual({ source: "flag", profile: "backend" });
+  });
+});
+
+describe("resolveActiveProfile (convenience wrapper)", () => {
+  test("composes the global-default composition into a selector string", async () => {
+    const cfg = join(root, ".config", "cue");
+    await mkdir(cfg, { recursive: true });
+    await writeFile(join(cfg, "default-profile"), "core\nskill-writer\n");
+    const cleanCwd = join(root, "work");
+    await mkdir(cleanCwd, { recursive: true });
+
+    const prevXdg = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = join(root, ".config");
+    try {
+      expect(await resolveActiveProfile(cleanCwd)).toBe("core+skill-writer");
+    } finally {
+      if (prevXdg === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = prevXdg;
+    }
+  });
+
+  test("returns null when no profile applies", async () => {
+    const cleanCwd = join(root, "work");
+    await mkdir(cleanCwd, { recursive: true });
+
+    const prevXdg = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = join(root, ".config"); // empty — no default-profile
+    try {
+      expect(await resolveActiveProfile(cleanCwd)).toBeNull();
+    } finally {
+      if (prevXdg === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = prevXdg;
+    }
+  });
+});
+
+// Regression guard for the signature-drift class: resolveProfileForCwd takes
+// an options object and returns a ResolveResult. A bare string argument (the
+// old contract) silently breaks active-profile detection. Commands should use
+// resolveActiveProfile() or pass the options object — never a string.
+describe("no command misuses resolveProfileForCwd", () => {
+  test("no command calls resolveProfileForCwd with a non-object argument", async () => {
+    const commandsDir = join(import.meta.dir, "..", "commands");
+    const files = (await readdir(commandsDir)).filter(
+      (f) => f.endsWith(".ts") && !f.endsWith(".test.ts"),
+    );
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = await readFile(join(commandsDir, file), "utf8");
+      // Match resolveProfileForCwd( not immediately followed by `{` (the
+      // options object). Allows whitespace/newline before the brace.
+      const re = /resolveProfileForCwd\(\s*(?!\{)/g;
+      if (re.test(src)) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
   });
 });

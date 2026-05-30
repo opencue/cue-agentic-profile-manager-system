@@ -773,11 +773,21 @@ skills:
     - repo: elementalsouls/Claude-OSINT
       skills:
         - Claude-OSINT
+    # CTF-focused OSINT (4K installs) — complements elementalsouls with CTF-style workflows.
+    - repo: ljagiello/ctf-skills
+      skills:
+        - ctf-osint
+    # Red-team methodology + nuclei coverage — fills workflow gaps not in the mukul975 700-skill set.
+    - repo: davila7/claude-code-templates
+      skills:
+        - red-team-tools-and-methodology
 
 mcps:
   - agentshield    # AgentShield scanner — audit .claude/, settings.json, mcp.json, hooks, agents (scan / scan_summary / list_rules tools)
   - mitre-attack    # MITRE ATT&CK knowledge base — 50+ tools for techniques, tactics, threat actors, malware, navigator layers
   - cve-search      # Public CVE-Search API (CIRCL) — vendor/product lookup, CVE-by-ID, last-30-days feed
+  - hexstrike-ai    # 150+ offensive tools (nmap/nuclei/sqlmap/ghidra/hashcat…) via autonomous MCP. AUTHORIZED targets only.
+                    # Two-part: run hexstrike_server.py (:8888) yourself, then the bridge connects. Setup: resources/mcps/mcps/hexstrike-ai/skills.md
   # Note: shodan/virustotal/urlscan/abuseipdb need free-tier API keys.
   # Add them to a `cybersecurity-soc` child profile that sets the env vars, e.g.:
   #   cue new cybersecurity-soc --inherits cybersecurity

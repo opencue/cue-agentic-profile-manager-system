@@ -52,4 +52,4 @@ cue discover install --min-score 8     # install top gems
 cue use backend                        # switch profile
 ```
 
-[GitHub →](https://github.com/opencue/cue)
+[GitHub →](https://github.com/opencue/claude-code-skills)

@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import { lint } from "../lib/skill-linter";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 
 function getArg(args: string[], flag: string): string | undefined {

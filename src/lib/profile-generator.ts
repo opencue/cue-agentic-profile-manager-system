@@ -13,6 +13,7 @@ import {
   stat,
   writeFile,
 } from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import { homedir } from "node:os";
 import {
   dirname,
@@ -28,7 +29,7 @@ import { parse as parseYaml } from "yaml";
 import type { NpxSkillRef, Profile } from "../../profiles/_types";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(HERE, "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(HERE, "..", "..");
 
 export type SkillOrigin = "local" | "npx" | "plugin";
 
@@ -632,7 +633,7 @@ async function scanLocalSkills({
   diagnostics: string[];
 }): Promise<DiscoveredSkill[]> {
   const root = resolve(skillsRoot);
-  let categories: Awaited<ReturnType<typeof readdir>>;
+  let categories: Dirent[];
   try {
     categories = await readdir(root, { withFileTypes: true });
   } catch {
@@ -644,7 +645,7 @@ async function scanLocalSkills({
   for (const category of categories) {
     if (!category.isDirectory()) continue;
     const categoryDir = join(root, category.name);
-    let slugs: Awaited<ReturnType<typeof readdir>>;
+    let slugs: Dirent[];
     try {
       slugs = await readdir(categoryDir, { withFileTypes: true });
     } catch {
@@ -718,7 +719,7 @@ async function scanPluginsFallback({
     diagnostics,
   );
   const pluginNames = new Set<string>(enabled);
-  let entries: Awaited<ReturnType<typeof readdir>> = [];
+  let entries: Dirent[] = [];
   try {
     entries = await readdir(root, { withFileTypes: true });
     for (const entry of entries) {
@@ -906,7 +907,7 @@ function isRepoRef(value: string): boolean {
 async function findSkillMarkdown(root: string): Promise<string[]> {
   const out: string[] = [];
   async function walk(dir: string): Promise<void> {
-    let entries: Awaited<ReturnType<typeof readdir>>;
+    let entries: Dirent[];
     try {
       entries = await readdir(dir, { withFileTypes: true });
     } catch {
@@ -1045,7 +1046,12 @@ function renderProfileYaml(
   lines.push(`name: ${quoteYaml(profile.name)}`);
   lines.push(`description: ${quoteYaml(profile.description)}`);
   lines.push("agents: [claude-code, codex]");
-  if (profile.inherits) lines.push(`inherits: ${quoteYaml(profile.inherits)}`);
+  if (profile.inherits) {
+    const inherits = Array.isArray(profile.inherits)
+      ? `[${profile.inherits.map(quoteYaml).join(", ")}]`
+      : quoteYaml(profile.inherits);
+    lines.push(`inherits: ${inherits}`);
+  }
 
   if (profile.skills) {
     lines.push("skills:");

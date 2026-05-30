@@ -16,10 +16,11 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, existsSync } from "node:fs";
 
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 import { fetchCompanionFiles, detectSkillPath } from "../lib/companion-fetch";
+import type { FileChange } from "../lib/pr-poster";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
 const REGISTRY_PATH = join(REPO_ROOT, "docs", "registry", "index.json");
 const REGISTRY_URL = "https://opencue.github.io/cue/registry/index.json";
@@ -206,7 +207,7 @@ async function cmdInstallMcp(id: string): Promise<number> {
 
   // Add to active profile
   let profileName: string | null = null;
-  try { profileName = await resolveProfileForCwd(process.cwd()); } catch { /* no profile */ }
+  try { profileName = await resolveActiveProfile(); } catch { /* no profile */ }
 
   if (profileName) {
     const { readFile, writeFile } = await import("node:fs/promises");
@@ -580,7 +581,7 @@ async function cmdOpenPr(repo: string, json: boolean, post: boolean, yes: boolea
   }
 
   // Lint + collect changes
-  const changes: poster.FileChange[] = [];
+  const changes: FileChange[] = [];
   const allFixedRules = new Set<string>();
   const allLeftover: Array<{ rule: string; severity: string; message: string }> = [];
 

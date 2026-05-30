@@ -10,6 +10,10 @@ recommends:
 skills:
   local:
     - content/pdf              # PDF report generation for stakeholders
+  npx:
+    # PostHog LLM analytics setup (103 installs) — covers product analytics + self-hosted alternative gap that GA4 doesn't.
+    - repo: posthog/skills
+      skills: [llm-analytics-setup]
 
 mcps:
   - google-analytics-mcp       # Official Google Analytics MCP (GA4 Admin + Data API)

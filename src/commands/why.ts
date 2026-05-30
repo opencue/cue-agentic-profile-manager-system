@@ -7,9 +7,9 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadProfile, listProfiles } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = join(REPO_ROOT, "profiles");
 
 export async function run(args: string[]): Promise<number> {
@@ -21,10 +21,8 @@ export async function run(args: string[]): Promise<number> {
     return 1;
   }
 
-  let profileName: string;
-  try {
-    profileName = await resolveProfileForCwd(process.cwd());
-  } catch {
+  const profileName = await resolveActiveProfile();
+  if (!profileName) {
     process.stderr.write("No active profile.\n");
     return 1;
   }

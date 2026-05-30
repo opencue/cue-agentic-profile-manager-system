@@ -2,24 +2,21 @@ name: medusa-next
 icon: "🔺"
 iconImage: "logo.png"
 description: Medusa v2 + Next.js storefront — App Router, Server Components, JS SDK setup, region/cart/order via Server Components, payment via Server Actions, ISR for catalog
-inherits: medusa-dev
+inherits: [medusa-dev, web-frontend-base]
 recommends:
   - nextjs        # the pure Next.js profile if you also work on a non-Medusa Next app
   - backend       # webhooks, payment-provider handlers, custom Medusa modules
+conflicts:
+  - medusa-vite            # one Medusa storefront framework per project
+  - designer-medusa-vite   # same conflict via the designer variant
 skills:
   local:
-    # Frontend essentials bundled inline (medusa-dev inherits from core, not frontend)
-    - design/screenshot
-    - design/design-taste-frontend
-    - design/image-to-code
-    - design/ui-ux-pro-max
-    - design/minimalist-ui
-    - browser/playwright
-    - review/code-review
+    # Frontend essentials (design/*, browser/playwright) now via web-frontend-base
     # Visual generation for product/hero shots that flow into the storefront
     - higgsfield/higgsfield-product-photoshoot
 mcps:
   - coolify     # inherited from medusa-dev, listed for clarity
+  - playwright
 plugins: []
 persona: |
   You are a Medusa v2 + Next.js storefront engineer. The canonical

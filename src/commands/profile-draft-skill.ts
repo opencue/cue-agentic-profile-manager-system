@@ -29,7 +29,7 @@ import { clusterByKeywords, type ClusterItem } from "../lib/cluster-skills";
 import { readEvents, type SessionEvent } from "../lib/analytics";
 import { findRealClaudeBin } from "../lib/claude-binary";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const FIRST_PROMPTS_DIR = join(
   process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"),
   "cue", "first-prompts",
@@ -77,7 +77,7 @@ function attributeProfiles(prompts: CapturedPrompt[], since: Date): SessionPatte
       const delta = Math.abs(new Date(e.ts).getTime() - promptTs);
       if (delta < bestDelta && delta < 60 * 60 * 1000) {
         bestDelta = delta;
-        bestProfile = e.profile;
+        bestProfile = e.profile ?? null;
       }
     }
     return { prompt: p.prompt, cwd: p.cwd, ts: p.ts, profile: bestProfile };

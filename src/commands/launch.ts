@@ -17,13 +17,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { homedir } from "node:os";
 
-import { loadProfile, listProfiles, parseProfileSelector } from "../lib/profile-loader";
+import { loadProfile, listProfiles, listFeaturedProfiles, parseProfileSelector } from "../lib/profile-loader";
 import { resolveProfileForCwd } from "../lib/cwd-resolver";
 import { DIVIDER_PREFIX, runPicker, type PickerOption } from "../lib/picker";
-import { materializeRuntime } from "../lib/runtime-materializer";
+import { materializeRuntime, type McpServerConfig } from "../lib/runtime-materializer";
 import { resolveLocalSkill, listAllSkillIds } from "../lib/resolver-local";
 import { detectKittyTerminal, kittyPlaceholderLabel, transmitKittyImage } from "../lib/kitty-image";
 import { computeStats } from "../lib/analytics";
+import { detectProfileV2, type DetectionResultV2 } from "../lib/auto-detect";
 import type { ResolvedProfile } from "../../profiles/_types";
 import { hasWorkspaces, getActiveWorkspace, computeOverrides, resolveWorkspaceForCwd } from "../lib/workspaces";
 
@@ -168,6 +169,37 @@ export interface TmuxAnnounceExtras {
  * `icons` is an array of one entry per profile part, primary first. Empty
  * strings are filtered out so missing icons don't introduce padding.
  */
+/**
+ * Build the visible tmux pane title for an active cue profile.
+ *
+ * Layout collapses gracefully as the composite grows:
+ *   - 1 part:   `claude · 🦊 medusa-dev`
+ *   - 2 parts:  `claude · 🦊 medusa-dev + 🌐 backend`
+ *   - 3+ parts: `claude · 🦊 medusa-dev +3`
+ *
+ * `icons` is parallel to the `+`-split of `profileName` (one per part);
+ * empty entries are tolerated and just drop the icon prefix for that part.
+ * Exported only for tests.
+ */
+export function formatTmuxTitle(
+  friendly: string,
+  profileName: string,
+  icons: ReadonlyArray<string>,
+): string {
+  const parts = profileName.split("+").map((s) => s.trim()).filter((s) => s.length > 0);
+  if (parts.length === 0) return friendly;
+  const segment = (i: number): string => {
+    const icon = (icons[i] ?? "").trim();
+    const name = parts[i]!;
+    return icon ? `${icon} ${name}` : name;
+  };
+  if (parts.length === 1) return `${friendly} · ${segment(0)}`;
+  if (parts.length === 2) return `${friendly} · ${segment(0)} + ${segment(1)}`;
+  // 3+ parts: lead with primary, collapse the tail to a numeric badge so
+  // long composites don't shove the tab title off-screen.
+  return `${friendly} · ${segment(0)} +${parts.length - 1}`;
+}
+
 function announceTmuxProfile(
   profileName: string,
   agentKind: string,
@@ -181,11 +213,12 @@ function announceTmuxProfile(
 
   if (!process.env.TMUX || process.env.CUE_TMUX_TITLE === "0") return;
   const cleanIcons = icons.filter((i) => i && i.trim().length > 0);
+  // Keep the concatenated icon strip as a separate tmux option for status
+  // lines that want every icon at a glance — the visible *title* below uses
+  // a more compact layout.
   const iconStr = cleanIcons.join("");
   const primaryIcon = cleanIcons[0] ?? "";
-  const title = iconStr
-    ? `${friendly} · ${iconStr} ${profileName}`
-    : `${friendly} · ${profileName}`;
+  const title = formatTmuxTitle(friendly, profileName, icons);
   const pane = process.env.TMUX_PANE ?? "";
 
   try {
@@ -576,10 +609,8 @@ export function formatDoctorWarnings(warnings: DoctorWarning[]): string[] {
  * Priority order:
  *   1. Pinned profile (if any) — pinned to top so resuming is one Enter.
  *   2. Used profiles, descending by session count.
- *   3. Never-used profiles, alphabetical (with `full` first as a sensible default).
- *
- * Pass `usage` empty or undefined to fall back to the legacy alphabetical-with-
- * full-first ordering.
+ *   3. Never-used profiles, alphabetical. `full` no longer floats to the top
+ *      here — it carries a NEVER-USE warning and should sit with its peers.
  */
 export function sortProfileOptions(
   opts: PickerOption[],
@@ -595,10 +626,6 @@ export function sortProfileOptions(
     const ua = usage?.get(a.value) ?? 0;
     const ub = usage?.get(b.value) ?? 0;
     if (ua !== ub) return ub - ua;
-    if (ua === 0) {
-      if (a.value === "full") return -1;
-      if (b.value === "full") return 1;
-    }
     return a.value.localeCompare(b.value);
   });
 }
@@ -633,20 +660,210 @@ export interface RecentEntry {
   lastUsed: string | null;
 }
 
+export interface SuggestedEntry {
+  /** Profile name — must match a value in `allProfileOpts`. */
+  name: string;
+  /** 0.0–1.0 from `detectProfileV2`. */
+  confidence: number;
+  /** Files / signals that drove the match — surfaced in the hint. */
+  reasons: string[];
+}
+
+/**
+ * Cap on how many cwd-detected suggestions we surface at the top. Two is
+ * enough to cover the "primary stack + sub-profile" case (medusa-dev +
+ * medusa-next) without dominating the picker.
+ */
+export const MAX_SUGGESTIONS = 2;
+
+/**
+ * Minimum confidence for a detection to appear in the Suggested section at
+ * all. Below this the signal is too noisy (e.g. a stray tsconfig.json
+ * suggesting "frontend") and would push real choices down the screen.
+ */
+export const SUGGESTED_MIN_CONFIDENCE = 0.5;
+
+/**
+ * Confidence at which the picker pre-selects the top suggestion (Enter on
+ * first keystroke launches it). Below this we still SHOW the suggestion but
+ * leave Default as the Enter-default so a wrong guess can't hijack the
+ * common case.
+ */
+export const SUGGESTED_AUTO_PICK_CONFIDENCE = 0.7;
+
+// Recent now answers "what were the last N profiles I picked," not "what do
+// I pick most often." It sorts strictly by lastUsed timestamp and applies no
+// session-count floor — a single deliberate pick yesterday belongs in Recent
+// more than a profile racked up by an inherited $HOME pin two weeks ago.
+
+/**
+ * Stack subsections to extract from "All profiles" so related profiles cluster
+ * together instead of scattering across the alphabet. Order in this array is
+ * the order subsections appear at the bottom of the picker.
+ */
+const STACK_SECTIONS: ReadonlyArray<{ key: string; label: string; match: (value: string) => boolean }> = [
+  {
+    key: "ecommerce",
+    label: "  ── Ecommerce ──",
+    match: (v) => v === "ecc" || v === "resend" || /^webshop(?:-|$)/.test(v),
+  },
+  {
+    // Must precede `creative` so `designer-medusa*` land here, not in Design.
+    key: "medusa",
+    label: "  ── Medusa ──",
+    match: (v) => /(?:^|-)medusa(?:-|$)/.test(v),
+  },
+  {
+    key: "web",
+    label: "  ── Web Development ──",
+    match: (v) =>
+      v === "frontend" || v === "backend" || v === "backend-base" ||
+      v === "vite" || v === "nextjs" || v === "browser" || v === "web-frontend-base",
+  },
+  {
+    key: "creative",
+    label: "  ── Design & Creative ──",
+    match: (v) =>
+      v === "designer" || v === "creative-media" || v === "creativity" ||
+      v === "event-design" || v === "video" || v === "threejs" || v === "higgsfield",
+  },
+  {
+    key: "marketing",
+    label: "  ── Marketing & Social ──",
+    match: (v) =>
+      v === "marketing" || v === "postizz" || v === "instagram" ||
+      v === "trendradar" || v === "affiliate",
+  },
+  {
+    key: "google",
+    label: "  ── Google ──",
+    match: (v) => /^google(?:-|$)/.test(v),
+  },
+  {
+    key: "infra",
+    label: "  ── Infra & Hosting ──",
+    match: (v) => v === "coolify" || v === "hostinger",
+  },
+  {
+    key: "data",
+    label: "  ── Data & Compute ──",
+    match: (v) =>
+      v === "python" || v === "go-api" || v === "research" ||
+      v === "predict-everything" || v === "supercomputer" || v === "nvidia",
+  },
+  {
+    key: "rust",
+    label: "  ── Rust ──",
+    match: (v) => /(?:^|-)rust(?:-|$)/.test(v),
+  },
+  {
+    key: "writer",
+    label: "  ── Writer ──",
+    // Matches skill-writer, blog-writer, docs-writer, readme-writer.
+    match: (v) => /-writer$/.test(v),
+  },
+  {
+    key: "security",
+    label: "  ── Career & Security ──",
+    match: (v) => v === "career" || v === "cybersecurity",
+  },
+];
+
+/** Profile names hidden from the picker. Still installable via `cue use <name>`. */
+const PICKER_HIDDEN_PROFILES = new Set<string>(["fleet-control"]);
+
+/**
+ * Warning banners injected next to specific profiles in the picker. Used to
+ * flag profiles that exist for completeness but should rarely be picked
+ * interactively (e.g. `full` loads every skill — slow and expensive).
+ */
+const PICKER_WARNINGS: Record<string, { labelSuffix: string; hint: string }> = {
+  full: {
+    labelSuffix: "  ⚠ NEVER USE THIS",
+    hint: "⚠ kitchen sink — loads every skill; slow, expensive, do not pick interactively",
+  },
+};
+
+/**
+ * Resolve a picker row for a profile selector. Single profiles map straight to
+ * their pre-built option (which already carries icon + `includes:` label).
+ * Composite selectors (`a+b+c`) have no standalone option — historically the
+ * Recent and Featured sections resolved entries with `allProfileOpts.find` and
+ * dropped anything that didn't match, so every stacked pick silently vanished
+ * and the section collapsed to whatever single profile happened to survive
+ * (the "Recent only ever shows coolify" bug). We synthesize a row instead: the
+ * label lists the parts so the stack is self-describing.
+ */
+function makeSelectorOption(selector: string, allProfileOpts: PickerOption[]): PickerOption | undefined {
+  const existing = allProfileOpts.find((o) => o.value === selector);
+  if (existing) return existing;
+  // No standalone option. A composite (`a+b+c`) is a valid stacked pick we
+  // synthesize a self-describing row for; a bare unknown name is a stale or
+  // deleted profile and is dropped (undefined) so it never shows in the picker.
+  if (!selector.includes("+")) return undefined;
+  return {
+    value: selector,
+    label: selector.split("+").join(" + "),
+    hint: "stacked profile",
+  };
+}
+
 export function buildPickerSections(
   defaultOpt: PickerOption | undefined,
   allProfileOpts: PickerOption[],
   recent: RecentEntry[],
   recentLimit = 3,
   now = Date.now(),
+  suggested: SuggestedEntry[] = [],
+  featured: string[] = [],
 ): PickerOption[] {
   const result: PickerOption[] = [];
+
+  // Suggested section sits at the very top — above Default — so the picker
+  // answers "what is this directory" before "what do you usually pick."
+  // Entries must resolve to a real profile option AND clear the confidence
+  // floor; otherwise we suppress the section entirely rather than show a
+  // weak guess.
+  const eligibleSuggestions = suggested
+    .filter((s) => s.confidence >= SUGGESTED_MIN_CONFIDENCE)
+    .slice(0, MAX_SUGGESTIONS)
+    .map((s) => ({ ...s, opt: allProfileOpts.find((o) => o.value === s.name) }))
+    .filter((s): s is SuggestedEntry & { opt: PickerOption } => s.opt !== undefined);
+  const suggestedSet = new Set(eligibleSuggestions.map((s) => s.name));
+
+  if (eligibleSuggestions.length > 0) {
+    result.push({
+      value: `${DIVIDER_PREFIX}suggested`,
+      label: "  ── 🔍 Suggested for this cwd ──",
+      hint: "",
+      divider: true,
+    });
+    for (const s of eligibleSuggestions) {
+      const pct = Math.round(s.confidence * 100);
+      const reasons = s.reasons.slice(0, 2).join(", ");
+      const hint = `${pct}% match — ${reasons}`;
+      result.push({ ...s.opt, hint });
+    }
+  }
+
   if (defaultOpt) result.push(defaultOpt);
 
-  const eligible = recent
-    .filter((r) => r.sessions > 0 && r.lastUsed)
+  // Recent = the last N profiles the user actually picked, sorted by
+  // lastUsed (most recent first). Inputs may arrive sorted by session count
+  // (that's how `computeStats` returns them) so we re-sort here. Profiles
+  // already surfaced in Suggested are excluded so each row appears exactly
+  // once in the picker (Suggested wins over Recent on conflicts).
+  const eligible = [...recent]
+    .filter((r) => r.lastUsed)
+    .filter((r) => !suggestedSet.has(r.name))
+    // Skip the Default selector — it already has its own pinned row up top,
+    // no need to echo it in Recent.
+    .filter((r) => r.name !== defaultOpt?.value)
+    .sort((a, b) => (b.lastUsed ?? "").localeCompare(a.lastUsed ?? ""))
     .slice(0, recentLimit)
-    .map((r) => ({ ...r, opt: allProfileOpts.find((o) => o.value === r.name) }))
+    // Synthesize a row for composites instead of dropping them; stale single
+    // profiles (no option, no `+`) still drop — see makeSelectorOption.
+    .map((r) => ({ ...r, opt: makeSelectorOption(r.name, allProfileOpts) }))
     .filter((r): r is RecentEntry & { opt: PickerOption } => r.opt !== undefined);
 
   const recentSet = new Set(eligible.map((r) => r.name));
@@ -665,7 +882,31 @@ export function buildPickerSections(
     }
   }
 
-  const rest = allProfileOpts.filter((o) => !recentSet.has(o.value));
+  // Featured = curated composite/top-pick profiles (profiles/_featured.yaml),
+  // surfaced below Recent so the user's go-to merged loadouts are one glance
+  // away instead of buried in the alphabetical body. Items already shown in
+  // Suggested or Recent are skipped so each row appears exactly once.
+  const featuredEligible = featured
+    .filter((name) => !suggestedSet.has(name) && !recentSet.has(name))
+    // Synthesize composite rows too, so a stacked loadout (e.g. a saved
+    // `medusa-vite+designer+backend`) can be featured without being dropped.
+    .map((name) => makeSelectorOption(name, allProfileOpts))
+    .filter((o): o is PickerOption => o !== undefined);
+  const featuredSet = new Set(featuredEligible.map((o) => o.value));
+
+  if (featuredEligible.length > 0) {
+    result.push({
+      value: `${DIVIDER_PREFIX}featured`,
+      label: "  ── ✨ Featured ──",
+      hint: "",
+      divider: true,
+    });
+    result.push(...featuredEligible);
+  }
+
+  const rest = allProfileOpts.filter(
+    (o) => !recentSet.has(o.value) && !suggestedSet.has(o.value) && !featuredSet.has(o.value),
+  );
   if (rest.length > 0) {
     result.push({
       value: `${DIVIDER_PREFIX}all`,
@@ -673,7 +914,29 @@ export function buildPickerSections(
       hint: "",
       divider: true,
     });
-    result.push(...rest);
+    // Pull stack-specific profiles (medusa, rust, …) out of the alphabetical
+    // body and surface each in its own subsection so a stack is browsable as
+    // one block instead of scattered across the alphabet. Within each
+    // subsection the upstream sort order is preserved (already alpha).
+    const grouped: PickerOption[][] = STACK_SECTIONS.map(() => []);
+    const ungrouped: PickerOption[] = [];
+    for (const o of rest) {
+      const idx = STACK_SECTIONS.findIndex((s) => s.match(o.value));
+      if (idx === -1) ungrouped.push(o);
+      else grouped[idx]!.push(o);
+    }
+    result.push(...ungrouped);
+    STACK_SECTIONS.forEach((section, idx) => {
+      const items = grouped[idx]!;
+      if (items.length === 0) return;
+      result.push({
+        value: `${DIVIDER_PREFIX}${section.key}`,
+        label: section.label,
+        hint: "",
+        divider: true,
+      });
+      result.push(...items);
+    });
   }
 
   return result;
@@ -730,24 +993,42 @@ async function listProfileOptions(pinnedProfile?: string): Promise<PickerOption[
   // the list — runPicker surfaces them as a multiselect *after* the user picks
   // a profile, using each option's `recommends` field below.
   for (const name of names) {
+    // Hidden profiles stay installable via `cue use <name>` but never appear
+    // in the interactive picker. Pinned profiles are an exception — if the
+    // user has pinned a hidden profile, surface it so they can re-confirm.
+    if (PICKER_HIDDEN_PROFILES.has(name) && name !== pinnedProfile) continue;
     try {
       const p = await loadProfile(name);
       let iconLabel: string;
-      if (kitty && p.iconImage && nextImageId <= 255) {
-        const imgPath = resolve(profilesRoot, name, p.iconImage);
+      // iconImage may be inherited from a parent (e.g. medusa-dev's logo.png
+      // bleeds to designer-medusa via the inherits chain), but the file
+      // itself only lives in the declaring profile's directory. Verify the
+      // resolved path actually exists before transmitting — otherwise the
+      // kitty placeholder paints blank and swallows the emoji fallback.
+      const iconImagePath = p.iconImage
+        ? resolve(profilesRoot, name, p.iconImage)
+        : null;
+      if (kitty && iconImagePath && existsSync(iconImagePath) && nextImageId <= 255) {
         const id = nextImageId++;
         // Transmit + virtual placement; placeholder text in the label triggers
         // the actual paint when @clack/prompts renders the option.
-        transmitKittyImage(imgPath, id, 2, 1);
+        transmitKittyImage(iconImagePath, id, 2, 1);
         iconLabel = kittyPlaceholderLabel(id, 2, 1);
       } else if (p.icon) {
         iconLabel = p.icon;
       } else {
         iconLabel = "";
       }
-      const label = iconLabel ? `${iconLabel} ${name}` : name;
+      // Rows show the profile name only — no `includes:` bundle list or
+      // `↪ in <mega>` breadcrumb. The makeup of a composite profile is shown
+      // in the post-pick details, not crammed into every label.
+      const nameLabel = iconLabel ? `${iconLabel} ${name}` : name;
+      const warning = PICKER_WARNINGS[name];
+      const label = warning ? `${nameLabel}${warning.labelSuffix}` : nameLabel;
+      const hint = warning ? warning.hint : p.description;
       const recommends = p.recommends.filter((r) => r !== name && knownNames.has(r));
-      opts.push({ value: name, label, hint: p.description, recommends });
+      const conflicts = p.conflicts.filter((c) => c !== name && knownNames.has(c));
+      opts.push({ value: name, label, hint, recommends, conflicts });
     } catch {
       opts.push({ value: name, label: name, hint: "" });
     }
@@ -755,33 +1036,82 @@ async function listProfileOptions(pinnedProfile?: string): Promise<PickerOption[
 
   // Build the Default entry (composite of core + user-added profiles).
   // Pressing Enter on the picker selects it (it's first in the section order).
+  // The loaded parts are baked into the label so the user always sees what
+  // Default resolves to, even when their cursor is elsewhere.
   let defaultOpt: PickerOption | undefined;
   try {
     const defaultSelector = getDefaultSelector();
     const parts = defaultSelector.split("+");
-    const hint = parts.length === 1
-      ? `→ ${parts[0]}`
-      : `→ ${parts.join(" + ")}`;
-    defaultOpt = { value: defaultSelector, label: "⭐ Default", hint, top: true };
+    const partsStr = parts.join(" + ");
+    defaultOpt = {
+      value: defaultSelector,
+      label: `⭐ Default → ${partsStr}`,
+      hint: "",
+      top: true,
+    };
   } catch { /* non-fatal — picker still works without the Default entry */ }
 
   // Pull usage data so most-picked entries float to the top. Combo pins like
   // "blog-writer+postizz" are naturally separate keys in the analytics log.
   const usage = new Map<string, number>();
-  const recent: RecentEntry[] = [];
+  const recentGlobal: RecentEntry[] = [];
+  const recentCwd: RecentEntry[] = [];
+  const cwd = process.cwd();
   try {
     for (const s of computeStats()) {
       usage.set(s.profile, s.sessions);
-      recent.push({ name: s.profile, sessions: s.sessions, lastUsed: s.last_used });
+      recentGlobal.push({ name: s.profile, sessions: s.sessions, lastUsed: s.last_used });
+    }
+    // Second pass scoped to this cwd subtree. When the user opens a project
+    // directory, this filters out the ambient career/skill-writer sessions
+    // racked up in $HOME so Recent reflects what's been picked *here*.
+    for (const s of computeStats({ cwdPrefix: cwd })) {
+      recentCwd.push({ name: s.profile, sessions: s.sessions, lastUsed: s.last_used });
     }
   } catch {
     // Analytics is best-effort — never block the picker on a missing/corrupt log.
   }
+  // Prefer cwd-scoped Recent whenever this directory has *any* launch
+  // history; fall back to global only for brand-new directories. Keeps
+  // ambient $HOME launches (auto-pinned profiles) out of project pickers.
+  const recent = recentCwd.length > 0 ? recentCwd : recentGlobal;
+
+  // Cwd-detected suggestions (medusa-config.js, Cargo.toml, etc.). Only
+  // surfaced when a profile of the same name actually exists in this install.
+  const knownProfileNames = new Set(names);
+  const detections = detectProfileV2(cwd).filter((d: DetectionResultV2) =>
+    knownProfileNames.has(d.profile),
+  );
+  const suggested: SuggestedEntry[] = detections.map((d) => ({
+    name: d.profile,
+    confidence: d.confidence,
+    reasons: d.reasons,
+  }));
+
+  // Tag any option that the cwd autodetect strongly endorses so the combine
+  // multiselect can pre-check it (e.g. you cd'd into a Medusa shop → when
+  // you pick `designer`, medusa-dev starts checked in the companion list).
+  // Mutating in place is fine since opts hasn't been returned yet.
+  const preselectNames = new Set(
+    detections.filter((d) => d.confidence >= SUGGESTED_AUTO_PICK_CONFIDENCE).map((d) => d.profile),
+  );
+  if (preselectNames.size > 0) {
+    for (const o of opts) {
+      if (preselectNames.has(o.value)) o.preselect = true;
+    }
+  }
+
   const sorted = sortProfileOptions(opts, pinnedProfile, usage);
-  return buildPickerSections(defaultOpt, sorted, recent);
+  // Keep a featured entry if it's a known single profile OR a composite whose
+  // every part resolves — otherwise the caller would strip composites before
+  // buildPickerSections ever sees them (the same drop that broke Recent).
+  const featured = (await listFeaturedProfiles()).filter((n) =>
+    n.split("+").every((part) => knownProfileNames.has(part)),
+  );
+  return buildPickerSections(defaultOpt, sorted, recent, 3, Date.now(), suggested, featured);
 }
 
-async function loadMcpRegistry(agent: "claude-code" | "codex"): Promise<Record<string, unknown>> {
+async function loadMcpRegistry(agent: "claude-code" | "codex"): Promise<Record<string, McpServerConfig>> {
   const root = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(
     new URL(import.meta.url).pathname,
     "..",
@@ -799,12 +1129,12 @@ async function loadMcpRegistry(agent: "claude-code" | "codex"): Promise<Record<s
     ? ["claude_runtime.sanitized.json", "claude.sanitized.json"]
     : ["codex.sanitized.json"];
 
-  const merged: Record<string, unknown> = {};
+  const merged: Record<string, McpServerConfig> = {};
   for (const file of files) {
     const path = join(root, "resources", "mcps", "configs", file);
     try {
       const text = await readFile(path, "utf8");
-      const raw = JSON.parse(text) as { servers?: Record<string, unknown> };
+      const raw = JSON.parse(text) as { servers?: Record<string, McpServerConfig> };
       for (const [k, v] of Object.entries(raw.servers ?? {})) {
         // First file wins (claude_runtime first, then claude master).
         // We want master to win, so only set if not already present.
@@ -818,7 +1148,7 @@ async function loadMcpRegistry(agent: "claude-code" | "codex"): Promise<Record<s
     agent === "claude-code" ? "claude.sanitized.json" : "codex.sanitized.json");
   try {
     const text = await readFile(masterPath, "utf8");
-    const raw = JSON.parse(text) as { servers?: Record<string, unknown> };
+    const raw = JSON.parse(text) as { servers?: Record<string, McpServerConfig> };
     for (const [k, v] of Object.entries(raw.servers ?? {})) {
       merged[k] = v;
     }
@@ -1068,11 +1398,62 @@ export async function run(args: string[]): Promise<number> {
       );
       return 1;
     }
+
+    // First-launch onboarding. When the user installs cue and runs `claude`
+    // for the first time without ever invoking `cue init`, fire the same
+    // global wizard so they pick a default profile + opt into telemetry
+    // (defaulted ON — every analytics-driven feature reads from it). Marker
+    // file gates this so it only runs once. Failure is non-fatal; the picker
+    // still opens after.
+    try {
+      const { onboardedMarkerPath, runGlobalOnboarding } = await import("./init");
+      const { writeFileSync, mkdirSync, existsSync } = await import("node:fs");
+      const marker = onboardedMarkerPath();
+      if (!existsSync(marker)) {
+        process.stdout.write("\n");
+        const ok = await runGlobalOnboarding();
+        if (ok) {
+          try {
+            const { configDir } = await import("../lib/telemetry-consent");
+            mkdirSync(configDir(), { recursive: true });
+            writeFileSync(marker, new Date().toISOString() + "\n");
+          } catch { /* non-fatal */ }
+          process.stdout.write("\n");
+        }
+      }
+    } catch { /* never block launch on onboarding failure */ }
+
     const options = await listProfileOptions(existingProfile);
+    // Mine local session history for "you usually pair X with Y" suggestions.
+    // The picker pre-checks empirical partners in the combine multiselect.
+    // Best-effort: any failure (missing log, malformed lines) yields empty.
+    let pairSuggestions: Map<string, string[]> | undefined;
+    try {
+      const { computeAffinityMap, suggestionsByProfile } = await import("../lib/pair-suggestions");
+      const affinity = computeAffinityMap();
+      const sug = suggestionsByProfile(affinity);
+      pairSuggestions = new Map();
+      for (const [name, partners] of sug) {
+        pairSuggestions.set(name, partners.map((p) => p.name));
+      }
+    } catch { /* non-fatal */ }
+    // Cwd autodetect signals, forwarded to runPicker so it can offer a
+    // "switch to <X>?" nudge when the user picks a profile that conflicts
+    // with what the directory actually looks like (e.g. picking medusa-next
+    // in a vite.config.ts project).
+    let detected: ReadonlyArray<{ name: string; reasons: string[]; confidence: number }> = [];
+    try {
+      const knownProfileNames = new Set(await listProfiles());
+      detected = detectProfileV2(cwd)
+        .filter((d) => knownProfileNames.has(d.profile))
+        .map((d) => ({ name: d.profile, reasons: d.reasons, confidence: d.confidence }));
+    } catch { /* non-fatal */ }
     const picked = await runPicker({
       cwd,
       options,
       noPin: isAccountAlias,
+      pairSuggestions,
+      detected,
       details: async (name) => {
         const loaded = await loadProfile(name);
         await expandWildcards(loaded);
@@ -1090,8 +1471,26 @@ export async function run(args: string[]): Promise<number> {
     profileName = (resolved as { source: string; profile: string }).profile;
   }
 
+  // Pre-launch gate-health warning. Reads the persisted Stop-hook result
+  // for this profile (written by resources/hooks/cue-quality-gates.sh) and
+  // prints a single yellow line when the last run failed. Never blocks the
+  // launch — the user already knows what they're doing, this is just a
+  // heads-up that the prior session ended in a red state.
+  try {
+    const { readGateStatus } = await import("../lib/gate-status");
+    const lastRun = readGateStatus(profileName);
+    if (lastRun && lastRun.overall === "fail") {
+      const failed = lastRun.results.filter((r) => !r.ok).map((r) => r.name);
+      const tail = failed.length > 2 ? `${failed.slice(0, 2).join(", ")} +${failed.length - 2}` : failed.join(", ");
+      process.stderr.write(
+        `\x1b[33m⚠\x1b[0m cue: last gate run for "${profileName}" failed (${tail}). ` +
+        `Inspect: cue gates status\n`,
+      );
+    }
+  } catch { /* non-fatal */ }
+
   // Load + materialize. Reuse the picker-cached profile when available.
-  let profile: ResolvedProfile;
+  let profile!: ResolvedProfile;
   if (cachedProfile && cachedProfile.name === profileName) {
     profile = cachedProfile;
   } else {
@@ -1148,6 +1547,22 @@ export async function run(args: string[]): Promise<number> {
     const { rm: rmFile } = await import("node:fs/promises");
     const hashPath = join(configDir(), "runtime", profileName, agentKind === "claude-code" ? "claude" : "codex", ".cue-hash");
     try { await rmFile(hashPath, { force: true }); } catch { /* ok */ }
+  } else {
+    // Auto-rematerialize on staleness: if profile.yaml is newer than the stored
+    // hash (doctor's D5 predicate), the user edited the profile after the last
+    // build. Drop the hash so materializeRuntime rebuilds, instead of execing a
+    // stale runtime where a freshly-added skill would look "missing". Deleting
+    // the hash reuses the same forced-rebuild path as --rematerialize; the
+    // rebuild writes a fresh .cue-hash with a current mtime, so it won't loop.
+    try {
+      const { isRuntimeStale } = await import("../lib/runtime-materializer");
+      if (await isRuntimeStale(profileName, agentKind, join(configDir(), "runtime"))) {
+        const { rm: rmFile } = await import("node:fs/promises");
+        const hashPath = join(configDir(), "runtime", profileName, agentKind === "claude-code" ? "claude" : "codex", ".cue-hash");
+        try { await rmFile(hashPath, { force: true }); } catch { /* ok */ }
+        process.stderr.write(`[cue] profile changed, rebuilding runtime...\n`);
+      }
+    } catch { /* fail-open — staleness check is best-effort, never blocks launch */ }
   }
 
   // --subset / CUE_SMART_SUBSET: ask claude --print which skills are relevant
@@ -1231,6 +1646,31 @@ export async function run(args: string[]): Promise<number> {
       } catch { /* non-fatal */ }
     }
   } catch { /* non-fatal */ }
+
+  // W6/W7 description-lint surface — runs on rebuild only, so skill-writer
+  // sees weak triggers/capability at the moment the profile materializes,
+  // not just on explicit `cue validate`. Capped at 5 lines to avoid spam.
+  if (runtime.rebuilt) {
+    try {
+      const { lintProfile } = await import("../lib/profile-linter");
+      const lint = await lintProfile(profileName);
+      const descIssues = lint.issues.filter(
+        (i) => i.rule === "W6" || i.rule === "W7",
+      );
+      if (descIssues.length > 0) {
+        process.stderr.write(
+          `\n  ⚠️  ${descIssues.length} skill description issue(s) — run \`cue validate ${profileName}\` for full list:\n`,
+        );
+        for (const i of descIssues.slice(0, 5)) {
+          process.stderr.write(`     • ${i.message}\n`);
+        }
+        if (descIssues.length > 5) {
+          process.stderr.write(`     … +${descIssues.length - 5} more\n`);
+        }
+        process.stderr.write("\n");
+      }
+    } catch { /* non-fatal — lint is observability, not a gate */ }
+  }
 
   // --rematerialize: report and exit (no exec)
   if (parsed.rematerialize) {

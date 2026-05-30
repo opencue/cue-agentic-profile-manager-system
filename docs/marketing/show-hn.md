@@ -57,7 +57,7 @@ The discovery side is the surprising part. We've already indexed ~500 skill repo
 and the per-profile pages get cited by AI search (Perplexity, ChatGPT search,
 Google AI Overviews) because they ship JSON-LD ItemList schema.
 
-MIT license. Repo: https://github.com/opencue/cue
+MIT license. Repo: https://github.com/opencue/claude-code-skills
 
 What I'd love feedback on:
 1. Anyone else writing per-project agent configs by hand? What pain points

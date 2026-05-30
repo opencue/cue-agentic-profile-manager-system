@@ -288,7 +288,7 @@ function renderDataDoc(profiles: Map<string, ProfileMeta>): string {
     "",
     "# All cue profiles (flat list)",
     "",
-    `**${profiles.size} profiles** total. For the categorized presentation, see the [README](../../README.md#-the-${profiles.size}-profile-catalog).`,
+    `**${profiles.size} profiles** total. For the categorized presentation, see the [README](../../README.md#the-catalog).`,
     "",
     "| Icon | Profile | Description | Skills | MCPs | Commands | Inherits |",
     "|---|---|---|---:|---:|---:|---|",
@@ -331,14 +331,27 @@ async function main() {
     process.exit(1);
   }
   const readme = readFileSync(README, "utf8");
-  const next = splice(readme, generated);
+  // The README catalog section may be hand-curated (AUTOGEN markers removed on
+  // purpose). In that case the data doc is still independent and worth keeping
+  // fresh — warn and skip the README splice instead of failing the whole run.
+  let next = readme;
+  let readmeSkipped = false;
+  try {
+    next = splice(readme, generated);
+  } catch (err) {
+    readmeSkipped = true;
+    process.stderr.write(
+      `⚠ skipping README splice: ${(err as Error).message}\n` +
+      `  (regenerating docs/data/profiles.md only)\n`,
+    );
+  }
 
   // Sister doc — flat list for LLMs/screen readers.
   const dataDoc = join(REPO_ROOT, "docs", "data", "profiles.md");
   const dataNext = renderDataDoc(profiles);
   const dataPrev = existsSync(dataDoc) ? readFileSync(dataDoc, "utf8") : "";
 
-  const readmeChanged = next !== readme;
+  const readmeChanged = !readmeSkipped && next !== readme;
   const dataChanged = dataNext !== dataPrev;
 
   if (check) {
@@ -352,9 +365,10 @@ async function main() {
     return;
   }
 
-  writeFileSync(README, next);
+  if (!readmeSkipped) writeFileSync(README, next);
   writeFileSync(dataDoc, dataNext);
-  process.stdout.write(`✅ wrote ${profiles.size} profiles to README.md + docs/data/profiles.md\n`);
+  const targets = readmeSkipped ? "docs/data/profiles.md" : "README.md + docs/data/profiles.md";
+  process.stdout.write(`✅ wrote ${profiles.size} profiles to ${targets}\n`);
 }
 
 main().catch(err => { process.stderr.write(`${err.stack ?? err.message}\n`); process.exit(1); });

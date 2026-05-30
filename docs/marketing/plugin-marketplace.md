@@ -31,8 +31,8 @@ companion**, not a plugin replacement.
   "name": "cue",
   "version": "0.1.0",
   "description": "Profile manager + skill discovery for Claude Code, Codex, and 10+ AI agents",
-  "homepage": "https://github.com/opencue/cue",
-  "author": "recodeee",
+  "homepage": "https://github.com/opencue/claude-code-skills",
+  "author": "NagyVikt",
   "license": "MIT",
   "agents": ["claude-code", "codex"],
   "commands": [
@@ -61,7 +61,7 @@ git push --tags
 # 3. Tell users how to add it (in README)
 echo "## Install as a Claude Code plugin" >> README.md
 echo "" >> README.md
-echo "    /plugin marketplace add opencue/cue" >> README.md
+echo "    /plugin marketplace add opencue/claude-code-skills" >> README.md
 echo "    /plugin install cue" >> README.md
 ```
 

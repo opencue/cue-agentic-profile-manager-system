@@ -17,14 +17,33 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 export interface CacheLayout {
-  /** Repo root (absolute). Cache lives at `<repoRoot>/profiles/_cache/npx/`. */
-  repoRoot: string;
+  /**
+   * Absolute dir that holds the `npx/` cache subtree. When omitted, the cache
+   * lives in the XDG cache dir (`~/.cache/cue`) so a globally-installed cue
+   * never writes inside its own install directory.
+   */
+  cacheRoot?: string;
+  /**
+   * @deprecated Legacy injection point. If set (and `cacheRoot` is not), the
+   * cache lives at `<repoRoot>/profiles/_cache/npx/` to preserve the old
+   * dev-tree layout. Tests use this; production passes neither.
+   */
+  repoRoot?: string;
 }
 
 const NPX_SUBDIR = "npx";
+
+/** Absolute path to the `npx/` cache root for a given layout. */
+function npxRoot(layout: CacheLayout): string {
+  if (layout.cacheRoot) return resolve(layout.cacheRoot, NPX_SUBDIR);
+  if (layout.repoRoot) return resolve(layout.repoRoot, "profiles", "_cache", NPX_SUBDIR);
+  const xdg = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
+  return join(xdg, "cue", NPX_SUBDIR);
+}
 
 /** Maximum number of cache entries before LRU eviction kicks in. */
 export const MAX_CACHE_ENTRIES = 20;
@@ -39,7 +58,7 @@ export function cachePath(layout: CacheLayout, key: string): string {
   if (!key || key.includes("/") || key.includes("..")) {
     throw new Error(`cache: invalid key ${JSON.stringify(key)}`);
   }
-  return resolve(layout.repoRoot, "profiles", "_cache", NPX_SUBDIR, key);
+  return join(npxRoot(layout), key);
 }
 
 /**
@@ -111,7 +130,7 @@ export function cacheSkillPath(layout: CacheLayout, key: string, skill: string):
  * Non-fatal — eviction errors are silently ignored.
  */
 export function cacheEvict(layout: CacheLayout, maxEntries = MAX_CACHE_ENTRIES): number {
-  const cacheRoot = resolve(layout.repoRoot, "profiles", "_cache", NPX_SUBDIR);
+  const cacheRoot = npxRoot(layout);
   if (!existsSync(cacheRoot)) return 0;
 
   let entries: { name: string; atime: number }[];

@@ -48,7 +48,7 @@ GitHub profile.
 ```text
 Hi [Name],
 
-I'm the maintainer of cue (github.com/opencue/cue), an open-source profile
+I'm the maintainer of cue (github.com/opencue/claude-code-skills), an open-source profile
 manager for Claude Code and Codex CLI. It's been growing organically for
 ~6 months — currently at [N] stars, [N] npm weekly downloads, and indexed in
 the discovery engine are ~500 community-built skill repos that I think your

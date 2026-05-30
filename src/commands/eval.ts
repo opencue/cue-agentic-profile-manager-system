@@ -25,7 +25,7 @@ import { resolveProfileForCwd } from "../lib/cwd-resolver";
 import { computeStats } from "../lib/analytics";
 import type { ResolvedProfile } from "../../profiles/_types";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 const RULES_ROOT = join(REPO_ROOT, "resources", "rules");
 const COMMANDS_ROOT = join(REPO_ROOT, "resources", "commands");

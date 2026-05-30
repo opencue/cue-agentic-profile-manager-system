@@ -2,24 +2,18 @@ name: medusa-vite
 icon: "🛍️"
 iconImage: "logo.png"
 description: Medusa v2 + Vite + TanStack storefront — file-based routing, type-safe loaders for catalog/cart, TanStack Query for client cache, optional TanStack Start for SSR
-inherits: medusa-dev
+inherits: [medusa-dev, web-frontend-base]
 recommends:
   - vite          # the pure Vite profile if you also work on a non-Medusa Vite app
   - backend       # webhooks, payment-provider handlers, custom Medusa modules
+conflicts:
+  - medusa-next            # one Medusa storefront framework per project
+  - designer-medusa-next   # same conflict via the designer variant
 skills:
-  local:
-    # Frontend essentials bundled inline (medusa-dev inherits from core, not frontend)
-    - design/screenshot
-    - design/design-taste-frontend
-    - design/image-to-code
-    - design/ui-ux-pro-max
-    - design/minimalist-ui
-    - browser/playwright
-    - review/code-review
-    # Visual generation for product/hero shots that flow into the storefront
-    - higgsfield/higgsfield-product-photoshoot
+  local: []   # Frontend essentials (design/*, browser/playwright) now via web-frontend-base
 mcps:
   - coolify     # inherited from medusa-dev, listed for clarity
+  - playwright
 plugins: []
 persona: |
   You are a Medusa v2 + Vite + TanStack storefront engineer. You picked

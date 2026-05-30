@@ -13,10 +13,10 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadProfile } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 import { parseAllowedTools } from "../lib/skill-sandbox";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 
 type Severity = "critical" | "high" | "medium" | "low";
@@ -121,7 +121,7 @@ export async function runSecurityAudit(args: string[]): Promise<number> {
   let profileName = args.find(a => !a.startsWith("-"));
   if (!profileName) {
     try {
-      profileName = await resolveProfileForCwd(process.cwd()) ?? undefined;
+      profileName = await resolveActiveProfile() ?? undefined;
     } catch {}
   }
 

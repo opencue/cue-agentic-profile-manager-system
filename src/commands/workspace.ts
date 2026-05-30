@@ -59,7 +59,7 @@ and injects context (industry, market, language) into the persona.
   let profileName: string | undefined;
   try {
     const result = await resolveProfileForCwd({ cwd: process.cwd(), homeDir: homedir(), configDir: join(homedir(), ".config", "cue") });
-    profileName = result.profile;
+    if (result.source !== "none") profileName = result.profile;
   } catch {}
 
   // Handle secrets subcommand (doesn't require a profile with workspaces)

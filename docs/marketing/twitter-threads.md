@@ -44,7 +44,7 @@ try it:
   npm install -g cue-ai
   cue discover [...]
 
-repo: github.com/opencue/cue
+repo: github.com/opencue/claude-code-skills
 docs: opencue.github.io/cue/
 
 ★ if useful, RT if cursed.
@@ -94,7 +94,7 @@ Opt-out is literally just closing the issue.
   npm install -g cue-ai
   cue discover
 
-repo: github.com/opencue/cue
+repo: github.com/opencue/claude-code-skills
 
 ★ if you've ever wished GitHub had better discovery for AI agent skills.
 ```
@@ -145,7 +145,7 @@ wrong sub-profile.
 40+ profiles available across rust, python, frontend, backend,
 cybersecurity, marketing, creative-media…
 
-repo: github.com/opencue/cue
+repo: github.com/opencue/claude-code-skills
 ```
 
 ### Single-tweet demos (for off-release weeks)
@@ -158,7 +158,7 @@ agent skills that aren't yet in any of your profiles
 
 [screenshot of tiered output]
 
-(MIT, open source: github.com/opencue/cue)
+(MIT, open source: github.com/opencue/claude-code-skills)
 ```
 
 ```

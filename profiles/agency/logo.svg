@@ -1,0 +1,35 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- agency cuecard — an office tower; lit windows = the floor of specialist subagents -->
+  <rect width="256" height="256" rx="56" fill="#1d1d1f"/>
+
+  <!-- tower -->
+  <rect x="68" y="52" width="120" height="156" rx="10" fill="#f5f5f7"/>
+  <!-- roof sign -->
+  <rect x="112" y="40" width="32" height="14" rx="4" fill="#f5f5f7"/>
+
+  <!-- window grid: 4 cols x 5 rows; most dark, a few "lit" in accent -->
+  <g fill="#1d1d1f">
+    <rect x="84"  y="68"  width="18" height="18" rx="3"/>
+    <rect x="110" y="68"  width="18" height="18" rx="3" fill="#f2b04a"/>
+    <rect x="136" y="68"  width="18" height="18" rx="3"/>
+    <rect x="162" y="68"  width="14" height="18" rx="3"/>
+
+    <rect x="84"  y="94"  width="18" height="18" rx="3"/>
+    <rect x="110" y="94"  width="18" height="18" rx="3"/>
+    <rect x="136" y="94"  width="18" height="18" rx="3" fill="#f2b04a"/>
+    <rect x="162" y="94"  width="14" height="18" rx="3"/>
+
+    <rect x="84"  y="120" width="18" height="18" rx="3" fill="#f2b04a"/>
+    <rect x="110" y="120" width="18" height="18" rx="3"/>
+    <rect x="136" y="120" width="18" height="18" rx="3"/>
+    <rect x="162" y="120" width="14" height="18" rx="3" fill="#f2b04a"/>
+
+    <rect x="84"  y="146" width="18" height="18" rx="3"/>
+    <rect x="110" y="146" width="18" height="18" rx="3" fill="#f2b04a"/>
+    <rect x="136" y="146" width="18" height="18" rx="3"/>
+    <rect x="162" y="146" width="14" height="18" rx="3"/>
+  </g>
+
+  <!-- entrance -->
+  <rect x="116" y="176" width="24" height="32" rx="4" fill="#1d1d1f"/>
+</svg>

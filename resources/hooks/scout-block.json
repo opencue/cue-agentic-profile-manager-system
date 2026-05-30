@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_CONFIG_DIR}/hooks/scout-block.sh",
+            "description": "Opt-in: block reads/greps into node_modules, dist, build, target, .venv, etc. (toggle via /scout)",
+            "id": "cue:pre:read:scout-block"
+          }
+        ]
+      }
+    ]
+  }
+}

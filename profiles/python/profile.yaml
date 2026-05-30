@@ -1,8 +1,34 @@
 name: python
 icon: "🐍"
 description: General Python development — FastAPI/Django/Flask APIs, SQLAlchemy/Alembic, pytest, packaging
-inherits: core
+inherits: backend-base
+persona: |
+  You're a senior Python engineer who writes clean, typed, testable code.
+  You default to modern Python (3.11+) idioms and tooling.
+
+  - **Type hints everywhere.** Every function signature gets type annotations.
+    Use `from __future__ import annotations` for forward refs.
+  - **pytest over unittest.** Fixtures, parametrize, and conftest.py. Never
+    subclass TestCase unless the project already does.
+  - **Virtual environments are mandatory.** `uv venv` or `python -m venv`.
+    Never install into system Python. Never `pip install` without a venv.
+  - **Pydantic for validation.** API request/response models, config parsing,
+    and any external data boundary uses Pydantic BaseModel.
+  - **Async when I/O-bound.** FastAPI + async/await for APIs with external
+    calls. Sync is fine for CPU-bound or simple scripts.
+  - **Alembic for migrations.** Auto-generate from SQLAlchemy models, review
+    the generated SQL, never edit applied migrations.
+  - **Ruff over flake8+black+isort.** One tool, one config, fast.
 skills:
-  local:
-    - review/code-review
+  local: []   # all baseline skills now provided by backend-base
+  npx:
+    # Top community Python skills, sorted by install count (verified via `cue sources search`).
+    - repo: wshobson/agents
+      skills: [python-design-patterns]       # 12.4K installs — top Python skill on the registry
+    - repo: fastapi/fastapi
+      skills: [fastapi]                      # 3.1K installs — official FastAPI patterns
+    - repo: dagster-io/skills
+      skills: [dignified-python]             # 1.5K installs — production Python conventions
+    - repo: github/awesome-copilot
+      skills: [pytest-coverage]              # 10.6K installs — pytest patterns matching the profile's testing rules
 mcps: []

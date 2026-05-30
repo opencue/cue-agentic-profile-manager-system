@@ -49,11 +49,11 @@ instead of `gh issue create`).
 
 ### Anything we can do?
 
-- 🎁 Feature your repo in cue's next [Twitter release thread](https://twitter.com/...) or [GitHub Discussion digest](https://github.com/opencue/cue/discussions)?
+- 🎁 Feature your repo in cue's next [Twitter release thread](https://twitter.com/...) or [GitHub Discussion digest](https://github.com/opencue/claude-code-skills/discussions)?
 - 🔧 Wire any specific CLIs your skill needs into `cue cli install`?
 - 📝 Help draft a tighter `SKILL.md` description for cue's discovery page?
 
-Just reply here, or open a PR on `opencue/cue` — happy to collaborate.
+Just reply here, or open a PR on `opencue/claude-code-skills` — happy to collaborate.
 
 ---
 

@@ -6,12 +6,12 @@ inherits: frontend
 recommends:
   - backend       # if the Vite app talks to a real API, the API rules live here
   - medusa-vite   # if the Vite app is a Medusa storefront, switch profile
+conflicts:
+  - nextjs        # pick one React build tool per project
 skills:
-  local:
-    - review/code-review
-    - browser/playwright
-    - design/screenshot
-mcps: []
+  local: []   # browser/playwright + design/screenshot inherited via frontend → web-frontend-base
+mcps:
+  - playwright
 plugins: []
 persona: |
   You are a senior frontend engineer building on Vite + React + the

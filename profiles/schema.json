@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/opencue/cue/profiles/schema.json",
+  "$id": "https://github.com/opencue/claude-code-skills/profiles/schema.json",
   "title": "Soul Profile",
   "description": "Schema for profiles/<name>/profile.yaml — bundles skills, MCPs, and env for a Claude Code or Codex session.",
   "type": "object",
@@ -27,6 +27,11 @@
       "type": "string",
       "description": "Path to a PNG/JPG logo, relative to the profile dir. Rendered inline in Kitty terminals via the graphics protocol; falls back to `icon` emoji elsewhere."
     },
+    "bundles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Display-only list of profiles this one conceptually bundles. Rendered as `includes: a + b + c` next to the picker row. Does not drive resolution."
+    },
     "agents": {
       "type": "array",
       "items": { "enum": ["claude-code", "codex"] },
@@ -49,6 +54,16 @@
       "uniqueItems": true,
       "default": [],
       "description": "Companion profile names suggested at activation time (cue use prints them and offers to compose via 'a+b+c'). Metadata only — does not auto-merge skills/MCPs."
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{1,63}$"
+      },
+      "uniqueItems": true,
+      "default": [],
+      "description": "Profile names that are mutually exclusive with this one (e.g. medusa-vite vs medusa-next — two storefront frameworks for the same backend). The picker disables the partner option in the combine-multiselect when this profile is checked."
     },
     "skills": {
       "type": "object",
@@ -112,6 +127,12 @@
       "default": [],
       "description": "Slash command files (relative to resources/commands/) scoped to this profile."
     },
+    "subagents": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": [],
+      "description": "Claude Code subagent files (relative to resources/subagents/, no .md) scoped to this profile. Materialized flat into the runtime agents/ dir so Claude Code can delegate to them via the Task tool."
+    },
     "hooks": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 },
@@ -121,6 +142,12 @@
     "persona": {
       "type": "string",
       "description": "Phase 1: multi-line role-priming text injected at the top of CLAUDE.md. Defines who the agent IS (a senior Rust engineer who defaults to safety), not just what tools it has."
+    },
+    "persona_includes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": [],
+      "description": "Shared persona snippets (relative to resources/personas/, no .md). Read at materialize-time and prepended to the persona block, so cross-profile policies (Integrity Protocol, voice rules) live in one file instead of being copy-pasted. Inheritance: concat + dedupe across the chain."
     },
     "playbooks": {
       "type": "array",
@@ -216,8 +243,8 @@
       "properties": {
         "repo": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
-          "description": "GitHub org/repo coordinate."
+          "pattern": "^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)?$",
+          "description": "Skill source passed to `npx skills add`: a GitHub 'org/repo' coordinate or a bare host that distributes skills (e.g. 'docs.stripe.com')."
         },
         "pin": {
           "type": "string",

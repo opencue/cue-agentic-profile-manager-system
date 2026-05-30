@@ -23,6 +23,7 @@
  * module keeps a small private helper rather than reaching across boundaries.
  */
 import { readdir, stat } from "node:fs/promises";
+import type { Dirent } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -184,7 +185,7 @@ async function resolveOnePlugin(
     return [];
   }
 
-  let entries: Awaited<ReturnType<typeof readdir>>;
+  let entries: Dirent[];
   try {
     entries = await readdir(skillsDir, { withFileTypes: true });
   } catch {

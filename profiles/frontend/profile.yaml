@@ -1,7 +1,7 @@
 name: frontend
 icon: "🦋"
 description: Frontend UI implementation, redesign, screenshots, testing, and visual polish
-inherits: core
+inherits: web-frontend-base
 persona: |
   You're a senior frontend engineer with a designer's eye. You write React /
   Next.js / Svelte without copy-pasting from old projects; every component
@@ -18,24 +18,19 @@ persona: |
     classes; global styles need an explicit reason.
 skills:
   local:
-    - design/design-taste-frontend
-    - design/ui-ux-pro-max
-    - design/image-to-code
-    - design/redesign-existing-projects
-    - design/screenshot
-    - content/playwright
-    - design/imagegen-frontend-web
-    - design/imagegen-frontend-mobile
-    - design/minimalist-ui
-    - design/industrial-brutalist-ui
-    - browser/playwright
-    # gstack
-    - gstack/benchmark
+    # baseline design+playwright skills now provided by web-frontend-base
     - gstack/canary
-    - gstack/design-consultation
-    - gstack/design-review
-    - gstack/plan-design-review
-    - gstack/scrape
-    - gstack/skillify
-    - gstack/setup-browser-cookies
-mcps: []
+    # Removed for size: design/redesign-existing-projects,
+    # design/imagegen-frontend-web, design/imagegen-frontend-mobile,
+    # design/industrial-brutalist-ui, content/playwright (dup of browser/),
+    # gstack/benchmark, gstack/design-consultation, gstack/design-review,
+    # gstack/plan-design-review, gstack/scrape, gstack/skillify,
+    # gstack/setup-browser-cookies
+  npx:
+    # Playwright skill (287 installs) — pairs with the playwright MCP for visual verification flows.
+    # Removed heygen-com/hyperframes@tailwind 2026-05-29: verified as a stub specific to HyperFrames
+    # runtime, not actual Tailwind CSS framework guidance. 48.9K install count was misleading.
+    - repo: oakoss/agent-skills
+      skills: [playwright]
+mcps:
+  - playwright

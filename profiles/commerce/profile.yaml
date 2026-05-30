@@ -1,0 +1,163 @@
+name: commerce
+icon: "🛒"
+description: "Full-stack ecommerce: Medusa v2 backend, Vite + TanStack storefront, Stripe payments, Resend email, Higgsfield product visuals, Coolify + Hostinger deploy, Postgres."
+inherits: core
+bundles:
+  - webshop
+  - medusa-dev
+  - medusa-vite
+  - stripe
+  - resend
+  - coolify
+  - hostinger
+  - postgres
+skills:
+  local:
+    - medusa/medusa-reference
+    - medusa/building-with-medusa
+    - medusa/building-storefronts
+    - medusa/storefront-best-practices
+    - medusa/building-admin-dashboard-customizations
+    - medusa/creating-internal-agents
+    - medusa/db-generate
+    - medusa/db-migrate
+    - medusa/new-user
+    - medusa/new-admin-via-api
+    - medusa/medusa-shop-setup
+    - medusa/woocommerce-to-medusa-import
+    - medusa/gh-submodule-publish
+    - medusa/medusa-local-dev
+    - medusa/provision-medusa-s3-bucket
+    - review/api-tester
+    - review/security-best-practices
+    - review/security-review
+    - stripe/stripe-best-practices
+    - stripe/stripe-webhooks
+    - deployment/supabase
+    - deployment/pnpm
+    - deployment/coolify
+    - github/github
+    - github/gh-fix-ci
+    - gstack/canary
+    - gstack/health
+    - gstack/investigate
+    - gstack/ship
+    - gstack/review
+    - gstack/retro
+    - gstack/cso
+    - design/screenshot
+    - design/design-taste-frontend
+    - design/image-to-code
+    - design/ui-ux-pro-max
+    - design/minimalist-ui
+    - browser/playwright
+    - design/taste-skill
+    - design/taste-skill-v1
+    - design/gpt-tasteskill
+    - design/image-to-code-skill
+    - design/imagegen-frontend-web
+    - design/imagegen-frontend-mobile
+    - design/brandkit
+    - design/redesign-skill
+    - design/soft-skill
+    - design/output-skill
+    - design/minimalist-skill
+    - design/brutalist-skill
+    - design/stitch-skill
+    - design/industrial-brutalist-ui
+    - design/redesign-existing-projects
+    - gstack/design-consultation
+    - gstack/design-review
+    - gstack/plan-design-review
+    - higgsfield/higgsfield-generate
+    - higgsfield/higgsfield-product-photoshoot
+    - higgsfield/higgsfield-marketplace-cards
+    - higgsfield/higgsfield-soul-id
+    - medusa/higgsfield-to-medusa-products
+    - secrets/envoult
+    - gstack/setup-deploy
+    - private/myvps
+    - hostinger/dns
+    - hostinger/domains
+    - hostinger/hosting
+    - hostinger/vps
+  npx:
+    - repo: anthropics/skills
+      skills: [pdf, docx, pptx]
+    - repo: xixu-me/skills
+      skills: [github-actions-docs]
+    - repo: docs.stripe.com
+      skills: [stripe-projects]
+    - repo: mindrally/skills
+      skills: [docker]
+    - repo: stripe/ai
+      skills: [stripe-projects]
+    - repo: resend/resend-skills
+      skills: [resend-cli]
+    - repo: ajmcclary/coolify-manager
+      skills: [coolify-manager]
+    - repo: v1truv1us/ai-eng-system
+      skills: [coolify-deploy]
+    - repo: neondatabase/agent-skills
+      skills: [neon-postgres]
+    - repo: planetscale/database-skills
+      skills: [postgres]
+    - repo: neondatabase/postgres-skills
+      skills: [postgres-best-practices]
+    - repo: sickn33/antigravity-awesome-skills
+      skills: [neon-postgres]
+plugins:
+  - claude-mem@thedotmack
+  - oh-my-claudecode@omc
+  - resend@claude-plugins-official
+  - frontend-design@claude-plugins-official
+  - webwright@webwright
+mcps:
+  - cue-tty-watch
+  - lightpanda
+  - coolify
+  - envoult
+  - playwright
+  - Higgsfield
+  - gbrain
+  - hostinger-api
+  - secret-mcp
+  - postgres
+env:
+  RESEND_API_KEY: "${RESEND_API_KEY}"
+  STRIPE_API_KEY: "${STRIPE_API_KEY}"
+  STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"
+  DATABASE_URL: "${DATABASE_URL}"
+persona: |
+  You operate the full ecommerce stack end-to-end: Medusa v2 backend,
+  Vite + TanStack storefront, Stripe payments, Resend email, Higgsfield
+  visuals, and Coolify + Hostinger deploy on Postgres. Route work by
+  surface to the lead skill family, don't blur layers.
+
+  ## Surface router
+
+  | Task                                                          | Lead family |
+  |---------------------------------------------------------------|-------------|
+  | Medusa modules, migrations, admin, shop setup, S3, SDK        | medusa/*    |
+  | Premium UI, brand kit, image-to-code, screenshot, redesign    | design/*    |
+  | Ship, review, health, canary, investigate, retro, deploy-setup| gstack/*    |
+  | Product photos, hero shots, marketplace cards, Soul ID        | higgsfield/* |
+  | DNS, domains, shared hosting, VPS firewall + TLS              | hostinger/* |
+  | API tests, security review, security best practices           | review/*    |
+  | Supabase, pnpm, Coolify container deploy                       | deployment/* |
+  | Stripe payment flows, webhook handlers                        | stripe/*    |
+  | Repo ops, fix failing CI                                      | github/*    |
+  | Headless browser checks, e2e flows                            | browser/*   |
+  | Secret storage and retrieval                                  | secrets/*   |
+  | Self-hosted VPS schema + ops                                  | private/*   |
+
+  ## Defaults
+
+  - Backend is Medusa v2. Customizations are modules, never core patches.
+    Migrations are forward-only: `db:generate` then `db:migrate`.
+  - Storefront is Vite + TanStack (file-based router, typed loaders,
+    TanStack Query for cart). Add TanStack Start SSR when SEO matters.
+  - Secrets live in Coolify env, never in code. Same for Stripe and Resend
+    keys, `DATABASE_URL`, and any S3 credentials.
+  - Confirm first before touching a live DB, env vars, DNS, `sk_live_`
+    keys, prod `db:migrate`, or real-recipient email.

@@ -16,4 +16,12 @@ skills:
         - threejs-shaders
         - threejs-postprocessing
         - threejs-interaction
+    # WebGL shader + perf depth (938 installs) — covers low-level GPU work not in the CloudAI-X pack.
+    - repo: freshtechbro/claudedesignskills
+      skills:
+        - threejs-webgl
+    # 3D graphics fundamentals (285 installs) — complements geometry/lighting with broader 3D math.
+    - repo: omer-metin/skills-for-antigravity
+      skills:
+        - threejs-3d-graphics
 mcps: []

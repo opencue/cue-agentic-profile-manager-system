@@ -5,6 +5,7 @@ import {
   computeTokenBreakdown,
   formatDoctorWarnings,
   formatProfileSummary,
+  formatTmuxTitle,
   formatTokenWarning,
   getDefaultSelector,
   relativeTime,
@@ -42,25 +43,16 @@ function makeProfile(overrides: Partial<ResolvedProfile> = {}): ResolvedProfile 
 }
 
 describe("sortProfileOptions", () => {
-  test("pinned profile is first", () => {
+  test("pinned profile is first, then alphabetical (full no longer gets pole position)", () => {
     const input = [make("backend"), make("frontend"), make("full"), make("marketing")];
     const out = sortProfileOptions(input, "marketing");
-    expect(out.map((o) => o.value)).toEqual(["marketing", "full", "backend", "frontend"]);
+    expect(out.map((o) => o.value)).toEqual(["marketing", "backend", "frontend", "full"]);
   });
 
-  test("full is second when pinned profile is set", () => {
-    const input = [make("backend"), make("frontend"), make("full")];
-    const out = sortProfileOptions(input, "frontend");
-    expect(out[0]!.value).toBe("frontend");
-    expect(out[1]!.value).toBe("full");
-  });
-
-  test("full is first when no pinned profile", () => {
+  test("unused profiles sort alphabetically without any full special-case", () => {
     const input = [make("backend"), make("research"), make("full"), make("marketing")];
     const out = sortProfileOptions(input);
-    expect(out[0]!.value).toBe("full");
-    // Rest are alphabetical
-    expect(out.slice(1).map((o) => o.value)).toEqual(["backend", "marketing", "research"]);
+    expect(out.map((o) => o.value)).toEqual(["backend", "full", "marketing", "research"]);
   });
 
   test("works when pinned profile equals 'full'", () => {
@@ -82,13 +74,24 @@ describe("sortProfileOptions", () => {
     expect(out.map((o) => o.value)).toEqual(["apple", "mango", "zebra"]);
   });
 
-  test("top-flagged options sort above pinned and full", () => {
+  test("top-flagged options sort above pinned and everything else", () => {
     const defaultOpt: PickerOption = { value: "core", label: "⭐ Default", hint: "", top: true };
     const input = [make("backend"), make("full"), make("frontend"), defaultOpt];
     const out = sortProfileOptions(input, "frontend");
     expect(out[0]!.value).toBe("core");
     expect(out[0]!.label).toBe("⭐ Default");
     expect(out[1]!.value).toBe("frontend"); // pinned still comes before usage/alpha
+  });
+
+  test("used profiles outrank unused ones, with usage as the tie-breaker", () => {
+    const input = [make("backend"), make("frontend"), make("marketing"), make("postizz")];
+    const usage = new Map<string, number>([
+      ["postizz", 30],
+      ["marketing", 5],
+      // backend, frontend unused
+    ]);
+    const out = sortProfileOptions(input, undefined, usage);
+    expect(out.map((o) => o.value)).toEqual(["postizz", "marketing", "backend", "frontend"]);
   });
 });
 
@@ -114,34 +117,54 @@ describe("buildPickerSections", () => {
   const now = new Date("2026-05-26T12:00:00Z").getTime();
 
   test("no usage: just Default + flat list, no Recent divider", () => {
-    const all = [opt("backend"), opt("frontend"), opt("marketing")];
+    // Use names that don't match any stack section so the alphabetical body
+    // stays flat. core/caveman-quick/full are the only ungrouped survivors.
+    const all = [opt("core"), opt("caveman-quick"), opt("full")];
     const out = buildPickerSections(opt("__default"), all, [], 3, now);
     expect(out.map((o) => o.value)).toEqual([
       "__default",
       `${DIVIDER_PREFIX}all`,
-      "backend",
-      "frontend",
-      "marketing",
+      "core",
+      "caveman-quick",
+      "full",
     ]);
   });
 
   test("with recent: inserts Recent divider, omits recents from All section", () => {
-    const all = [opt("backend"), opt("frontend"), opt("marketing"), opt("research")];
+    const all = [opt("core"), opt("marketing"), opt("research")];
     const recent = [
       { name: "marketing", sessions: 8, lastUsed: "2026-05-26T08:00:00Z" },
-      { name: "frontend", sessions: 5, lastUsed: "2026-05-25T08:00:00Z" },
-      { name: "research", sessions: 2, lastUsed: "2026-05-22T08:00:00Z" },
+      { name: "research", sessions: 3, lastUsed: "2026-05-22T08:00:00Z" },
     ];
     const out = buildPickerSections(opt("__default"), all, recent, 3, now);
     expect(out.map((o) => o.value)).toEqual([
       "__default",
       `${DIVIDER_PREFIX}recent`,
       "marketing",
-      "frontend",
       "research",
       `${DIVIDER_PREFIX}all`,
-      "backend",
+      "core",
     ]);
+  });
+
+  test("Recent shows the N most recently used profiles, sorted by lastUsed not by session count", () => {
+    const all = [opt("career"), opt("core"), opt("ecc"), opt("skill-writer")];
+    // Input arrives session-sorted (career has the most), but Recent must
+    // re-sort by recency. The actually-last-picked profile leads.
+    const recent = [
+      { name: "career", sessions: 158, lastUsed: "2026-05-10T08:00:00Z" },   // most-used, oldest
+      { name: "skill-writer", sessions: 11, lastUsed: "2026-05-26T08:00:00Z" }, // most-recent
+      { name: "core", sessions: 5, lastUsed: "2026-05-24T08:00:00Z" },
+      { name: "ecc", sessions: 1, lastUsed: "2026-05-20T08:00:00Z" },
+    ];
+    const out = buildPickerSections(opt("__default"), all, recent, 3, now);
+    const recentSection = out
+      .slice(
+        out.findIndex((o) => o.value === `${DIVIDER_PREFIX}recent`) + 1,
+        out.findIndex((o) => o.value === `${DIVIDER_PREFIX}all`),
+      )
+      .map((o) => o.value);
+    expect(recentSection).toEqual(["skill-writer", "core", "ecc"]);
   });
 
   test("recent profile hints include session count and relative time", () => {
@@ -152,17 +175,9 @@ describe("buildPickerSections", () => {
     expect(marketing.hint).toBe("8× sessions, last today");
   });
 
-  test("singular session count gets singular noun", () => {
-    const all = [opt("marketing")];
-    const recent = [{ name: "marketing", sessions: 1, lastUsed: "2026-05-26T08:00:00Z" }];
-    const out = buildPickerSections(opt("__default"), all, recent, 3, now);
-    const marketing = out.find((o) => o.value === "marketing")!;
-    expect(marketing.hint).toBe("1× session, last today");
-  });
-
   test("dividers carry the divider flag and DIVIDER_PREFIX value", () => {
-    const all = [opt("backend")];
-    const recent = [{ name: "backend", sessions: 1, lastUsed: "2026-05-26T08:00:00Z" }];
+    const all = [opt("core")];
+    const recent = [{ name: "core", sessions: 1, lastUsed: "2026-05-26T08:00:00Z" }];
     const out = buildPickerSections(opt("__default"), all, recent, 3, now);
     const recentDiv = out.find((o) => o.value === `${DIVIDER_PREFIX}recent`);
     expect(recentDiv?.divider).toBe(true);
@@ -173,7 +188,7 @@ describe("buildPickerSections", () => {
     const all = [opt("backend")];
     const recent = [
       { name: "ghost", sessions: 5, lastUsed: "2026-05-26T08:00:00Z" }, // not in all
-      { name: "backend", sessions: 2, lastUsed: "2026-05-26T08:00:00Z" },
+      { name: "backend", sessions: 4, lastUsed: "2026-05-26T08:00:00Z" },
     ];
     const out = buildPickerSections(opt("__default"), all, recent, 3, now);
     expect(out.map((o) => o.value)).toEqual([
@@ -181,6 +196,208 @@ describe("buildPickerSections", () => {
       `${DIVIDER_PREFIX}recent`,
       "backend",
     ]);
+  });
+
+  test("recent composite picks are synthesized, not dropped (the coolify bug)", () => {
+    // A composite has no standalone option in `all`. The old code resolved
+    // recent via allProfileOpts.find and dropped it, collapsing Recent to the
+    // lone surviving single profile. It must now appear as its own row.
+    const all = [opt("backend"), opt("designer"), opt("coolify")];
+    const recent = [
+      { name: "backend+designer", sessions: 6, lastUsed: "2026-05-26T09:00:00Z" }, // newest
+      { name: "coolify", sessions: 2, lastUsed: "2026-05-26T08:00:00Z" },
+    ];
+    const out = buildPickerSections(opt("__default"), all, recent, 3, now);
+    const recentSection = out
+      .slice(
+        out.findIndex((o) => o.value === `${DIVIDER_PREFIX}recent`) + 1,
+        out.findIndex((o) => o.value === `${DIVIDER_PREFIX}all`),
+      )
+      .map((o) => o.value);
+    expect(recentSection).toEqual(["backend+designer", "coolify"]);
+    const composite = out.find((o) => o.value === "backend+designer");
+    expect(composite?.label).toBe("backend + designer");
+  });
+
+  test("featured: composites synthesized, single profiles reuse their option and leave All", () => {
+    const all = [opt("backend"), opt("designer"), opt("webshop")];
+    const out = buildPickerSections(
+      opt("__default"), all, [], 3, now, [], ["webshop", "backend+designer"],
+    );
+    expect(out.findIndex((o) => o.value === `${DIVIDER_PREFIX}featured`)).toBeGreaterThanOrEqual(0);
+    expect(out.find((o) => o.value === "backend+designer")?.label).toBe("backend + designer");
+    // A featured single profile is pulled out of the All section (no dupes).
+    const allDiv = out.findIndex((o) => o.value === `${DIVIDER_PREFIX}all`);
+    expect(out.slice(allDiv).map((o) => o.value)).not.toContain("webshop");
+  });
+
+  test("stack profiles land in their dedicated subsections in fixed order", () => {
+    const all = [
+      opt("backend"),
+      opt("blog-writer"),
+      opt("career"),
+      opt("coolify"),
+      opt("core"),
+      opt("designer"),
+      opt("designer-medusa"),
+      opt("docs-writer"),
+      opt("ecc"),
+      opt("frontend"),
+      opt("google-ads"),
+      opt("google-analytics"),
+      opt("higgsfield"),
+      opt("medusa-dev"),
+      opt("nextjs"),
+      opt("postizz"),
+      opt("python"),
+      opt("rust"),
+      opt("rust-core"),
+      opt("skill-writer"),
+      opt("vite"),
+    ];
+    const out = buildPickerSections(opt("__default"), all, [], 3, now);
+    expect(out.map((o) => o.value)).toEqual([
+      "__default",
+      `${DIVIDER_PREFIX}all`,
+      // Ungrouped survivors stay alphabetical (core only — everything else
+      // now belongs to a labeled section).
+      "core",
+      // Subsections follow STACK_SECTIONS order.
+      `${DIVIDER_PREFIX}ecommerce`,
+      "ecc",
+      `${DIVIDER_PREFIX}medusa`,
+      "designer-medusa",
+      "medusa-dev",
+      `${DIVIDER_PREFIX}web`,
+      "backend",
+      "frontend",
+      "nextjs",
+      "vite",
+      `${DIVIDER_PREFIX}creative`,
+      "designer",
+      "higgsfield",
+      `${DIVIDER_PREFIX}marketing`,
+      "postizz",
+      `${DIVIDER_PREFIX}google`,
+      "google-ads",
+      "google-analytics",
+      `${DIVIDER_PREFIX}infra`,
+      "coolify",
+      `${DIVIDER_PREFIX}data`,
+      "python",
+      `${DIVIDER_PREFIX}rust`,
+      "rust",
+      "rust-core",
+      `${DIVIDER_PREFIX}writer`,
+      "blog-writer",
+      "docs-writer",
+      "skill-writer",
+      `${DIVIDER_PREFIX}security`,
+      "career",
+    ]);
+    const labels = Object.fromEntries(
+      out.filter((o) => o.divider).map((o) => [o.value, o.label] as const),
+    );
+    expect(labels[`${DIVIDER_PREFIX}ecommerce`]).toBe("  ── Ecommerce ──");
+    expect(labels[`${DIVIDER_PREFIX}medusa`]).toBe("  ── Medusa ──");
+    expect(labels[`${DIVIDER_PREFIX}web`]).toBe("  ── Web Development ──");
+    expect(labels[`${DIVIDER_PREFIX}creative`]).toBe("  ── Design & Creative ──");
+    expect(labels[`${DIVIDER_PREFIX}marketing`]).toBe("  ── Marketing & Social ──");
+    expect(labels[`${DIVIDER_PREFIX}google`]).toBe("  ── Google ──");
+    expect(labels[`${DIVIDER_PREFIX}infra`]).toBe("  ── Infra & Hosting ──");
+    expect(labels[`${DIVIDER_PREFIX}data`]).toBe("  ── Data & Compute ──");
+    expect(labels[`${DIVIDER_PREFIX}rust`]).toBe("  ── Rust ──");
+    expect(labels[`${DIVIDER_PREFIX}writer`]).toBe("  ── Writer ──");
+    expect(labels[`${DIVIDER_PREFIX}security`]).toBe("  ── Career & Security ──");
+  });
+
+  test("Featured section surfaces below Recent and dedupes from All", () => {
+    const all = [opt("core"), opt("marketing"), opt("webshop"), opt("webshop-google")];
+    const recent = [{ name: "core", sessions: 4, lastUsed: "2026-05-26T08:00:00Z" }];
+    const out = buildPickerSections(
+      opt("__default"), all, recent, 3, now, [], ["webshop", "webshop-google", "marketing"],
+    );
+    expect(out.map((o) => o.value)).toEqual([
+      "__default",
+      `${DIVIDER_PREFIX}recent`,
+      "core",
+      `${DIVIDER_PREFIX}featured`,
+      "webshop",
+      "webshop-google",
+      "marketing",
+    ]);
+    // All featured rows were pulled out of the body — nothing left for an
+    // "All profiles" section here.
+    expect(out.some((o) => o.value === `${DIVIDER_PREFIX}all`)).toBe(false);
+    const featuredDiv = out.find((o) => o.value === `${DIVIDER_PREFIX}featured`);
+    expect(featuredDiv?.label).toBe("  ── ✨ Featured ──");
+  });
+
+  test("Featured skips profiles already shown in Suggested or Recent", () => {
+    const all = [opt("webshop"), opt("marketing"), opt("core")];
+    const recent = [{ name: "marketing", sessions: 2, lastUsed: "2026-05-26T08:00:00Z" }];
+    const out = buildPickerSections(
+      opt("__default"), all, recent, 3, now, [], ["webshop", "marketing"],
+    );
+    // marketing is in Recent, so Featured only carries webshop.
+    const featuredIdx = out.findIndex((o) => o.value === `${DIVIDER_PREFIX}featured`);
+    const featuredRows = out.slice(featuredIdx + 1).filter((o) => !o.divider).map((o) => o.value);
+    expect(featuredRows).toContain("webshop");
+    expect(out.filter((o) => o.value === "marketing")).toHaveLength(1);
+  });
+
+  test("subsection dividers are omitted when no profiles match", () => {
+    const all = [opt("core"), opt("caveman-quick")]; // none match any stack section
+    const out = buildPickerSections(opt("__default"), all, [], 3, now);
+    expect(out.some((o) => o.divider && o.value !== `${DIVIDER_PREFIX}all`)).toBe(false);
+  });
+
+  test("Suggested section pins matching profiles above Default and skips them downstream", () => {
+    const all = [opt("core"), opt("medusa-dev"), opt("medusa-next"), opt("nextjs")];
+    const recent = [
+      { name: "medusa-dev", sessions: 12, lastUsed: "2026-05-26T08:00:00Z" },
+    ];
+    const suggested = [
+      { name: "medusa-dev", confidence: 0.9, reasons: ["medusa-config.js"] },
+      { name: "medusa-next", confidence: 0.6, reasons: ["package.json has next"] },
+    ];
+    const out = buildPickerSections(opt("__default"), all, recent, 3, now, suggested);
+    expect(out.map((o) => o.value)).toEqual([
+      `${DIVIDER_PREFIX}suggested`,
+      "medusa-dev",
+      "medusa-next",
+      "__default",
+      `${DIVIDER_PREFIX}all`,
+      "core",
+      `${DIVIDER_PREFIX}web`,
+      "nextjs",
+    ]);
+    // Suggested rows carry a "% match — reasons" hint.
+    const medusaDev = out.find((o) => o.value === "medusa-dev")!;
+    expect(medusaDev.hint).toBe("90% match — medusa-config.js");
+    // medusa-dev had 12 Recent sessions but Suggested already showed it, so
+    // there's no Recent divider on this run.
+    expect(out.some((o) => o.value === `${DIVIDER_PREFIX}recent`)).toBe(false);
+  });
+
+  test("Suggested entries below the confidence floor are dropped entirely", () => {
+    const all = [opt("frontend"), opt("rust")];
+    const suggested = [
+      { name: "frontend", confidence: 0.3, reasons: ["tsconfig.json"] }, // below 0.5 floor
+    ];
+    const out = buildPickerSections(opt("__default"), all, [], 3, now, suggested);
+    expect(out.some((o) => o.value === `${DIVIDER_PREFIX}suggested`)).toBe(false);
+    // frontend still appears in Web Development since it wasn't deduped out.
+    expect(out.some((o) => o.value === "frontend")).toBe(true);
+  });
+
+  test("Suggested entries for unknown profiles are skipped", () => {
+    const all = [opt("core")];
+    const suggested = [
+      { name: "ghost-profile", confidence: 0.9, reasons: ["fakefile"] },
+    ];
+    const out = buildPickerSections(opt("__default"), all, [], 3, now, suggested);
+    expect(out.some((o) => o.value === `${DIVIDER_PREFIX}suggested`)).toBe(false);
   });
 });
 
@@ -639,5 +856,37 @@ describe("formatDoctorWarnings", () => {
       "   …and 2 more",
       "   → cue doctor --fix",
     ]);
+  });
+});
+
+describe("formatTmuxTitle", () => {
+  test("single profile shows icon + name", () => {
+    expect(formatTmuxTitle("claude", "medusa-dev", ["🦊"])).toBe("claude · 🦊 medusa-dev");
+  });
+
+  test("two profiles spell out both with a `+`", () => {
+    expect(formatTmuxTitle("claude", "medusa-dev+backend", ["🦊", "🌐"])).toBe(
+      "claude · 🦊 medusa-dev + 🌐 backend",
+    );
+  });
+
+  test("three or more profiles collapse the tail into a count badge", () => {
+    expect(
+      formatTmuxTitle(
+        "claude",
+        "coolify+backend+hostinger+medusa-dev",
+        ["🍐", "⚙️", "🏠", "🦊"],
+      ),
+    ).toBe("claude · 🍐 coolify +3");
+  });
+
+  test("missing icons just drop the icon prefix for that part", () => {
+    expect(formatTmuxTitle("claude", "ecc", [""])).toBe("claude · ecc");
+    expect(formatTmuxTitle("claude", "ecc+backend", ["", "🌐"])).toBe("claude · ecc + 🌐 backend");
+  });
+
+  test("empty/whitespace profile name degrades to just the agent label", () => {
+    expect(formatTmuxTitle("claude", "", [])).toBe("claude");
+    expect(formatTmuxTitle("claude", "   ", [])).toBe("claude");
   });
 });

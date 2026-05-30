@@ -1,9 +1,11 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, readFile, stat, rm, readlink } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, stat, lstat, rm, readlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { materializeRuntime } from "./runtime-materializer";
+import { utimes } from "node:fs/promises";
+
+import { materializeRuntime, linkPluginCache, isRuntimeStale } from "./runtime-materializer";
 import type { ResolvedProfile } from "../../profiles/_types";
 
 let root: string;
@@ -321,6 +323,54 @@ describe("materializeRuntime", () => {
     expect(claudemd).toContain("/checkpoint");
   });
 
+  test("subagents: symlinks each ref flat into agents/", async () => {
+    // Resolved against <repo>/resources/subagents/<ref>.md — use known-good
+    // vendored agents from the imported agency-agents set.
+    const profile: ResolvedProfile = {
+      ...sampleProfile,
+      name: "test-subagents",
+      inheritanceChain: ["test-subagents"],
+      rules: [], hooks: [], commands: [],
+      subagents: ["design/design-ui-designer", "testing/testing-api-tester"],
+    };
+    const out = await materializeRuntime({
+      profile, agent: "claude-code",
+      runtimeRoot: join(root, "runtime"),
+      skillSourceLookup: async (id) => `/fake/source/${id}`,
+      mcpRegistry: {},
+      userClaudeMd: "",
+    });
+    // Division prefix is flattened to the basename in agents/.
+    const link = await readlink(join(out.runtimeDir, "agents", "design-ui-designer.md"));
+    expect(link).toContain("resources/subagents/design/design-ui-designer.md");
+    const link2 = await readlink(join(out.runtimeDir, "agents", "testing-api-tester.md"));
+    expect(link2).toContain("resources/subagents/testing/testing-api-tester.md");
+    // Stamp surfaces the roster so the model knows what it can delegate to.
+    const claudemd = await readFile(join(out.runtimeDir, "CLAUDE.md"), "utf8");
+    expect(claudemd).toContain("## Subagents (2)");
+    expect(claudemd).toContain("design-ui-designer");
+    expect(claudemd).toContain("testing-api-tester");
+  });
+
+  test("subagents: no agents/ dir when none declared (preserves ~/.claude/agents passthrough)", async () => {
+    const profile: ResolvedProfile = {
+      ...sampleProfile,
+      name: "test-no-subagents",
+      inheritanceChain: ["test-no-subagents"],
+      rules: [], hooks: [], commands: [], subagents: [],
+    };
+    const out = await materializeRuntime({
+      profile, agent: "claude-code",
+      runtimeRoot: join(root, "runtime"),
+      skillSourceLookup: async (id) => `/fake/source/${id}`,
+      mcpRegistry: {},
+      userClaudeMd: "",
+    });
+    let exists = true;
+    try { await lstat(join(out.runtimeDir, "agents")); } catch { exists = false; }
+    expect(exists).toBe(false);
+  });
+
   test("rules: symlinks into rules/ + writes index (NOT inlined bodies)", async () => {
     const profile: ResolvedProfile = {
       ...sampleProfile,
@@ -449,6 +499,111 @@ describe("materializeRuntime", () => {
     expect(cj.mcpServers["claude-mem"]).toEqual({ command: "claude-mem-v2" });
   });
 
+  // ---------------------------------------------------------------------------
+  // Resolution + size guards
+  // ---------------------------------------------------------------------------
+
+  test("fail-loud: aborts (and preserves old runtime) when >half the skills fail to resolve", async () => {
+    const profile: ResolvedProfile = {
+      ...sampleProfile,
+      name: "test-resolve-fail",
+      inheritanceChain: ["test-resolve-fail"],
+      skills: { local: [{ id: "a/one" }, { id: "a/two" }, { id: "a/three" }], npx: [] },
+    };
+    const runtimeRoot = join(root, "runtime");
+
+    // First build succeeds (everything resolves) so an old runtime exists.
+    const ok = await materializeRuntime({
+      profile, agent: "claude-code", runtimeRoot,
+      skillSourceLookup: async (id) => `/fake/source/${id}`,
+      mcpRegistry: {}, userClaudeMd: "# original\n",
+    });
+    expect(await readFile(join(ok.runtimeDir, "CLAUDE.md"), "utf8")).toContain("# original");
+
+    // Second build: profile content changed (cache miss) + lookup now fails for
+    // 2 of 3 skills → >50% → must throw and leave the old runtime untouched.
+    let threw = false;
+    try {
+      await materializeRuntime({
+        profile: { ...profile, plugins: [{ id: "changed@x" }] },
+        agent: "claude-code", runtimeRoot,
+        skillSourceLookup: async (id) => {
+          if (id === "a/one") return `/fake/source/${id}`;
+          throw new Error("missing");
+        },
+        mcpRegistry: {}, userClaudeMd: "# replacement\n",
+      });
+    } catch (e: any) {
+      threw = true;
+      expect(e.message).toContain("skill resolution failed");
+    }
+    expect(threw).toBe(true);
+    // Old runtime preserved (throw happens before the atomic swap).
+    expect(await readFile(join(ok.runtimeDir, "CLAUDE.md"), "utf8")).toContain("# original");
+  });
+
+  test("fail-loud: CUE_ALLOW_PARTIAL_SKILLS=1 bypasses the abort", async () => {
+    const profile: ResolvedProfile = {
+      ...sampleProfile,
+      name: "test-resolve-bypass",
+      inheritanceChain: ["test-resolve-bypass"],
+      skills: { local: [{ id: "a/one" }, { id: "a/two" }], npx: [] },
+    };
+    const prev = process.env.CUE_ALLOW_PARTIAL_SKILLS;
+    process.env.CUE_ALLOW_PARTIAL_SKILLS = "1";
+    try {
+      const out = await materializeRuntime({
+        profile, agent: "claude-code", runtimeRoot: join(root, "runtime"),
+        skillSourceLookup: async () => { throw new Error("missing"); },
+        mcpRegistry: {}, userClaudeMd: "",
+      });
+      expect(out.rebuilt).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.CUE_ALLOW_PARTIAL_SKILLS;
+      else process.env.CUE_ALLOW_PARTIAL_SKILLS = prev;
+    }
+  });
+
+  test("size guard: warns when the generated CLAUDE.md exceeds the perf threshold", async () => {
+    const captured: string[] = [];
+    const orig = process.stderr.write.bind(process.stderr);
+    (process.stderr as any).write = (chunk: any) => { captured.push(String(chunk)); return true; };
+    try {
+      await materializeRuntime({
+        profile: sampleProfile,
+        agent: "claude-code",
+        runtimeRoot: join(root, "runtime"),
+        skillSourceLookup: async (id) => `/fake/source/${id}`,
+        mcpRegistry: {},
+        userClaudeMd: "x".repeat(41_000),
+      });
+    } finally {
+      (process.stderr as any).write = orig;
+    }
+    const warning = captured.join("");
+    expect(warning).toContain("CLAUDE.md for profile");
+    expect(warning).toMatch(/4\d\.\dk chars/);
+  });
+
+  test("size guard: silent for a normal-sized CLAUDE.md", async () => {
+    const captured: string[] = [];
+    const orig = process.stderr.write.bind(process.stderr);
+    (process.stderr as any).write = (chunk: any) => { captured.push(String(chunk)); return true; };
+    try {
+      await materializeRuntime({
+        profile: sampleProfile,
+        agent: "claude-code",
+        runtimeRoot: join(root, "runtime"),
+        skillSourceLookup: async (id) => `/fake/source/${id}`,
+        mcpRegistry: {},
+        userClaudeMd: "# small\n",
+      });
+    } finally {
+      (process.stderr as any).write = orig;
+    }
+    expect(captured.join("")).not.toContain("perf");
+  });
+
   test("missing rule/command/hook ref is non-fatal", async () => {
     const profile: ResolvedProfile = {
       ...sampleProfile,
@@ -469,5 +624,105 @@ describe("materializeRuntime", () => {
     // No symlinks created for missing refs — directories may exist but be empty.
     const settings = JSON.parse(await readFile(join(out.runtimeDir, "settings.json"), "utf8"));
     expect(settings.hooks).toBeUndefined();
+  });
+});
+
+describe("isRuntimeStale", () => {
+  let profilesRoot: string;
+  let savedEnv: string | undefined;
+  beforeEach(async () => {
+    profilesRoot = await mkdtemp(join(tmpdir(), "cue-profiles-"));
+    savedEnv = process.env.CUE_PROFILES_DIR;
+    process.env.CUE_PROFILES_DIR = profilesRoot;
+  });
+  afterEach(async () => {
+    if (savedEnv === undefined) delete process.env.CUE_PROFILES_DIR;
+    else process.env.CUE_PROFILES_DIR = savedEnv;
+    await rm(profilesRoot, { recursive: true, force: true });
+  });
+
+  async function setup(name: string, runtimeRoot: string) {
+    const yamlPath = join(profilesRoot, name, "profile.yaml");
+    await mkdir(join(profilesRoot, name), { recursive: true });
+    await writeFile(yamlPath, "name: x\n");
+    const hashDir = join(runtimeRoot, name, "claude");
+    await mkdir(hashDir, { recursive: true });
+    const hashPath = join(hashDir, ".cue-hash");
+    await writeFile(hashPath, "deadbeef");
+    return { yamlPath, hashPath };
+  }
+
+  test("returns true when profile.yaml is newer than .cue-hash", async () => {
+    const runtimeRoot = join(root, "runtime");
+    const { yamlPath, hashPath } = await setup("p1", runtimeRoot);
+    // Hash built in the past, profile.yaml edited just now.
+    await utimes(hashPath, new Date(Date.now() - 60_000), new Date(Date.now() - 60_000));
+    await utimes(yamlPath, new Date(), new Date());
+    expect(await isRuntimeStale("p1", "claude-code", runtimeRoot)).toBe(true);
+  });
+
+  test("returns false when .cue-hash is newer than profile.yaml", async () => {
+    const runtimeRoot = join(root, "runtime");
+    const { yamlPath, hashPath } = await setup("p2", runtimeRoot);
+    await utimes(yamlPath, new Date(Date.now() - 60_000), new Date(Date.now() - 60_000));
+    await utimes(hashPath, new Date(), new Date());
+    expect(await isRuntimeStale("p2", "claude-code", runtimeRoot)).toBe(false);
+  });
+
+  test("returns false when there is no runtime hash yet", async () => {
+    const runtimeRoot = join(root, "runtime");
+    await mkdir(join(profilesRoot, "p3"), { recursive: true });
+    await writeFile(join(profilesRoot, "p3", "profile.yaml"), "name: x\n");
+    expect(await isRuntimeStale("p3", "claude-code", runtimeRoot)).toBe(false);
+  });
+});
+
+describe("linkPluginCache", () => {
+  let src: string;
+  let tgt: string;
+  beforeEach(async () => {
+    src = await mkdtemp(join(tmpdir(), "cue-plugsrc-"));
+    tgt = await mkdtemp(join(tmpdir(), "cue-plugtgt-"));
+  });
+  afterEach(async () => {
+    await rm(src, { recursive: true, force: true });
+    await rm(tgt, { recursive: true, force: true });
+  });
+
+  test("symlinks cache + marketplace metadata to the real source, leaving registry/data alone", async () => {
+    // Real source: a fully-downloaded plugin tree.
+    const verDir = join(src, "plugins", "cache", "thedotmack", "claude-mem", "13.3.0");
+    await mkdir(verDir, { recursive: true });
+    await writeFile(join(verDir, "hooks.json"), "{}");
+    await mkdir(join(src, "plugins", "marketplaces"), { recursive: true });
+    await writeFile(join(src, "plugins", "known_marketplaces.json"), "{}");
+
+    // Target runtime: Claude's lazy empty stubs that must be replaced.
+    await mkdir(join(tgt, "plugins", "cache"), { recursive: true }); // empty real dir
+    await writeFile(join(tgt, "plugins", "installed_plugins.json"), '{"version":2,"plugins":{}}');
+    await mkdir(join(tgt, "plugins", "data"), { recursive: true });
+
+    await linkPluginCache(tgt, src);
+
+    // cache is now a symlink to the real tree → the version dir resolves.
+    const cacheLink = join(tgt, "plugins", "cache");
+    expect((await lstat(cacheLink)).isSymbolicLink()).toBe(true);
+    expect(await readlink(cacheLink)).toBe(join(src, "plugins", "cache"));
+    expect((await stat(join(cacheLink, "thedotmack", "claude-mem", "13.3.0", "hooks.json"))).isFile()).toBe(true);
+
+    // marketplace metadata linked too.
+    expect((await lstat(join(tgt, "plugins", "marketplaces"))).isSymbolicLink()).toBe(true);
+    expect((await lstat(join(tgt, "plugins", "known_marketplaces.json"))).isSymbolicLink()).toBe(true);
+
+    // installed_plugins.json is NOT a symlink (Claude owns it; never clobber the real one).
+    expect((await lstat(join(tgt, "plugins", "installed_plugins.json"))).isSymbolicLink()).toBe(false);
+    // data stays a real local dir (ELOOP-safe).
+    expect((await lstat(join(tgt, "plugins", "data"))).isSymbolicLink()).toBe(false);
+  });
+
+  test("is a no-op when the source has no plugins tree", async () => {
+    await linkPluginCache(tgt, src); // src has no plugins/
+    // No plugins dir created, nothing thrown.
+    await expect(lstat(join(tgt, "plugins", "cache"))).rejects.toThrow();
   });
 });

@@ -7,10 +7,15 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadProfile, listProfiles } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
+import {
+  skillAlwaysOnTokens,
+  skillBodyTokens,
+  materializedClaudeMdTokens,
+  SKILLS_ROOT,
+} from "../lib/profile-metrics";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 // Expand wildcard (*/*) to all actual skill IDs on disk.
 function expandSkillIds(ids: string[]): string[] {
@@ -36,14 +41,11 @@ function expandSkillIds(ids: string[]): string[] {
 }
 const MCP_CONFIGS_DIR = join(REPO_ROOT, "resources", "mcps", "configs");
 
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
-
-function getSkillTokens(id: string): number {
-  const path = join(SKILLS_ROOT, id, "SKILL.md");
-  try { return estimateTokens(readFileSync(path, "utf8")); } catch { return 0; }
-}
+// Baseline always-on CLAUDE.md cost for a profile that hasn't been materialized
+// yet. Dominated by the shared `core` persona + integrity protocol, so it's
+// roughly constant across profiles. Used only as a fallback when the runtime
+// CLAUDE.md can't be measured directly.
+const BASE_CLAUDE_MD_TOKENS = 7000;
 
 function getMcpToolCount(id: string): number {
   // Each MCP tool description ≈ 50 tokens
@@ -68,10 +70,14 @@ async function runCompare(json: boolean): Promise<number> {
     try {
       const profile = await loadProfile(name);
       const skillIds = expandSkillIds(profile.skills.local.map((s: any) => s.id));
-      const skillTokens = skillIds.reduce((sum: number, id: string) => sum + getSkillTokens(id), 0);
+      // Always-on cost: skill descriptions (not lazy bodies) + MCP tool
+      // descriptions + the materialized CLAUDE.md (or a baseline estimate when
+      // the profile hasn't been launched yet).
+      const skillTokens = skillIds.reduce((sum: number, id: string) => sum + skillAlwaysOnTokens(id), 0);
       const mcpIds = profile.mcps.map((m: any) => m.id);
       const mcpToolCount = mcpIds.reduce((sum: number, id: string) => sum + getMcpToolCount(id), 0);
-      const total = skillTokens + (mcpToolCount * 50) + 200;
+      const claudeMd = materializedClaudeMdTokens(name) ?? BASE_CLAUDE_MD_TOKENS;
+      const total = skillTokens + (mcpToolCount * 50) + claudeMd;
       results.push({
         name,
         skills: skillIds.length,
@@ -116,35 +122,42 @@ export async function run(args: string[]): Promise<number> {
   }
 
   if (!profileName) {
-    try { profileName = await resolveProfileForCwd(process.cwd()); } catch {
+    profileName = (await resolveActiveProfile()) ?? undefined;
+    if (!profileName) {
       process.stderr.write("No active profile. Specify one: cue cost <profile>\n");
       return 1;
     }
   }
 
-  const profile = await loadProfile(profileName!);
+  const profile = await loadProfile(profileName);
 
-  // Skills cost
+  // Skills: descriptions are always-on; bodies are lazy (loaded on invoke).
   const skillIds = expandSkillIds(profile.skills.local.map(s => s.id));
-  const skillTokens = skillIds.reduce((sum, id) => sum + getSkillTokens(id), 0);
+  const skillDescTokens = skillIds.reduce((sum, id) => sum + skillAlwaysOnTokens(id), 0);
+  const skillLazyTokens = skillIds.reduce((sum, id) => sum + skillBodyTokens(id), 0);
 
-  // MCP cost (tool descriptions)
+  // MCP cost (tool descriptions, always-on)
   const mcpIds = profile.mcps.map(m => m.id);
   const mcpToolCount = mcpIds.reduce((sum, id) => sum + getMcpToolCount(id), 0);
   const mcpTokens = mcpToolCount * 50; // ~50 tokens per tool description
 
-  // CLAUDE.md cost (stamp + shared layers)
-  const claudeMdTokens = estimateTokens(
-    `Profile: ${profile.name}\n${profile.description}\n`
-  ) + 200; // approximate shared claude-md layers
+  // CLAUDE.md: the dominant always-on cost. Measure the materialized runtime
+  // when present; otherwise fall back to the shared baseline.
+  const claudeMdTokens = materializedClaudeMdTokens(profileName) ?? BASE_CLAUDE_MD_TOKENS;
 
-  const total = skillTokens + mcpTokens + claudeMdTokens;
+  const total = skillDescTokens + mcpTokens + claudeMdTokens; // always-on per message
 
   const result = {
     profile: profileName,
-    skills: { count: skillIds.length, tokens: skillTokens },
-    mcps: { count: mcpIds.length, tools: mcpToolCount, tokens: mcpTokens },
-    claude_md: { tokens: claudeMdTokens },
+    always_on: {
+      skills_desc: skillDescTokens,
+      mcps: mcpTokens,
+      claude_md: claudeMdTokens,
+      total,
+    },
+    lazy: { skill_bodies: skillLazyTokens, skill_count: skillIds.length },
+    skills: { count: skillIds.length },
+    mcps: { count: mcpIds.length, tools: mcpToolCount },
     total_tokens: total,
   };
 
@@ -153,30 +166,30 @@ export async function run(args: string[]): Promise<number> {
     return 0;
   }
 
-  // Color-coded level
-  const level = total > 20000 ? "🔴" : total > 8000 ? "🟡" : "🟢";
+  // Color-coded level (always-on budget)
+  const level = total > 14000 ? "🔴" : total > 9000 ? "🟡" : "🟢";
   const costPerMsg = (total * 0.000003).toFixed(4); // ~$3/1M input tokens for Sonnet
   const costPer100 = (total * 0.000003 * 100).toFixed(2);
 
   process.stdout.write(`${level} Token budget for "${profileName}":\n\n`);
-  process.stdout.write(`  Skills:    ~${skillTokens.toLocaleString()} tokens (${skillIds.length} skills)\n`);
-  process.stdout.write(`  MCPs:      ~${mcpTokens.toLocaleString()} tokens (${mcpToolCount} tools across ${mcpIds.length} servers)\n`);
-  process.stdout.write(`  CLAUDE.md: ~${claudeMdTokens.toLocaleString()} tokens\n`);
-  process.stdout.write(`  ─────────────────────────────────\n`);
-  process.stdout.write(`  Total:     ~${total.toLocaleString()} tokens\n`);
-  process.stdout.write(`  Cost:      ~$${costPerMsg}/message, ~$${costPer100}/100 messages\n\n`);
+  process.stdout.write(`  Always-on (every message):\n`);
+  process.stdout.write(`    CLAUDE.md:        ~${claudeMdTokens.toLocaleString()} tokens\n`);
+  process.stdout.write(`    Skill descriptions: ~${skillDescTokens.toLocaleString()} tokens (${skillIds.length} skills)\n`);
+  process.stdout.write(`    MCP tools:        ~${mcpTokens.toLocaleString()} tokens (${mcpToolCount} tools across ${mcpIds.length} servers)\n`);
+  process.stdout.write(`    ─────────────────────────────────\n`);
+  process.stdout.write(`    Total:            ~${total.toLocaleString()} tokens\n`);
+  process.stdout.write(`    Cost:             ~$${costPerMsg}/message, ~$${costPer100}/100 messages\n\n`);
+  process.stdout.write(`  Lazy (loaded only when a skill is invoked):\n`);
+  process.stdout.write(`    Skill bodies:     ~${skillLazyTokens.toLocaleString()} tokens across ${skillIds.length} skills\n\n`);
 
-  // Per-skill breakdown (top 5 heaviest)
-  const perSkill: { id: string; tokens: number }[] = [];
-  for (const id of skillIds) {
-    perSkill.push({ id, tokens: getSkillTokens(id) });
-  }
+  // Per-skill breakdown — by lazy body weight (what you pay when you invoke).
+  const perSkill = skillIds.map(id => ({ id, tokens: skillBodyTokens(id) }));
   perSkill.sort((a, b) => b.tokens - a.tokens);
 
   if (perSkill.length > 0) {
-    process.stdout.write(`  Heaviest skills:\n`);
+    process.stdout.write(`  Heaviest skill bodies (lazy):\n`);
     for (const s of perSkill.slice(0, 5)) {
-      const pct = total > 0 ? Math.round((s.tokens / total) * 100) : 0;
+      const pct = skillLazyTokens > 0 ? Math.round((s.tokens / skillLazyTokens) * 100) : 0;
       const bar = "█".repeat(Math.max(1, Math.round(pct / 5))) + "░".repeat(Math.max(0, 20 - Math.round(pct / 5)));
       process.stdout.write(`    ${s.id.padEnd(35)} ${String(s.tokens).padStart(5)} tok  ${bar} ${pct}%\n`);
     }
@@ -186,16 +199,15 @@ export async function run(args: string[]): Promise<number> {
     process.stdout.write("\n");
   }
 
-  // Optimization tips
-  if (total > 20000) {
+  // Optimization tips (based on always-on budget)
+  if (total > 14000) {
     process.stdout.write(`  💡 Optimization tips:\n`);
-    process.stdout.write(`     • Run \`cue skills audit\` to find unused skills\n`);
-    process.stdout.write(`     • Remove the heaviest skill: \`cue skills remove-from-profile ${perSkill[0]?.id}\`\n`);
-    process.stdout.write(`     • Split into focused sub-profiles that inherit from core\n`);
-  } else if (total > 8000) {
-    process.stdout.write(`  ℹ️  Moderate overhead. Run \`cue skills audit\` to check for dead weight.\n`);
+    process.stdout.write(`     • The CLAUDE.md persona/protocol blocks are the biggest always-on cost — trim those first\n`);
+    process.stdout.write(`     • Run \`cue skills audit\` to find skills you can drop (frees description tokens + declutters)\n`);
+  } else if (total > 9000) {
+    process.stdout.write(`  ℹ️  Moderate always-on overhead, mostly CLAUDE.md. Skill bodies above are lazy and don't count per message.\n`);
   } else {
-    process.stdout.write(`  ✅ Lean profile. Good token efficiency.\n`);
+    process.stdout.write(`  ✅ Lean always-on budget. Skill bodies are lazy-loaded, so the catalog size is essentially free.\n`);
   }
 
   return 0;

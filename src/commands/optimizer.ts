@@ -17,7 +17,7 @@ import { listProfiles } from "../lib/profile-loader";
 import { isKittyTerminal, transmitKittyImage, kittyPlaceholderLabel } from "../lib/kitty-image";
 import { getSkillIcon, getMcpIcon, getRepoIcon, getCliIcon } from "../lib/brand-icons";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 const HOME_SKILLS = join(homedir(), ".claude", "skills");
@@ -607,7 +607,7 @@ Examples:
     if (repoSkillMap.size > 0 || localCount > 0) {
       process.stdout.write(`│\n│   ┌─ 🐙 Sources\n`);
       if (localCount > 0) {
-        process.stdout.write(`│   │  📁 opencue/cue (${localCount} skills)\n`);
+        process.stdout.write(`│   │  📁 opencue/claude-code-skills (${localCount} skills)\n`);
       }
       for (const [repo, count] of [...repoSkillMap.entries()].sort((a, b) => b[1] - a[1])) {
         let repoIconStr = "";

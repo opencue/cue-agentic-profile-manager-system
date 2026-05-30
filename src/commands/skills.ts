@@ -15,13 +15,16 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { styleText } from "node:util";
+
+import { parse as parseYaml } from "yaml";
 
 import { listProfiles, loadProfile } from "../lib/profile-loader";
-import { resolveProfileForCwd } from "../lib/cwd-resolver";
+import { resolveActiveProfile } from "../lib/cwd-resolver";
 import { listAllSkillIds } from "../lib/resolver-local";
 import { fetchCompanionFiles, readSourceFile, findIncompleteSkills } from "../lib/companion-fetch";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 
@@ -48,18 +51,23 @@ function parseSkillMeta(id: string): SkillMeta {
 
   try {
     const content = readFileSync(skillMd, "utf8");
-    // Parse YAML frontmatter
+    // Parse the YAML frontmatter with a real parser. The previous regex grabbed
+    // whatever sat on the `description:` line, so block scalars (`description: >-`
+    // or `|` with the text indented below) surfaced as a literal "—  >-" / "— |"
+    // in the listing, and double-quoted strings kept their `\"` escapes. A YAML
+    // parse folds block scalars into clean text and unescapes quotes for free.
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
     if (fmMatch) {
-      const fm = fmMatch[1]!;
-      const descMatch = fm.match(/^description:\s*["']?(.+?)["']?\s*$/m);
-      if (descMatch) description = descMatch[1]!;
-      const tagsMatch = fm.match(/^tags:\s*\[([^\]]*)\]/m);
-      if (tagsMatch) tags = tagsMatch[1]!.split(",").map(t => t.trim().replace(/['"]/g, "")).filter(Boolean);
-      const mcpMatch = fm.match(/^requires_mcps:\s*\[([^\]]*)\]/m);
-      if (mcpMatch) requires_mcps = mcpMatch[1]!.split(",").map(t => t.trim().replace(/['"]/g, "")).filter(Boolean);
+      try {
+        const fm = parseYaml(fmMatch[1]!) as Record<string, unknown> | null;
+        if (fm && typeof fm === "object") {
+          if (typeof fm.description === "string") description = fm.description;
+          tags = normalizeStringList(fm.tags);
+          requires_mcps = normalizeStringList(fm.requires_mcps);
+        }
+      } catch { /* malformed frontmatter — fall back to the body heuristic */ }
     }
-    // Fallback: first non-empty line after frontmatter as description
+    // Fallback: first non-empty, non-heading line after frontmatter.
     if (!description) {
       const body = fmMatch ? content.slice(fmMatch[0].length) : content;
       const firstLine = body.split("\n").find(l => l.trim() && !l.startsWith("#"));
@@ -70,13 +78,69 @@ function parseSkillMeta(id: string): SkillMeta {
   return { id, description, tags, category, requires_mcps };
 }
 
+/** Coerce a frontmatter field that may be a YAML array or a comma string. */
+function normalizeStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (typeof value === "string") return value.split(",").map((s) => s.trim()).filter(Boolean);
+  return [];
+}
+
+// ---------------------------------------------------------------------------
+// Display helpers
+// ---------------------------------------------------------------------------
+
+const COLOR = process.stdout.isTTY === true;
+const dim = (s: string): string => (COLOR ? styleText("dim", s) : s);
+const accent = (s: string): string => (COLOR ? styleText("cyan", s) : s);
+
+/** Collapse folded-YAML whitespace to one line and truncate to `max` columns. */
+function cleanDesc(desc: string, max: number): string {
+  const flat = desc.replace(/\s+/g, " ").trim();
+  if (flat.length <= max) return flat;
+  return flat.slice(0, Math.max(1, max - 1)).trimEnd() + "…";
+}
+
+/**
+ * Render skills grouped by category with the name in an aligned column and a
+ * dimmed, single-line, width-aware description. Shared by `list` and
+ * `available` so both surfaces format identically.
+ */
+function renderSkillGroups(metas: SkillMeta[], opts: { showTags: boolean } = { showTags: false }): void {
+  const grouped = new Map<string, SkillMeta[]>();
+  for (const m of metas) {
+    const list = grouped.get(m.category) ?? [];
+    list.push(m);
+    grouped.set(m.category, list);
+  }
+  const cols = process.stdout.columns && process.stdout.columns > 40 ? process.stdout.columns : 100;
+  for (const [cat, skills] of [...grouped.entries()].sort()) {
+    process.stdout.write(`  ${dim(`${cat}/`)}\n`);
+    // Align names to the longest in the group, capped so one long name can't
+    // shove every description off the right edge.
+    const nameW = Math.min(24, Math.max(...skills.map((s) => shortName(s.id).length)));
+    for (const s of skills) {
+      const padded = shortName(s.id).padEnd(nameW);
+      const tagStr = opts.showTags && s.tags.length ? ` [${s.tags.join(", ")}]` : "";
+      // Reserve: 4 indent + nameW + 2 gap + tag text. Floor at 40 so narrow
+      // terminals still show a useful slice.
+      const budget = Math.max(40, cols - 6 - nameW - tagStr.length);
+      const desc = cleanDesc(s.description, budget);
+      process.stdout.write(`    ${accent(padded)}  ${dim(desc)}${dim(tagStr)}\n`);
+    }
+  }
+}
+
+function shortName(id: string): string {
+  return id.split("/")[1] ?? id;
+}
+
 // ---------------------------------------------------------------------------
 // Subcommands
 // ---------------------------------------------------------------------------
 
 async function getActiveProfileName(): Promise<string | null> {
   try {
-    return await resolveProfileForCwd(process.cwd());
+    return await resolveActiveProfile();
   } catch {
     return null;
   }
@@ -102,19 +166,7 @@ async function cmdList(json: boolean): Promise<number> {
   } else {
     const profileName = await getActiveProfileName();
     process.stdout.write(`Skills in profile "${profileName}" (${metas.length}):\n\n`);
-    const grouped = new Map<string, SkillMeta[]>();
-    for (const m of metas) {
-      const list = grouped.get(m.category) ?? [];
-      list.push(m);
-      grouped.set(m.category, list);
-    }
-    for (const [cat, skills] of [...grouped.entries()].sort()) {
-      process.stdout.write(`  ${cat}/\n`);
-      for (const s of skills) {
-        const tagStr = s.tags.length ? ` [${s.tags.join(", ")}]` : "";
-        process.stdout.write(`    ${s.id.split("/")[1]}  — ${s.description}${tagStr}\n`);
-      }
-    }
+    renderSkillGroups(metas);
   }
   return 0;
 }
@@ -129,18 +181,7 @@ async function cmdAvailable(json: boolean): Promise<number> {
     process.stdout.write(JSON.stringify(metas, null, 2) + "\n");
   } else {
     process.stdout.write(`Available skills not in active profile (${metas.length}):\n\n`);
-    const grouped = new Map<string, SkillMeta[]>();
-    for (const m of metas) {
-      const list = grouped.get(m.category) ?? [];
-      list.push(m);
-      grouped.set(m.category, list);
-    }
-    for (const [cat, skills] of [...grouped.entries()].sort()) {
-      process.stdout.write(`  ${cat}/\n`);
-      for (const s of skills) {
-        process.stdout.write(`    ${s.id.split("/")[1]}  — ${s.description}\n`);
-      }
-    }
+    renderSkillGroups(metas, { showTags: false });
   }
   return 0;
 }
@@ -630,7 +671,7 @@ async function cmdNpxAdd(args: string[]): Promise<number> {
       message: "Profile name",
       placeholder: suggested,
       initialValue: suggested,
-      validate: (v) => { if (!/^[a-z][a-z0-9-]{1,63}$/.test(v)) return "Must be kebab-case"; },
+      validate: (v) => { if (!/^[a-z][a-z0-9-]{1,63}$/.test(v ?? "")) return "Must be kebab-case"; },
     });
     if (p.isCancel(name)) { p.cancel("cancelled"); return 130; }
 
@@ -867,6 +908,132 @@ async function cmdRank(args: string[]): Promise<number> {
   }
 
   process.stdout.write("\n");
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
+// `cue skills triggers [<skill>]` — show the user prompts that historically
+// fired a given skill (or top skills+their top prompt with no arg).
+//
+// Source: ~/.config/cue/analytics.jsonl. The skill-fire-tracker Stop hook
+// embeds a `first_prompt` field on each `skill_hit` event so callers here
+// can see *which user prompts actually triggered which skills* — the input
+// description-optimizer needs.
+// ---------------------------------------------------------------------------
+
+interface SkillHitEvent {
+  event?: string;
+  skill?: string;
+  first_prompt?: string;
+  profile?: string;
+  session_id?: string;
+}
+
+function readAnalyticsHits(): SkillHitEvent[] {
+  const path = join(homedir(), ".config", "cue", "analytics.jsonl");
+  if (!existsSync(path)) return [];
+  const out: SkillHitEvent[] = [];
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      const ev = JSON.parse(trimmed) as SkillHitEvent;
+      if (ev.event === "skill_hit" && ev.skill) out.push(ev);
+    } catch { /* skip malformed */ }
+  }
+  return out;
+}
+
+async function cmdTriggers(args: string[]): Promise<number> {
+  const json = args.includes("--json");
+  const skill = args.find((a) => a !== "--json" && !a.startsWith("-"));
+  const hits = readAnalyticsHits();
+
+  if (hits.length === 0) {
+    process.stdout.write(
+      "No skill_hit events found in ~/.config/cue/analytics.jsonl yet.\n" +
+      "Trigger data accumulates as the skill-fire-tracker Stop hook runs.\n",
+    );
+    return 0;
+  }
+
+  if (skill) {
+    // Show prompts that fired this specific skill, grouped by prompt text.
+    const matching = hits.filter((h) => h.skill === skill);
+    if (matching.length === 0) {
+      process.stdout.write(`No triggers recorded for skill "${skill}".\n`);
+      return 0;
+    }
+    const promptCounts = new Map<string, number>();
+    let missingPromptCount = 0;
+    for (const h of matching) {
+      const p = (h.first_prompt ?? "").trim();
+      if (!p) { missingPromptCount++; continue; }
+      promptCounts.set(p, (promptCounts.get(p) ?? 0) + 1);
+    }
+
+    if (json) {
+      const sortedJson = [...promptCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([prompt, count]) => ({ prompt, count }));
+      process.stdout.write(JSON.stringify({
+        skill,
+        total_fires: matching.length,
+        prompts_without_capture: missingPromptCount,
+        prompts: sortedJson,
+      }, null, 2) + "\n");
+      return 0;
+    }
+
+    process.stdout.write(`\n  🎯 Triggers for "${skill}" (${matching.length} fires)\n\n`);
+    if (promptCounts.size === 0) {
+      process.stdout.write(`  No first_prompt data yet — fires recorded before the analytics-fidelity upgrade.\n`);
+      process.stdout.write(`  New fires from now on will include the user prompt that triggered them.\n\n`);
+      return 0;
+    }
+    const sorted = [...promptCounts.entries()].sort((a, b) => b[1] - a[1]);
+    for (const [prompt, count] of sorted.slice(0, 20)) {
+      const preview = prompt.length > 100 ? prompt.slice(0, 97) + "..." : prompt;
+      process.stdout.write(`  ${String(count).padStart(3)}×  ${preview}\n`);
+    }
+    if (missingPromptCount > 0) {
+      process.stdout.write(`\n  (${missingPromptCount} legacy fires without prompt-capture)\n`);
+    }
+    process.stdout.write("\n");
+    return 0;
+  }
+
+  // No skill arg: top-10 skills with their most common triggering prompt.
+  const bySkill = new Map<string, { fires: number; prompts: Map<string, number> }>();
+  for (const h of hits) {
+    if (!h.skill) continue;
+    let bucket = bySkill.get(h.skill);
+    if (!bucket) { bucket = { fires: 0, prompts: new Map() }; bySkill.set(h.skill, bucket); }
+    bucket.fires++;
+    const p = (h.first_prompt ?? "").trim();
+    if (p) bucket.prompts.set(p, (bucket.prompts.get(p) ?? 0) + 1);
+  }
+
+  const ranked = [...bySkill.entries()]
+    .map(([skillId, b]) => {
+      const topPrompt = [...b.prompts.entries()].sort((a, b) => b[1] - a[1])[0];
+      return { skill: skillId, fires: b.fires, top_prompt: topPrompt?.[0] ?? null, top_prompt_count: topPrompt?.[1] ?? 0 };
+    })
+    .sort((a, b) => b.fires - a.fires);
+
+  if (json) {
+    process.stdout.write(JSON.stringify(ranked, null, 2) + "\n");
+    return 0;
+  }
+
+  process.stdout.write(`\n  🎯 Top skills by fires + their top triggering prompt\n\n`);
+  for (const r of ranked.slice(0, 15)) {
+    const promptPreview = r.top_prompt
+      ? (r.top_prompt.length > 70 ? r.top_prompt.slice(0, 67) + "..." : r.top_prompt)
+      : "(no prompt data yet)";
+    process.stdout.write(`  ${String(r.fires).padStart(3)}×  ${r.skill.padEnd(40)} ← ${promptPreview}\n`);
+  }
+  process.stdout.write(`\n  Run \`cue skills triggers <skill>\` for the full prompt list for a single skill.\n\n`);
   return 0;
 }
 
@@ -1165,6 +1332,7 @@ Subcommands:
   add-to-profile <id>  Add skill to active profile
   remove-from-profile  Remove skill from active profile
   rank [limit]         Usage leaderboard
+  triggers [<skill>]   Show prompts that historically fired a skill
   audit                Find unused skills
   conflicts            Detect contradicting skills
   lint <id>|--all      Quality check
@@ -1229,6 +1397,8 @@ Examples:
     }
     case "rank":
       return cmdRank(rest.slice(1));
+    case "triggers":
+      return cmdTriggers(rest.slice(1));
     case "rate":
       return cmdRate(rest[1] ?? "", rest[2] ?? "");
     case "outdated":

@@ -165,12 +165,40 @@ export interface ProfileStats {
   last_used: string | null;
 }
 
-export function computeStats(since?: Date): ProfileStats[] {
+export interface ComputeStatsOptions {
+  since?: Date;
+  /**
+   * When set, only count events whose `cwd` equals this path OR is a
+   * descendant of it. Lets the picker scope Recent to the current project
+   * subtree so launches from $HOME (auto-pinned profiles) don't squat in
+   * the Recent slots of unrelated project directories.
+   */
+  cwdPrefix?: string;
+}
+
+/**
+ * Accepts either a legacy `Date` (treated as `since`) or an options object.
+ * Kept this way to avoid touching every caller; new callers should pass the
+ * options object form.
+ */
+export function computeStats(optsOrSince: Date | ComputeStatsOptions = {}): ProfileStats[] {
+  const opts: ComputeStatsOptions = optsOrSince instanceof Date
+    ? { since: optsOrSince }
+    : optsOrSince;
+  const { since, cwdPrefix } = opts;
+  const matchesCwd = (cwd?: string): boolean => {
+    if (!cwdPrefix) return true;
+    if (!cwd) return false;
+    return cwd === cwdPrefix || cwd.startsWith(`${cwdPrefix}/`);
+  };
+
   const events = readEvents(since);
   const map = new Map<string, { sessions: number; total_s: number; last: string; seenIds: Set<string> }>();
 
   for (const e of events) {
     if (e.event !== "start") continue;
+    if (!e.profile) continue;
+    if (!matchesCwd(e.cwd)) continue;
     const entry = map.get(e.profile) ?? { sessions: 0, total_s: 0, last: "", seenIds: new Set<string>() };
     entry.sessions++;
     if (e.ts > entry.last) entry.last = e.ts;
@@ -181,6 +209,7 @@ export function computeStats(since?: Date): ProfileStats[] {
   // so a session that fires both the launch-time analytics and the Stop hook
   // doesn't double-count. Entries without an id fall through as best-effort.
   for (const e of readSessionLog(since)) {
+    if (!matchesCwd(e.cwd)) continue;
     const entry = map.get(e.profile) ?? { sessions: 0, total_s: 0, last: "", seenIds: new Set<string>() };
     const key = e.session_id || `${e.ts}|${e.cwd}`;
     if (entry.seenIds.has(key)) continue;
@@ -192,6 +221,8 @@ export function computeStats(since?: Date): ProfileStats[] {
 
   for (const e of events) {
     if (e.event !== "end" || !e.duration_s) continue;
+    if (!e.profile) continue;
+    if (!matchesCwd(e.cwd)) continue;
     const entry = map.get(e.profile);
     if (entry) entry.total_s += e.duration_s;
   }

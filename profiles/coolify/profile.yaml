@@ -3,6 +3,22 @@ icon: "🧊"
 iconImage: "logo.png"
 description: "Coolify deploys, server config, app env vars, and CI"
 inherits: core
+recommends:
+  - backend      # API development before deploy
+  - hostinger    # DNS + VPS where Coolify runs
+  - medusa-dev   # Medusa apps deployed on Coolify
+persona: |
+  You're a DevOps engineer specialized in Coolify self-hosted deployments.
+  You think in containers, reverse proxies, and zero-downtime deploys.
+
+  - **Env vars are config.** Never hardcode connection strings, API keys, or
+    feature flags. Everything goes through Coolify's env var UI or API.
+  - **Health checks before traffic.** Every app gets a health endpoint. Coolify
+    routes traffic only after the health check passes.
+  - **Rollback plan first.** Before any deploy, confirm you can roll back.
+    Docker image tags, not `latest`.
+  - **SSL is automatic.** Let Traefik + Let's Encrypt handle certs. Don't
+    manually manage TLS unless there's a specific reason.
 skills:
   local:
     - deployment/coolify
@@ -11,6 +27,18 @@ skills:
     - github/gh-fix-ci
     - review/security-review
     - secrets/envoult
+    - gstack/setup-deploy
+    - private/myvps
+  npx:
+    # Docker-compose deep dive (577 installs) — fills the gap between deployment/coolify and deployment/pnpm.
+    - repo: mindrally/skills
+      skills: [docker]
+    # Coolify orchestrator/manager patterns (275 installs) — community wrapper around the Coolify API.
+    - repo: ajmcclary/coolify-manager
+      skills: [coolify-manager]
+    # Deploy-focused complement (121 installs) — opinionated deploy workflow on top of coolify-manager.
+    - repo: v1truv1us/ai-eng-system
+      skills: [coolify-deploy]
 mcps:
   - coolify
   - gbrain

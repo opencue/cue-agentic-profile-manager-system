@@ -223,3 +223,77 @@ describe("renderRouter overrides", () => {
     expect(md).toContain("ghost");
   });
 });
+
+describe("renderRouter zombie compaction", () => {
+  // Two real-shape skills: one with rich capability/triggers, one with same.
+  const live = (): ParsedSkill[] => [
+    parseSkillFromContent("higgsfield/higgsfield-generate", HIGGS_GEN),
+    parseSkillFromContent("higgsfield/higgsfield-product-photoshoot", HIGGS_PHOTO),
+    parseSkillFromContent("meta/explicit-skill", PHOTO_EXPLICIT),
+  ];
+
+  test("default behavior (no zombies option) renders every row as before", () => {
+    const md = renderRouter(live());
+    expect(md).toContain("higgsfield-generate");
+    expect(md).toContain("higgsfield-product-photoshoot");
+    expect(md).toContain("explicit-skill");
+    expect(md).not.toContain("Rarely-used skills");
+  });
+
+  test("zombies pulled into a compact tail; their rows vanish from capability + trigger tables", () => {
+    // Mark photoshoot as zombie via full id.
+    const md = renderRouter(live(), {
+      zombies: ["higgsfield/higgsfield-product-photoshoot"],
+    });
+    expect(md).toContain("higgsfield-generate"); // still in capability/trigger tables
+    expect(md).toContain("Rarely-used skills (1)");
+    expect(md).toContain("higgsfield-product-photoshoot");
+    // No trigger phrase row for the zombie.
+    expect(md).not.toContain('"product photo"');
+  });
+
+  test("zombie match works on the bare slug (skill name) too", () => {
+    // Skill name `higgsfield-product-photoshoot` should match even if the
+    // telemetry tagged the event with just the slug.
+    const md = renderRouter(live(), {
+      zombies: ["higgsfield-product-photoshoot"],
+    });
+    expect(md).toContain("Rarely-used skills (1)");
+    expect(md).not.toContain('"product photo"');
+  });
+
+  test("lean mode omits zombies entirely — no tail, no name leak", () => {
+    const md = renderRouter(live(), {
+      zombies: ["higgsfield/higgsfield-product-photoshoot"],
+      lean: true,
+    });
+    expect(md).not.toContain("Rarely-used skills");
+    expect(md).not.toContain("higgsfield-product-photoshoot");
+    expect(md).toContain("higgsfield-generate"); // active skill untouched
+  });
+
+  test("when EVERY skill is zombie and lean is on, the router renders empty", () => {
+    const md = renderRouter(live(), {
+      zombies: [
+        "higgsfield/higgsfield-generate",
+        "higgsfield/higgsfield-product-photoshoot",
+        "meta/explicit-skill",
+      ],
+      lean: true,
+    });
+    expect(md).toBe("");
+  });
+
+  test("zombies grouped by category in the tail for scannability", () => {
+    const md = renderRouter(live(), {
+      zombies: [
+        "higgsfield/higgsfield-generate",
+        "higgsfield/higgsfield-product-photoshoot",
+        "meta/explicit-skill",
+      ],
+    });
+    expect(md).toContain("**higgsfield/**");
+    expect(md).toContain("**meta/**");
+    expect(md).toContain("Rarely-used skills (3)");
+  });
+});

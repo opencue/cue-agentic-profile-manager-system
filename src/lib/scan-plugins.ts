@@ -16,6 +16,8 @@ export type DiscoveredPluginStatus = "Enabled" | "Broken" | "Disabled";
 export interface DiscoveredPluginSkill {
   name: string;
   description: string;
+  /** Absolute path to the skill's SKILL.md, for loading the full doc on demand. */
+  skillMdPath?: string;
 }
 
 export interface ScanPluginDiagnostic {
@@ -199,16 +201,15 @@ async function chooseConfigPath(explicitPath?: string): Promise<string> {
   const runtime = join(homedir(), ".claude.json");
   const settings = join(homedir(), ".claude", "settings.json");
 
+  const hasEnabledPlugins = (s: Record<string, unknown> | "malformed" | null): boolean =>
+    s !== null && s !== "malformed" && s.enabledPlugins !== undefined;
+
   const runtimeState = await readJsonObject(runtime);
-  if (
-    runtimeState === "malformed" ||
-    runtimeState?.enabledPlugins !== undefined
-  ) {
+  if (runtimeState === "malformed" || hasEnabledPlugins(runtimeState)) {
     return runtime;
   }
 
-  const settingsState = await readJsonObject(settings);
-  if (settingsState?.enabledPlugins !== undefined) return settings;
+  if (hasEnabledPlugins(await readJsonObject(settings))) return settings;
   return runtime;
 }
 
@@ -222,16 +223,34 @@ async function discoverInstalledPlugins(
     if (plugin) upsertInstalled(plugins, plugin);
   }
 
-  const marketplacesRoot = join(pluginsRoot, "marketplaces");
-  for (const marketplaceDir of await childDirs(marketplacesRoot)) {
-    const marketplace = basename(marketplaceDir);
-    for (const dir of await manifestPluginDirs(marketplaceDir)) {
-      const plugin = await readInstalledPlugin(dir, marketplace);
-      if (plugin) upsertInstalled(plugins, plugin);
+  // Two layouts hold installed plugins, keyed by their marketplace:
+  //   marketplaces/<mp>/…              — a clone of the marketplace repo
+  //   cache/<mp>/<plugin>/<version>/   — the downloaded plugin payload
+  // Most official plugins (vercel, github, firebase…) live ONLY under cache/,
+  // so scanning marketplaces/ alone missed them (reported "Broken", 0 skills).
+  for (const subdir of ["marketplaces", "cache"]) {
+    const root = join(pluginsRoot, subdir);
+    for (const marketplaceDir of await childDirs(root)) {
+      const marketplace = basename(marketplaceDir);
+      for (const dir of await manifestPluginDirs(marketplaceDir)) {
+        const plugin = await readInstalledPlugin(dir, marketplace);
+        if (plugin) upsertInstalled(plugins, plugin);
+      }
     }
   }
 
   return plugins;
+}
+
+/** Compare dotted version strings numerically. >0 means `a` is newer than `b`. */
+function compareVersions(a?: string, b?: string): number {
+  const pa = (a ?? "0").split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = (b ?? "0").split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return 0;
 }
 
 async function directPluginDirs(pluginsRoot: string): Promise<string[]> {
@@ -312,9 +331,11 @@ function upsertInstalled(
     return;
   }
 
-  // Some marketplaces keep a manifest at the marketplace root and another in
-  // the actual plugin payload directory. Prefer the more specific payload path.
-  if (plugin.dir.length > existing.dir.length) {
+  // Same plugin found in two places (e.g. cache/ holds 0.42.1 and 0.43.0, or a
+  // marketplace clone + a cached payload). Prefer the newest version; on a tie,
+  // prefer the more specific (deeper) payload path.
+  const vc = compareVersions(plugin.version, existing.version);
+  if (vc > 0 || (vc === 0 && plugin.dir.length > existing.dir.length)) {
     plugins.set(plugin.id, plugin);
   }
 }
@@ -360,16 +381,17 @@ async function readSkill(
   try {
     text = await readFile(skillMd, "utf8");
   } catch {
-    return { name: fallbackName, description: "" };
+    return { name: fallbackName, description: "", skillMdPath: skillMd };
   }
 
   const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!frontmatter) return { name: fallbackName, description: "" };
+  if (!frontmatter) return { name: fallbackName, description: "", skillMdPath: skillMd };
 
   const parsed = parseSkillFrontmatter(frontmatter[1] ?? "");
   return {
     name: parsed.name ?? fallbackName,
     description: parsed.description ?? "",
+    skillMdPath: skillMd,
   };
 }
 
