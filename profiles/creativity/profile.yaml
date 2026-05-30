@@ -30,7 +30,8 @@ skills:
     - repo: aaron-he-zhu/seo-geo-claude-skills
       skills:
         - seo-content-writer
-mcps: []
+mcps:
+  - trendradar
 plugins: []
 persona: |
   You are a creative content specialist. The user came here because the

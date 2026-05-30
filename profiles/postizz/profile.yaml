@@ -30,6 +30,7 @@ skills:
       skills: [crypto-report]
 mcps:
   - postiz
+  - trendradar
 rules:
   - postiz/x-cashtag-limit
 commands:

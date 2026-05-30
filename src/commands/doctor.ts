@@ -25,6 +25,7 @@ import { spawnSync } from "node:child_process";
 import { listProfiles, loadProfile } from "../lib/profile-loader";
 import { listAllSkillIds } from "../lib/resolver-local";
 import { findIncompleteSkills, fetchCompanionFiles, detectSkillPath, readSourceFile } from "../lib/companion-fetch";
+import { detectMissingDependencies } from "../lib/skill-dependencies";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PROFILES_DIR = process.env.CUE_PROFILES_DIR ?? join(REPO_ROOT, "profiles");
@@ -49,19 +50,6 @@ function loadAllMcpIds(): Set<string> {
     } catch { /* skip */ }
   }
   return ids;
-}
-
-function parseSkillRequiresMcps(id: string): string[] {
-  try {
-    const content = readFileSync(join(SKILLS_ROOT, id, "SKILL.md"), "utf8");
-    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-    if (!fmMatch) return [];
-    const mcpMatch = fmMatch[1]!.match(/^requires_mcps:\s*\[([^\]]*)\]/m);
-    if (!mcpMatch) return [];
-    return mcpMatch[1]!.split(",").map(t => t.trim().replace(/['"]/g, "")).filter(Boolean);
-  } catch {
-    return [];
-  }
 }
 
 async function checkProfile(profileName: string, allSkillIds: Set<string>, allMcpIds: Set<string>): Promise<Issue[]> {
@@ -104,20 +92,20 @@ async function checkProfile(profileName: string, allSkillIds: Set<string>, allMc
     }
   }
 
-  // D4: Skill requires MCP not in profile
-  for (const id of profileSkillIds) {
-    const required = parseSkillRequiresMcps(id);
-    for (const mcp of required) {
-      if (!profileMcpIds.includes(mcp)) {
-        issues.push({
-          code: "D4",
-          severity: "warning",
-          profile: profileName,
-          message: `Skill "${id}" requires MCP "${mcp}" which is not in profile`,
-          fix: `Add "${mcp}" to ${profileName}/profile.yaml mcps section`,
-        });
-      }
-    }
+  // D4: Skill requires MCP not in profile (explicit requires_mcps + implicit
+  // mcp__server__ refs). Implicit deps are regex-scanned from skill prose, so
+  // only surface them when the server is a real, wirable MCP in the registry —
+  // otherwise a server name used only as an example would false-positive.
+  // Mirrors the launch banner's quickDiagnose logic.
+  for (const m of detectMissingDependencies(profileName, profileSkillIds, profileMcpIds)) {
+    if (m.source === "implicit" && !allMcpIds.has(m.mcpId)) continue;
+    issues.push({
+      code: "D4",
+      severity: "warning",
+      profile: profileName,
+      message: `Skill "${m.skillId}" requires MCP "${m.mcpId}" (${m.source}) which is not in profile`,
+      fix: `Add "${m.mcpId}" to ${profileName}/profile.yaml mcps section`,
+    });
   }
 
   // D5: Stale runtime hash

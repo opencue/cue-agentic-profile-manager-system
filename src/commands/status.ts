@@ -74,6 +74,12 @@ export function quickDiagnose(profileName: string, profile: any): Warning[] {
     const profileMcpIds = profile.mcps.map((m: any) => m.id ?? m);
     const missing = detectMissingDependencies(profileName, skillIds, profileMcpIds);
     for (const m of missing) {
+      // Implicit deps are regex-scanned from skill prose, so a server name
+      // mentioned only as an example (e.g. `mcp__conductor__AskUserQuestion`)
+      // would false-positive. Only warn when the server is a real, wirable MCP
+      // in the registry — otherwise there's nothing to add. Explicit
+      // `requires_mcps:` deps are always surfaced.
+      if (m.source === "implicit" && !mcpIds.has(m.mcpId)) continue;
       warnings.push({ code: "D4", message: `skill "${m.skillId}" needs MCP "${m.mcpId}" (${m.source})` });
     }
   } catch { /* non-fatal */ }
