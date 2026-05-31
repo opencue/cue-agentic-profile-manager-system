@@ -3,7 +3,39 @@ icon: "🦄"
 description: Diagnostic fallback profile that loads every local skill and MCP
 inherits: core
 skills:
-  local: []
+  # Diagnostic catch-all: explicitly home every skill that no other profile
+  # claims, so `cue doctor` reports zero D3 orphans. These were deliberately
+  # cut from the lean core/gstack profiles (0-telemetry / soft-loaded via
+  # meta/smart-loader) — keep them here, not there, to avoid re-bloating them.
+  local:
+    # gstack long tail (iOS×5, benchmark×2, gbrain×2, browse, learn, etc.)
+    - gstack/benchmark
+    - gstack/benchmark-models
+    - gstack/browse
+    - gstack/context-restore
+    - gstack/context-save
+    - gstack/design-html
+    - gstack/ios-clean
+    - gstack/ios-design-review
+    - gstack/ios-fix
+    - gstack/ios-qa
+    - gstack/ios-sync
+    - gstack/learn
+    - gstack/open-gstack-browser
+    - gstack/setup-gbrain
+    - gstack/sync-gbrain
+    # tools
+    - tools/learn-from-repo
+    - tools/prior-art
+    # meta
+    - meta/just
+    - meta/kiro-powers
+    # review / plan / security (soft-loaded by core via smart-loader)
+    - review/code-review
+    - plan/office-hours
+    - plan/plan-ceo-review
+    - plan/plan-eng-review
+    - security/cso
 mcps:
   - Higgsfield
   - colony

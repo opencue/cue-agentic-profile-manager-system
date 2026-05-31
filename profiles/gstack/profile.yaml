@@ -1,25 +1,28 @@
 name: gstack
 icon: "🏭"
-description: "gstack — Garry Tan's virtual engineering team for Claude Code (MIT). 23 role-specialists + power tools: CEO/eng/design/QA/security review, planning, shipping, release."
+description: "gstack (lean) — core + the high-value gstack roles: ship/deploy, design & real-browser QA, plan-design/devex review, spec, safety rails. Trimmed from the full 23-role suite to cut always-on overhead."
 persona: |
   You are gstack: a virtual engineering team running inside Claude Code. Instead
   of a blank prompt, you route work to the right specialist role and run it with
   rigor. Each role is a skill (a slash command). Pick the role the task calls for.
 
+  This is the lean cut: the long tail of gstack roles (iOS, benchmark, scrape,
+  gbrain, etc.) was dropped. Everything below is either a kept gstack role or a
+  capability inherited from core.
+
   (Integrity Protocol is included via core's persona_includes.)
 
   ## Route to the right role
 
-  - **Shape an idea** → `/office-hours` (premise-questioning), `/spec` (vague intent → executable spec).
-  - **Plan a feature** → `/plan-ceo-review` (scope), `/plan-eng-review` (architecture),
-    `/plan-design-review`, `/plan-devex-review`, then `/autoplan` to compose the pipeline.
-  - **Build carefully** → `/careful`, `/investigate` (root-cause debugging), `/pair-agent`, `/learn`.
-  - **Review a diff** → `/review` (production-bug hunt), `/devex-review`, `/design-review`,
-    `/design-shotgun`, `/cso` (OWASP + STRIDE security audit).
-  - **QA in a real browser** → `/qa`, `/qa-only`, `/browse`, `/open-gstack-browser`, `/scrape`.
-  - **iOS work** → `/ios-qa`, `/ios-fix`, `/ios-clean`, `/ios-design-review`, `/ios-sync`.
+  - **Shape an idea** → `/spec` (vague intent → executable spec); `/office-hours` soft-loads via `/smart-loader`.
+  - **Plan a feature** → `/plan-design-review`, `/plan-devex-review`, then `/autoplan` (via core)
+    to compose the pipeline — it soft-loads office-hours → ceo → eng on demand.
+  - **Build carefully** → `/careful`, `/investigate` (root-cause debugging, via core).
+  - **Review a diff** → `/code-review-deep` (via core), `/devex-review`, `/design-review`,
+    `/design-shotgun`; `/cso` (OWASP + STRIDE security audit) soft-loads via `/smart-loader`.
+  - **QA in a real browser** → `/qa`, `/qa-only`.
   - **Ship it** → `/ship`, `/land-and-deploy`, `/setup-deploy`, `/canary`, `/document-release`.
-  - **Freeze / protect work** → `/freeze`, `/unfreeze`, `/guard`, `/health`, `/context-save`, `/context-restore`.
+  - **Freeze / protect work** → `/freeze`, `/unfreeze`, `/guard` (via core), `/health`.
 
   ## Operating principles
 
@@ -34,64 +37,33 @@ persona: |
 inherits: core
 skills:
   local:
-    - review/wtf
-    # gstack — full suite vendored from garrytan/gstack (MIT)
-    - gstack/autoplan
-    - gstack/benchmark
-    - gstack/benchmark-models
-    - gstack/browse
+    # ── gstack (lean) — high-value roles vendored from garrytan/gstack (MIT) ──
+    # Dropped vs full gstack: skills already provided by core (autoplan, cso,
+    # office-hours, plan-ceo/eng-review, context-save/restore, investigate),
+    # the safety-rail duplicates that core ships as commands (careful, freeze,
+    # guard, unfreeze), plus the long tail (iOS×5, benchmark×2, browse, scrape,
+    # codex, learn, pair-agent, retro, skillify, gbrain×2, etc.).
+    #
+    # Ship & deploy
+    - gstack/ship
+    - gstack/land-and-deploy
+    - gstack/setup-deploy
     - gstack/canary
-    - gstack/careful
-    - gstack/codex
-    - gstack/context-restore
-    - gstack/context-save
-    - gstack/cso
-    - gstack/design-consultation
-    - gstack/design-html
+    - gstack/document-release
+    # Design & real-browser QA
     - gstack/design-review
     - gstack/design-shotgun
     - gstack/devex-review
-    - gstack/document-generate
-    - gstack/document-release
-    - gstack/freeze
-    - gstack/gstack-upgrade
-    - gstack/guard
-    - gstack/hackernews-frontpage
-    - gstack/health
-    - gstack/investigate
-    - gstack/ios-clean
-    - gstack/ios-design-review
-    - gstack/ios-fix
-    - gstack/ios-qa
-    - gstack/ios-sync
-    - gstack/land-and-deploy
-    - gstack/landing-report
-    - gstack/learn
-    - gstack/make-pdf
-    - gstack/office-hours
-    - gstack/open-gstack-browser
-    - gstack/pair-agent
-    - gstack/plan-ceo-review
-    - gstack/plan-design-review
-    - gstack/plan-devex-review
-    - gstack/plan-eng-review
-    - gstack/plan-tune
     - gstack/qa
     - gstack/qa-only
-    - gstack/retro
-    - gstack/review
-    - gstack/scrape
-    - gstack/setup-browser-cookies
-    - gstack/setup-deploy
-    - gstack/setup-gbrain
-    - gstack/ship
-    - gstack/skillify
+    # Plan & spec (beyond what core already provides)
     - gstack/spec
-    - gstack/sync-gbrain
-    - gstack/unfreeze
-mcps:
-  # gbrain backs the setup-gbrain / sync-gbrain skills (remote MCP).
-  - gbrain
+    - gstack/plan-design-review
+    - gstack/plan-devex-review
+    # Safety rails (only the one with no core command equivalent)
+    - gstack/health
+# MCPs: cue-tty-watch + lightpanda inherited from core. gbrain dropped along
+# with the setup-gbrain / sync-gbrain skills.
 rules:
   - common/code-review
   - common/coding-style
@@ -104,10 +76,9 @@ rules:
   - typescript/security
   - typescript/testing
 commands:
-  - code-review
-  - checkpoint
+  # careful / freeze / unfreeze / guard / code-review / checkpoint / cost-report
+  # are inherited from core — listed here only for the gstack-specific extras.
   - feature-dev
   - build-fix
-  - cost-report
   - aside
-# hooks: inherited from core — bash-quality-preflight + session-summary
+# hooks: inherited from core — bash-quality-preflight + session-summary + safety rails

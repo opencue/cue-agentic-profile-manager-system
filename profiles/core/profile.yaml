@@ -43,83 +43,50 @@ persona: |
   When the user's request matches one of these, invoke the named skill via
   the `Skill` tool rather than answering directly. When in doubt, invoke.
 
-  - Product idea / brainstorm / "is this worth building" → `/office-hours`
-  - Scope challenge / "is this the right size" → `/plan-ceo-review`
-  - Architecture lock / data flow / test matrix → `/plan-eng-review`
-  - Full plan pipeline / greenfield feature → `/autoplan`
+  - Full plan pipeline / greenfield feature / scope or architecture review → `/autoplan`
+    (soft-loads office-hours → ceo → eng on demand via smart-loader)
   - Bug / error / "why is X broken" / "it was working yesterday" → `/investigate`
   - Pre-landing diff review → `/code-review-deep`
-  - Security / OWASP / threat model / auth-touching change → `/cso`
-  - Weekly retro / "what did we ship" → `/retro`
   - Touching prod or want safety rails → `/careful`, `/freeze <dir>`, `/guard <dir>`
   - Larger work — read `playbooks/sprint.md` first
-  - Topic mentions a tool/platform NOT in the loaded skills list (coolify, resend, hostinger, sanity, etc.) → `/smart-loader` to locate and soft-load the matching SKILL.md from disk
+  - Topic mentions a tool/platform NOT in the loaded skills list (coolify, resend, hostinger, sanity, security/cso, etc.) → `/smart-loader` to locate and soft-load the matching SKILL.md from disk
   - Producing any list of improvements, recommendations, options, or "what to fix" items (3+ rows) → `/roi-estimator` to attach a calibrated `dimension +N% 🟢/🟡/🟠/🔴` column so the user can rank by impact
 
   Playbook beats freestyling. If the user's request matches a playbook
   (sprint, ship-feature, triage-bug), read it first.
-
-  ## Prompt refinement (prompt-master)
-
-  For non-trivial requests — anything ambiguous, multi-step, or that
-  touches files/agents/AI tools — silently apply the `meta/prompt-master`
-  patterns before answering and offer the user a sharper rewrite of their
-  prompt. Output one block:
-
-      💡 Sharper prompt: <one-paragraph rewrite>
-      🎯 Why: <one sentence — what dimension you locked in>
-      Proceed with original, refined, or other?
-
-  Then wait for the user's call. Skip the suggestion for trivial asks
-  (one-line fixes, obvious bugs, simple questions) — refining a 5-word
-  request is friction, not value. Triggers: requests that lack scope,
-  target tool, output format, or success criteria; user asks for a prompt
-  for ANY AI tool ("write me a Midjourney prompt", "build a Cursor
-  prompt"); user pastes an existing prompt to fix/adapt. On those, jump
-  to the `meta/prompt-master` skill directly — don't freestyle the
-  refinement.
 skills:
   local:
-    # ── Built-in: shared by every cue profile via inheritance ──
+    # ── Built-in essentials: shared by every cue profile via inheritance ──
     - meta/analyze              # investigation: "analyze", "why does", "what's causing"
     - meta/cue-usage            # cue CLI guidance
-    - caveman/caveman           # /caveman — terse output mode
+    - caveman/caveman           # /caveman — terse output mode (top core skill by real usage)
     - caveman/caveman-commit    # /commit — Conventional Commits writer
     - meta/help                 # general help guidance
-    - meta/just                 # justfile task runner
-    - meta/prompt-master        # /prompt-master — refine prompts for any AI tool
+    - meta/prompt-master        # /prompt-master — refine prompts (opt-in skill; no longer a forced persona block)
     - meta/liedetector          # confidence-calibration tags (🟢🟡🟠🔴) on every claim
     - meta/integrity-tags       # explains the 7-tag confidence system the liedetector applies
-    - meta/kiro-powers          # Kiro CLI integration
-    - meta/smart-loader         # soft-loads non-profile skills from disk when topic matches (coolify, resend, etc.)
+    - meta/smart-loader         # soft-loads non-profile skills from disk when topic matches (coolify, resend, cso, etc.)
     - meta/roi-estimator        # auto-attaches ROI column (dimension, %, confidence tier) to any improvement list
-    # ── Plan-stage skills ──
-    - plan/office-hours         # /office-hours — premise-question before code
+    # ── Plan / debug (the rest of the plan cluster soft-loads via autoplan + smart-loader) ──
     - plan/investigate          # /investigate — root-cause debugging
-    - plan/plan-ceo-review      # /plan-ceo-review — scope challenge, 4 modes
-    - plan/plan-eng-review      # /plan-eng-review — architecture lock
-    - plan/autoplan             # /autoplan — chain office-hours → ceo → eng
-    # ── Review-stage skills ──
-    - review/code-review        # /code-review — promoted to core 2026-05-28 (was in 10 profiles)
-    - review/code-review-deep   # /code-review-deep — two-pass diff review
-    # ── Context management ──
-    - gstack/context-save       # /context-save — capture git state, decisions
-    - gstack/context-restore    # /context-restore — resume from saved context
-    # ── Security ──
-    - security/cso              # /cso — OWASP Top 10 + STRIDE
-    # ── Browser / scraping ──
-    - browser/lightpanda        # Lightpanda — fast headless browser for scraping, DOM dump, CDP. Falls back to playwright for pixel screenshots.
+    - plan/autoplan             # /autoplan — chains office-hours → ceo → eng on demand
+    # ── Review ──
+    - review/code-review-deep   # /code-review-deep — two-pass diff review (sole baseline reviewer)
+    # ── Browser ──
+    - browser/lightpanda        # Lightpanda — fast headless browser for scraping, DOM dump, CDP. Pairs with lightpanda MCP.
     # ── Source-fetching ──
     - tools/opensrc             # opensrc — fetch dependency source (npm/PyPI/crates/GitHub) so agents read implementations, not just types
-    - tools/learn-from-repo     # learn-from-repo — fetch an external repo via opensrc and mine it for patterns to adopt into cue
-    - tools/prior-art           # prior-art — search open-source prior art before building so we don't reinvent what exists
-    - meta/mcp-finder           # mcp-finder — discover/wire MCP servers (local registry, awesome-mcp-servers, Smithery, GitHub); match to profile skills
-    # Removed for size: meta/builtin-manager, meta/profile-fit-monitor,
-    # nvidia/skill-evolution, meta/acpx, meta/kiro-powers, meta/plugin-creator,
-    # meta/profile-optimizer, meta/profile-suggest, meta/save-profile,
-    # meta/skill-discovery, meta/skill-suggestion, meta/skill-reviewer,
-    # meta/description-optimizer, meta/smithery-usage, meta/soul,
-    # meta/upgrade-stack, meta/retro, marketing/cue-rec
+    # ── Trimmed 2026-06-01 (lean-core pass) — moved to disk, reachable via smart-loader ──
+    # Cut as non-universal / 0-telemetry: meta/just, meta/kiro-powers, meta/mcp-finder,
+    # plan/office-hours, plan/plan-ceo-review, plan/plan-eng-review, review/code-review
+    # (dup of /code-review command + code-review-deep), gstack/context-save,
+    # gstack/context-restore, security/cso (heavy — belongs in backend/secops),
+    # tools/learn-from-repo, tools/prior-art.
+    # Earlier removals: meta/builtin-manager, meta/profile-fit-monitor,
+    # nvidia/skill-evolution, meta/acpx, meta/plugin-creator, meta/profile-optimizer,
+    # meta/profile-suggest, meta/save-profile, meta/skill-discovery,
+    # meta/skill-suggestion, meta/skill-reviewer, meta/description-optimizer,
+    # meta/smithery-usage, meta/soul, meta/upgrade-stack, meta/retro, marketing/cue-rec
   npx:
     # ── Office document toolkit (anthropics/skills) ──
     # Promoted to core 2026-05-29: every profile inherits PDF / Word / PowerPoint
@@ -127,10 +94,8 @@ skills:
     # decks all gain doc-format capability without per-profile wiring.
     - repo: anthropics/skills
       skills: [pdf, docx, pptx]
-    # GitHub Actions docs — highest-installed skill on the registry (177.4K).
-    # Universal value: any profile that ever touches CI workflows benefits.
-    - repo: xixu-me/skills
-      skills: [github-actions-docs]
+    # github-actions-docs dropped from core 2026-06-01 — CI-docs is not universal
+    # baseline. Add it back per-profile (ops, the deploy-touching ones) if needed.
 mcps:
   - cue-tty-watch    # Claude's eyes inside X displays / tmux panes (screenshot, capture-pane, send-keys)
   - lightpanda       # Fast headless browser MCP — fetch/render/scrape URLs without Chromium. Pairs with browser/lightpanda skill.
@@ -183,11 +148,6 @@ hooks:
   # unique skill referenced. Replaces the 50KB regex scrape with a full scan.
   # Feeds `cue profile evolve` with accurate per-skill firing data.
   - skill-fire-tracker.json
-  # Stop hook: emit a "🧠 Next:" block with 1-3 ranked next-step suggestions
-  # grounded in recent commits, telemetry, promotion candidates, and
-  # uncommitted work. Each suggestion has an ROI tag. Cached & throttled.
-  # Suppress per-commit via [skip-brain] in the commit message.
-  - brain-next-suggestion.json
   # Stop hook: audit liedetector [VERIFIED]/[KNOWN] tags against the tool
   # calls actually observed this turn. Self-applied confidence tags are
   # gameable — this re-grounds them in observed behaviour. Warns (never
@@ -209,13 +169,6 @@ hooks:
   # block so Claude can offer them instead of needing to "notice" the gap.
   # Pairs with meta/smart-loader — this is the proactive trigger.
   - smart-loader-suggest.json
-  # UserPromptSubmit hook: on a prompt expressing build intent ("let's build",
-  # "implement X", "add a feature"), inject a "💡 Prior-art check" block
-  # reminding Claude to search open-source prior art (GitHub + registries)
-  # before writing net-new code. Pairs with tools/prior-art — the proactive
-  # "don't reinvent the wheel" trigger. Non-blocking, throttled 5min/session,
-  # suppress a turn with [skip-prior-art].
-  - prior-art-nudge.json
   # Stricter destructive-command guard, opt-in via /careful. No-op until
   # ~/.config/cue/careful-mode exists.
   - careful-mode.json
