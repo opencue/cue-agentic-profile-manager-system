@@ -23,7 +23,7 @@ const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? res
 const SKILLS_ROOT = join(REPO_ROOT, "resources", "skills", "skills");
 const GLOBAL_SKILLS_ROOT = join(homedir(), ".claude", "skills");
 
-interface SecurityIssue {
+export interface SecurityIssue {
   code: string;
   severity: "critical" | "high" | "medium";
   skill: string;
@@ -124,7 +124,7 @@ const RULES: { code: string; severity: "critical" | "high" | "medium"; patterns:
   },
 ];
 
-function scanSkill(id: string): SecurityIssue[] {
+export function scanSkill(id: string, opts: { trustGlobalPack?: boolean } = {}): SecurityIssue[] {
   // Try both local repo skills and global ~/.claude/skills
   let path = join(SKILLS_ROOT, id, "SKILL.md");
   if (!existsSync(path)) path = join(GLOBAL_SKILLS_ROOT, id, "SKILL.md");
@@ -153,14 +153,24 @@ function scanSkill(id: string): SecurityIssue[] {
   const isGlobalPack = existsSync(join(GLOBAL_SKILLS_ROOT, id, "SKILL.md")) &&
     !existsSync(join(SKILLS_ROOT, id, "SKILL.md"));
 
+  // Category-based suppressions trust the skill's self-declared identity
+  // (frontmatter/id/path) — fine when auditing curated or local packs, but
+  // that signal is attacker-controlled for a freshly-fetched remote skill (a
+  // malicious skill could self-label as "security" to dodge SEC1-5). The
+  // freshness gate passes { trustGlobalPack: false } to run the FULL ruleset;
+  // `cue security` keeps the default (true) and its existing behavior.
+  const trustGlobal = opts.trustGlobalPack !== false;
+
   for (const rule of RULES) {
     // Skip rules for skill categories where these patterns are expected documentation
-    if ((isSecuritySkill || isGlobalPack) && ["SEC1", "SEC2", "SEC3", "SEC4", "SEC5"].includes(rule.code)) continue;
-    if (isMetaSkill && ["SEC4", "SEC5"].includes(rule.code)) continue;
-    if (isApiDocSkill && ["SEC1", "SEC2", "SEC5"].includes(rule.code)) continue;
-    if (isDesignSkill && ["SEC2"].includes(rule.code)) continue;
-    if (isOrchSkill && ["SEC4", "SEC5"].includes(rule.code)) continue;
-    if (isResearchSkill && ["SEC1", "SEC2"].includes(rule.code)) continue;
+    if (trustGlobal) {
+      if ((isSecuritySkill || isGlobalPack) && ["SEC1", "SEC2", "SEC3", "SEC4", "SEC5"].includes(rule.code)) continue;
+      if (isMetaSkill && ["SEC4", "SEC5"].includes(rule.code)) continue;
+      if (isApiDocSkill && ["SEC1", "SEC2", "SEC5"].includes(rule.code)) continue;
+      if (isDesignSkill && ["SEC2"].includes(rule.code)) continue;
+      if (isOrchSkill && ["SEC4", "SEC5"].includes(rule.code)) continue;
+      if (isResearchSkill && ["SEC1", "SEC2"].includes(rule.code)) continue;
+    }
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
@@ -204,6 +214,22 @@ function scanSkill(id: string): SecurityIssue[] {
   }
 
   return issues;
+}
+
+/**
+ * Enforcement gate for a freshly-fetched remote skill. Scans with category
+ * suppressions OFF (the skill is untrusted), and treats SEC1-3 (secret
+ * exfiltration, data exfiltration, safety-override / prompt injection) as
+ * blocking. `allowUnsafe` lets the caller override. Pure (only scanSkill's
+ * file read); the caller owns all messaging.
+ */
+export function gateFreshSkill(
+  skillId: string,
+  opts: { allowUnsafe?: boolean } = {},
+): { ok: boolean; issues: SecurityIssue[]; critical: SecurityIssue[] } {
+  const issues = scanSkill(skillId, { trustGlobalPack: false });
+  const critical = issues.filter((issue) => issue.severity === "critical");
+  return { ok: critical.length === 0 || opts.allowUnsafe === true, issues, critical };
 }
 
 /** Check if a line index is inside a fenced code block */

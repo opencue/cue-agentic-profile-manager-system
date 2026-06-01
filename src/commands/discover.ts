@@ -20,6 +20,7 @@ import { loadProfile, listProfiles } from "../lib/profile-loader";
 import { clusterByKeywords, clusterByEmbeddings, unclustered, type Cluster, type ClusterItem } from "../lib/cluster-skills";
 import { findRealClaudeBin } from "../lib/claude-binary";
 import { fetchCompanionFiles, detectSkillPath } from "../lib/companion-fetch";
+import { gateFreshSkill } from "./security";
 
 const REPO_ROOT = process.env.CUE_REPO_ROOT ?? process.env.SOUL_REPO_ROOT ?? resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Cache path resolved lazily so tests can redirect via XDG_CONFIG_HOME without
@@ -2062,7 +2063,7 @@ export function autoInstallClis(skillName: string, opts: { yes?: boolean } = {})
 // Install gems into profiles
 // ---------------------------------------------------------------------------
 
-async function cmdInstall(opts: { profile?: string; minScore: number; minQuality: number; dryRun: boolean; all: boolean; notify: boolean; digest: boolean; yes: boolean }): Promise<number> {
+async function cmdInstall(opts: { profile?: string; minScore: number; minQuality: number; dryRun: boolean; all: boolean; notify: boolean; digest: boolean; yes: boolean; allowUnsafe: boolean }): Promise<number> {
   if (!existsSync(cacheFile())) {
     process.stderr.write("No cached gems. Run `cue discover search` first.\n");
     return 1;
@@ -2140,6 +2141,21 @@ async function cmdInstall(opts: { profile?: string; minScore: number; minQuality
           }
         }
       }
+    }
+
+    // Security gate: the skill files are now on disk but not yet registered to
+    // a profile. Scan the just-fetched (untrusted) skill and block on critical
+    // findings (secret/data exfiltration, prompt injection) unless --allow-unsafe.
+    const gate = gateFreshSkill(gem.name, { allowUnsafe: opts.allowUnsafe });
+    if (!gate.ok) {
+      process.stdout.write(`     🔴 BLOCKED: ${gem.full_name} has ${gate.critical.length} critical security finding(s):\n`);
+      for (const c of gate.critical) {
+        process.stdout.write(`        [${c.code}] ${c.message}${c.line ? ` (line ${c.line})` : ""}\n`);
+      }
+      process.stdout.write(`        Left on disk at ~/.claude/skills/${gem.name} but NOT registered to a profile.\n`);
+      process.stdout.write(`        Review it, then re-run with --allow-unsafe to register anyway.\n`);
+      skipped++;
+      continue;
     }
 
     // Surface CLI dependencies from the skill's SKILL.md Prerequisites.
@@ -2730,6 +2746,9 @@ Filters (any combination, no extra GitHub calls — read from cache):
 
 Install options:
   --dry-run                 Preview installs without making changes
+  --yes, -y                 Auto-install CLI prerequisites from a skill's SKILL.md
+  --allow-unsafe            Register a skill even if the security scan finds a
+                            critical issue (default: block + leave it unregistered)
   --notify                  Open a one-time GitHub issue on each indexed repo
   --digest                  Post a daily GitHub Discussion summarizing new gems
 
@@ -2803,8 +2822,9 @@ Examples:
     const notify = args.includes("--notify");
     const digest = args.includes("--digest");
     const yes = args.includes("--yes") || args.includes("-y");
+    const allowUnsafe = args.includes("--allow-unsafe");
     const minQuality = intFlag(args, "--min-quality", 7)!;
-    return cmdInstall({ profile, minScore, minQuality, dryRun, all, notify, digest, yes });
+    return cmdInstall({ profile, minScore, minQuality, dryRun, all, notify, digest, yes, allowUnsafe });
   }
 
   if (rest[0] === "notify") {

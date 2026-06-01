@@ -19,6 +19,7 @@ import { scanProject } from "../lib/project-scanner";
 import { listProfiles } from "../lib/profile-loader";
 import { getCachedGemsForProfile, autoInstallClis } from "./discover";
 import { shimInstalled, runInstall } from "./shell";
+import { gateFreshSkill } from "./security";
 import {
   configDir,
   enable as enableTelemetry,
@@ -161,6 +162,15 @@ async function offerDiscoverGems(profile: string): Promise<void> {
     spawnSync("npx", ["skills", "add", g.full_name, "-a", "claude-code", "-y"], {
       encoding: "utf8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"],
     });
+    // Security gate: flag a just-fetched skill with critical findings and skip
+    // its CLI auto-install (the gem is installed to ~/.claude/skills, but the
+    // wizard does not auto-register it to a profile).
+    const gate = gateFreshSkill(g.name);
+    if (!gate.ok) {
+      p.log.error(`${g.full_name}: ${gate.critical.length} critical security finding(s) — review before use.`);
+      for (const c of gate.critical) p.log.message(`  [${c.code}] ${c.message}`);
+      continue;
+    }
     autoInstallClis(g.name);
   }
   p.log.success(`Installed ${gems.length} gem(s).`);
