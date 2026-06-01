@@ -689,12 +689,26 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
     const newPath = join(tmpDir, name);
     try {
       const st = await lstat(oldPath);
-      if (st.isFile() || st.isDirectory()) {
-        // Remove whatever overlay put here (likely a symlink for .claude.json
-        // or a copy for .credentials.json) so rename can replace it cleanly.
-        await rm(newPath, { force: true, recursive: true });
-        await rename(oldPath, newPath);
+      if (!(st.isFile() || st.isDirectory())) continue;
+      if (name === ".credentials.json") {
+        // Freshness guard — fixes "logged-out after relaunch". Anthropic rotates
+        // the refresh token on every refresh, so only the copy with the highest
+        // expiresAt still holds a live refresh token. Step 5's overlay already
+        // placed the freshly-synced SOURCE creds in tmpDir (and
+        // resolveClaudeCredentialsSource healed source from the freshest sibling
+        // runtime first). Resurrect the OLD runtime's creds ONLY when they are
+        // strictly newer than source — otherwise keep source, so a rebuild can't
+        // drag a dead, rotated token back into the runtime. When source is
+        // half-logged-out its expiresAt is 0/old, so a logged-in runtime still
+        // wins and stays logged in (the original intent of this preserve step).
+        const oldExp = await credentialsExpiresAt(oldPath);
+        const newExp = await credentialsExpiresAt(newPath);
+        if (oldExp <= newExp) continue; // source as-fresh-or-fresher → keep it
       }
+      // Remove whatever overlay put here (likely a symlink for .claude.json
+      // or a copy for .credentials.json) so rename can replace it cleanly.
+      await rm(newPath, { force: true, recursive: true });
+      await rename(oldPath, newPath);
     } catch { /* doesn't exist — skip */ }
   }
   await rm(runtimeDir, { recursive: true, force: true });
@@ -705,6 +719,22 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
   }
 
   return { runtimeDir, rebuilt: true, hash };
+}
+
+/**
+ * Read `claudeAiOauth.expiresAt` (ms epoch) from a `.credentials.json`. Returns
+ * 0 when the file is missing, unparseable, or carries no expiry — so anything
+ * with a real token sorts as fresher in the rebuild preserve comparison.
+ */
+async function credentialsExpiresAt(path: string): Promise<number> {
+  try {
+    const raw = await readFile(path, "utf8");
+    const parsed = JSON.parse(raw) as { claudeAiOauth?: { expiresAt?: number } };
+    const exp = parsed?.claudeAiOauth?.expiresAt;
+    return typeof exp === "number" ? exp : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function collectProfileMcps(

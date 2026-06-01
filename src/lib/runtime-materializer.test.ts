@@ -324,6 +324,78 @@ describe("materializeRuntime", () => {
     expect(s2.permissions.allow).toEqual(["B"]);
   });
 
+  test("credentialsSource: rebuild keeps the freshest token (no logged-out-after-relaunch)", async () => {
+    // Regression: Anthropic rotates the refresh token on every refresh. The old
+    // preserve step blindly resurrected the runtime's own .credentials.json on a
+    // rebuild — even when it held a dead, rotated token while the freshly-synced
+    // source had the live one — booting the relaunched profile into a logged-out
+    // state. The preserve step must keep whichever token has the higher expiresAt.
+    const stale = join(root, "src-stale");
+    const fresh = join(root, "src-fresh");
+    await mkdir(stale, { recursive: true });
+    await mkdir(fresh, { recursive: true });
+    const STALE = 1_000;
+    const FRESH = 9_000_000_000_000;
+    await writeFile(join(stale, ".credentials.json"), JSON.stringify({ claudeAiOauth: { expiresAt: STALE, refreshToken: "dead" } }));
+    await writeFile(join(fresh, ".credentials.json"), JSON.stringify({ claudeAiOauth: { expiresAt: FRESH, refreshToken: "live" } }));
+
+    const base = {
+      agent: "claude-code" as const,
+      runtimeRoot: join(root, "runtime"),
+      skillSourceLookup: async (id: string) => `/fake/source/${id}`,
+      mcpRegistry: { "claude-mem": { command: "claude-mem" } },
+      userClaudeMd: "",
+    };
+    const p1: ResolvedProfile = { ...sampleProfile, name: "rotate" };
+    // Extra skill → different hash → forces a REBUILD (exercises the preserve step).
+    const p2: ResolvedProfile = { ...sampleProfile, name: "rotate", skills: { local: [{ id: "design/ui-ux-pro-max" }, { id: "design/extra" }], npx: [] } };
+
+    // First launch: runtime ends up with the (then-current) STALE source token.
+    const first = await materializeRuntime({ ...base, profile: p1, credentialsSource: stale });
+    expect(first.rebuilt).toBe(true);
+
+    // syncFreshestToSource has since healed source to the live token. Relaunch
+    // with a changed profile → rebuild path runs the preserve step.
+    const second = await materializeRuntime({ ...base, profile: p2, credentialsSource: fresh });
+    expect(second.rebuilt).toBe(true);
+
+    const creds = JSON.parse(await readFile(join(second.runtimeDir, ".credentials.json"), "utf8"));
+    expect(creds.claudeAiOauth.expiresAt).toBe(FRESH);
+    expect(creds.claudeAiOauth.refreshToken).toBe("live");
+  });
+
+  test("credentialsSource: rebuild keeps the runtime token when source is half-logged-out", async () => {
+    // Inverse guard: if SOURCE is stale/half-logged-out (no/low expiresAt) but the
+    // runtime is logged in (fresh token), a rebuild must NOT clobber the live
+    // runtime token with the dead source one. Preserves the original intent.
+    const fresh = join(root, "src-fresh");
+    const loggedOut = join(root, "src-loggedout");
+    await mkdir(fresh, { recursive: true });
+    await mkdir(loggedOut, { recursive: true });
+    const FRESH = 9_000_000_000_000;
+    await writeFile(join(fresh, ".credentials.json"), JSON.stringify({ claudeAiOauth: { expiresAt: FRESH, refreshToken: "live" } }));
+    await writeFile(join(loggedOut, ".credentials.json"), JSON.stringify({ claudeAiOauth: { refreshToken: "" } }));
+
+    const base = {
+      agent: "claude-code" as const,
+      runtimeRoot: join(root, "runtime"),
+      skillSourceLookup: async (id: string) => `/fake/source/${id}`,
+      mcpRegistry: { "claude-mem": { command: "claude-mem" } },
+      userClaudeMd: "",
+    };
+    const p1: ResolvedProfile = { ...sampleProfile, name: "rotate2" };
+    const p2: ResolvedProfile = { ...sampleProfile, name: "rotate2", skills: { local: [{ id: "design/ui-ux-pro-max" }, { id: "design/extra" }], npx: [] } };
+
+    const first = await materializeRuntime({ ...base, profile: p1, credentialsSource: fresh });
+    expect(first.rebuilt).toBe(true);
+    const second = await materializeRuntime({ ...base, profile: p2, credentialsSource: loggedOut });
+    expect(second.rebuilt).toBe(true);
+
+    const creds = JSON.parse(await readFile(join(second.runtimeDir, ".credentials.json"), "utf8"));
+    expect(creds.claudeAiOauth.expiresAt).toBe(FRESH);
+    expect(creds.claudeAiOauth.refreshToken).toBe("live");
+  });
+
   test("CLAUDE.md stamp uses real ISO timestamp, not literal $(date)", async () => {
     const out = await materializeRuntime({
       profile: sampleProfile,
