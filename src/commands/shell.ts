@@ -6,9 +6,21 @@
  * Adds a cd wrapper that checks .cue-profile on directory change.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, accessSync, constants } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
+
+/** True when `p` is an executable regular file (mirrors how the shell resolves
+ * a command on PATH — skips directories and non-executable files). */
+function isExecutableFile(p: string): boolean {
+  try {
+    if (!statSync(p).isFile()) return false;
+    accessSync(p, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function hookBash(): string {
   return `# cue shell hook — auto-switch profile on cd
@@ -128,10 +140,11 @@ export function shimInstalled(homeDir?: string): boolean {
 export function resolveCueInvocation(opts: { repoRoot?: string; pathDirs?: string[] } = {}): string {
   const pathDirs = opts.pathDirs ?? (process.env.PATH ?? "").split(":").filter(Boolean);
   for (const dir of pathDirs) {
-    if (dir && existsSync(join(dir, "cue"))) return "cue";
+    if (dir && isExecutableFile(join(dir, "cue"))) return "cue";
   }
+  // Prefer the node entrypoint (npm layout) then the bash one, then ~/Documents.
   const root = opts.repoRoot ?? process.env.CUE_REPO_ROOT ?? join(homedir(), "Documents", "cue");
-  for (const candidate of [join(root, "bin", "cue"), join(root, "bin", "cue.mjs")]) {
+  for (const candidate of [join(root, "bin", "cue.mjs"), join(root, "bin", "cue")]) {
     if (existsSync(candidate)) return `"${candidate}"`;
   }
   return `"${process.argv[1] ?? "cue"}"`;

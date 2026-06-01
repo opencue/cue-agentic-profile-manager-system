@@ -23,12 +23,13 @@ function writeShim() {
 }
 
 describe("checkActivation (D9)", () => {
-  test("no shim → D9 error (gating)", () => {
+  test("no shim → D9 warning (gating)", () => {
     const issues = checkActivation({ homeDir: home, realBin: "/usr/bin/claude", pathDirs: [binDir, "/usr/bin"] });
     expect(issues).toHaveLength(1);
     expect(issues[0]!.code).toBe("D9");
-    expect(issues[0]!.severity).toBe("error");
+    expect(issues[0]!.severity).toBe("warning");
     expect(issues[0]!.message).toContain("shim missing");
+    expect(issues[0]!.fix).toBe("cue shell install");
   });
 
   test("shim + real bin + ~/.local/bin first on PATH → healthy", () => {

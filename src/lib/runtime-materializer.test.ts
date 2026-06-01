@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, mkdir, writeFile, readFile, stat, lstat, rm, readlink } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, stat, lstat, rm, readlink, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -828,6 +828,24 @@ describe("isRuntimeStale", () => {
     await utimes(yamlPath, new Date(Date.now() - 60_000), new Date(Date.now() - 60_000));
     await utimes(hashPath, new Date(), new Date());
     expect(await isRuntimeStale("p6", "claude-code", runtimeRoot)).toBe(false);
+  });
+
+  test("detects a newer SKILL.md through a symlinked skill dir (production layout)", async () => {
+    const runtimeRoot = join(root, "runtime");
+    const { yamlPath, hashPath } = await setup("p7", runtimeRoot);
+    // Production materialize symlinks skills/<slug> → the source skill dir; the
+    // SKILL.md inside is a real file, so lstat resolves through to its mtime.
+    const src = join(profilesRoot, "src-skill-p7");
+    await mkdir(src, { recursive: true });
+    const srcMd = join(src, "SKILL.md");
+    await writeFile(srcMd, "# s\n");
+    const skillsDir = join(runtimeRoot, "p7", "claude", "skills");
+    await mkdir(skillsDir, { recursive: true });
+    await symlink(src, join(skillsDir, "s"));
+    await utimes(yamlPath, new Date(Date.now() - 120_000), new Date(Date.now() - 120_000));
+    await utimes(hashPath, new Date(Date.now() - 60_000), new Date(Date.now() - 60_000));
+    await utimes(srcMd, new Date(), new Date());
+    expect(await isRuntimeStale("p7", "claude-code", runtimeRoot)).toBe(true);
   });
 });
 

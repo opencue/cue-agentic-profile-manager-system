@@ -219,11 +219,14 @@ export function checkActivation(
   // 1. The claude shim must be installed (and be a cue shim). Gating check —
   //    the rest is moot without it.
   if (!shimInstalled(opts.homeDir)) {
+    // Warning, not error: a user may legitimately not have run `cue shell
+    // install` yet (or use `cue launch` directly). Surfacing it shouldn't flip
+    // `cue doctor`'s exit code, which should track actual profile breakage.
     issues.push({
       code: "D9",
-      severity: "error",
+      severity: "warning",
       profile: PROF,
-      message: "~/.local/bin/claude shim missing or not a cue shim — `claude` won't load profiles",
+      message: "~/.local/bin/claude shim missing or not a cue shim — `claude` won't load profiles (run `cue shell install`)",
       fix: "cue shell install",
     });
     return issues;

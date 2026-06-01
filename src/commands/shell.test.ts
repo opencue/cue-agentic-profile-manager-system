@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdtemp, readFile, writeFile, rm, mkdir, stat } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm, mkdir, stat, chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -83,11 +83,23 @@ describe("shimInstalled", () => {
 });
 
 describe("resolveCueInvocation", () => {
-  test("returns bare `cue` when cue is resolvable on PATH (npm-global case)", async () => {
+  test("returns bare `cue` when an executable cue is resolvable on PATH (npm-global case)", async () => {
     const binDir = join(fakeHome, "pathbin");
     await mkdir(binDir, { recursive: true });
     await writeFile(join(binDir, "cue"), "#!/bin/sh\n");
+    await chmod(join(binDir, "cue"), 0o755);
     expect(resolveCueInvocation({ pathDirs: [binDir] })).toBe("cue");
+  });
+
+  test("ignores a non-executable cue on PATH and falls back to the abspath", async () => {
+    const binDir = join(fakeHome, "pathbin2");
+    await mkdir(binDir, { recursive: true });
+    await writeFile(join(binDir, "cue"), "not executable\n"); // no chmod +x
+    const repoRoot = join(fakeHome, "repo2");
+    await mkdir(join(repoRoot, "bin"), { recursive: true });
+    await writeFile(join(repoRoot, "bin", "cue"), "#!/usr/bin/env bun\n");
+    const out = resolveCueInvocation({ pathDirs: [binDir], repoRoot });
+    expect(out).toBe(`"${join(repoRoot, "bin", "cue")}"`);
   });
 
   test("falls back to a quoted absolute path when cue is not on PATH (source clone)", async () => {

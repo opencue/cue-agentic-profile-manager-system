@@ -13,7 +13,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..");
-const CAN_RUN = process.platform !== "win32" && spawnSync("bash", ["--version"], { encoding: "utf8" }).status === 0;
+// CI-only: install.sh does `cd CUE_DIR && bun install`, which would mutate the
+// developer's real node_modules and may hit the network on a cold cache. CI
+// runs on a fresh checkout where that's fine and is the canonical place to
+// prove the shell install path; locally we skip to keep the working tree clean.
+const CAN_RUN =
+  !!process.env.CI &&
+  process.platform !== "win32" &&
+  spawnSync("bash", ["--version"], { encoding: "utf8" }).status === 0;
 
 describe.skipIf(!CAN_RUN)("install.sh smoke", () => {
   let shimDir: string;
