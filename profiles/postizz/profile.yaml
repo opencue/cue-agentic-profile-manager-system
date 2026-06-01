@@ -12,6 +12,12 @@ skills:
     - content/article-writer    # topic-agnostic long-form writer (5 presets + voice library + source-discipline)
     - content/article-to-everywhere   # fan-out finished article → X + LinkedIn + Substack + Reddit derivatives
     - content/engagement-feedback     # /engagement-report — Postiz analytics ↔ voice/preset/topic correlator
+    # Higgsfield image/video generation — brand cards, hero shots, marketplace
+    # assets for the social posts this profile schedules (persona drives these).
+    - higgsfield/higgsfield-generate
+    - higgsfield/higgsfield-product-photoshoot
+    - higgsfield/higgsfield-marketplace-cards
+    - higgsfield/higgsfield-soul-id
   npx:
     - repo: gitroomhq/postiz-agent
       skills: [postiz-agent]
@@ -31,6 +37,7 @@ skills:
 mcps:
   - postiz
   - trendradar
+  - Higgsfield   # hosted image/video MCP — https://mcp.higgsfield.ai/mcp
 rules:
   - postiz/x-cashtag-limit
 commands:
