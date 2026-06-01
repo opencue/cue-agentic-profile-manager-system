@@ -18,6 +18,7 @@ import { detectProfile } from "../lib/auto-detect";
 import { scanProject } from "../lib/project-scanner";
 import { listProfiles } from "../lib/profile-loader";
 import { getCachedGemsForProfile, autoInstallClis } from "./discover";
+import { shimInstalled, runInstall } from "./shell";
 import {
   configDir,
   enable as enableTelemetry,
@@ -170,6 +171,36 @@ async function offerDiscoverGems(profile: string): Promise<void> {
   p.log.success(`Installed ${gems.length} gem(s).`);
 }
 
+/**
+ * Offer to install the shell shims if they're missing. Without the
+ * `~/.local/bin/claude` shim, typing `claude` runs vanilla Claude Code and
+ * the pinned profile is never loaded — the #1 "I followed the docs and
+ * nothing happened" failure. Detect it here and offer the one-time fix.
+ */
+async function ensureShim(): Promise<void> {
+  if (shimInstalled()) return;
+  p.log.warn(
+    "The `claude`/`codex` shim isn't installed yet — without it, launching `claude` runs vanilla Claude Code and won't load this profile.",
+  );
+  const install = await p.confirm({
+    message: "Install the shell shim now? (writes ~/.local/bin/claude)",
+  });
+  if (p.isCancel(install) || !install) {
+    p.log.message("Skipped — run `cue shell install` later to activate profile loading.");
+    return;
+  }
+  try {
+    const code = await runInstall();
+    if (code === 0) {
+      p.log.success("Shim installed to ~/.local/bin. Make sure it's earlier on your PATH than the real claude/codex.");
+    } else {
+      p.log.warn("Shim install reported an issue — run `cue shell install` manually for details.");
+    }
+  } catch {
+    p.log.warn("Couldn't install the shim automatically — run `cue shell install` manually.");
+  }
+}
+
 export async function run(args: string[]): Promise<number> {
   const cwd = process.cwd();
   const reOnboard = args.includes("--re-onboard");
@@ -264,6 +295,7 @@ export async function run(args: string[]): Promise<number> {
 
     writeFileSync(join(cwd, ".cue-profile"), (name as string) + "\n");
     await offerDiscoverGems(name as string);
+    await ensureShim();
     p.outro(`✅ Created profile "${name}" and pinned to this directory.`);
     return 0;
   }
@@ -271,6 +303,7 @@ export async function run(args: string[]): Promise<number> {
   // Pin the chosen profile
   writeFileSync(join(cwd, ".cue-profile"), (choice as string) + "\n");
   await offerDiscoverGems(choice as string);
+  await ensureShim();
   p.outro(`✅ Pinned "${choice}" to this directory. Next \`claude\` launch will use it.`);
   return 0;
 }

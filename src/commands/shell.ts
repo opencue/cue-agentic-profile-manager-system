@@ -6,7 +6,7 @@
  * Adds a cd wrapper that checks .cue-profile on directory change.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 
@@ -90,6 +90,20 @@ export interface ShimOptions {
   pathDirs?: string[];
   realClaude?: string;
   realCodex?: string;
+}
+
+/**
+ * True when the `claude` shim is already installed in ~/.local/bin and points
+ * at cue (i.e. `cue launch`). Used by `cue init` to detect that profile
+ * loading hasn't been activated yet. Conservative: any read error → false.
+ */
+export function shimInstalled(homeDir?: string): boolean {
+  const shimPath = join(homeDir ?? homedir(), ".local", "bin", "claude");
+  try {
+    return existsSync(shimPath) && readFileSync(shimPath, "utf8").includes("cue launch");
+  } catch {
+    return false;
+  }
 }
 
 export async function runInstall(opts: ShimOptions = {}): Promise<number> {

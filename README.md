@@ -87,10 +87,14 @@ One cuecard per project. Your agent reads the right one the moment you launch.
 
 ```bash
 npm install -g cue-ai                          # 1. install
-cue discover search "code review"              # 2. find a skill
-cue discover install review/code-review        # 3. add it
-claude                                         # 4. launch — the cuecard is loaded
+cue shell install                              # 2. activate the claude/codex shim (one-time)
+cue discover search "code review"              # 3. find a skill
+cue discover install review/code-review        # 4. add it
+claude                                         # 5. launch — the cuecard is loaded
 ```
+
+> Step 2 is what makes `claude` load your cuecard: it installs a `~/.local/bin/claude`
+> shim that hands off to `cue launch`. Skip it and `claude` just runs vanilla Claude Code.
 
 Search. Install. Use. No config files to edit. Works the same with `codex`, `cursor`, `cline`, `gemini`, and five other agents.
 
@@ -335,12 +339,13 @@ cue doctor --fix              # diff declared vs actual state, auto-repair
 npm install -g cue-ai
 ```
 
-Then in any project:
+Then activate the shim once, and pin a profile in any project:
 
 ```bash
+cue shell install             # one-time: installs the claude/codex shim
 cd ~/projects/q4-launch
 echo marketing > .cue-profile
-claude
+claude                        # launches with the marketing cuecard
 ```
 
 <details>
