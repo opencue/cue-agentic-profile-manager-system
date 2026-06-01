@@ -191,11 +191,12 @@ async function checkForUpdate(currentVersion: string): Promise<void> {
     const readline = await import("node:readline");
     const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
     const answer = await new Promise<string>((resolve) => {
-      rl.question("     Install now? [Y/n] ", (a) => { rl.close(); resolve(a); });
-      // Auto-accept after 5 seconds
-      setTimeout(() => { rl.close(); resolve("y"); }, 5000);
+      rl.question("     Install now? [y/N] ", (a) => { rl.close(); resolve(a); });
+      // Default to "no" if the user doesn't answer — never auto-install
+      // a global package unattended.
+      setTimeout(() => { rl.close(); resolve("n"); }, 5000);
     });
-    if (!answer || answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
+    if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
       process.stderr.write("     📦 Updating...\n");
       const { spawnSync } = await import("node:child_process");
       const result = spawnSync("npm", ["install", "-g", "cue-ai"], { encoding: "utf8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"] });
@@ -213,8 +214,17 @@ async function checkForUpdate(currentVersion: string): Promise<void> {
 async function main(argv: string[]): Promise<number> {
   const args = argv.slice(2);
 
-  // Non-blocking update check (runs in background, shows prompt if outdated)
-  checkForUpdate(readVersion()).catch(() => {});
+  // Update check — never during a live agent launch. The `claude`/`codex`
+  // shim is `exec cue launch ...`, so running it here would open a readline
+  // on the agent's stdin (stealing keystrokes) and could fire a blocking
+  // `npm install -g` mid-session. Skip for `launch`, when launching
+  // (CUE_LAUNCHING), in CI, or when stdin isn't an interactive TTY.
+  const skipUpdateCheck =
+    args[0] === "launch" ||
+    process.env.CUE_LAUNCHING === "1" ||
+    !!process.env.CI ||
+    !process.stdin.isTTY;
+  if (!skipUpdateCheck) checkForUpdate(readVersion()).catch(() => {});
 
   if (args.length === 0) {
     // Show status dashboard by default (like `git status`)
