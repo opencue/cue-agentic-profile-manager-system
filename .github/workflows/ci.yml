@@ -43,7 +43,11 @@ jobs:
         run: bun install
 
       - name: Type check
-        run: bun x tsc --noEmit --skipLibCheck 2>/dev/null || true
+        run: bun run typecheck
 
+      # Surface skill-lint output (was a silent no-op: bare `skills-lint`
+      # exits 1 on a usage error, masked by `2>/dev/null || true`; the real
+      # command is `skills lint --all`). Kept non-blocking until the
+      # skill-hygiene backlog is cleared.
       - name: Lint skills
-        run: bun src/index.ts skills-lint 2>/dev/null || true
+        run: bun src/index.ts skills lint --all || true
