@@ -129,6 +129,12 @@ export const npxFetch: NpxFetchFn = async (repo, pin, skill, destDir) => {
     cwd: destDir,
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
+    // Defense-in-depth: a single wedged `npx skills add` must never hang the
+    // whole run. On timeout spawnSync sets res.error (ETIMEDOUT), which maps
+    // to NpxFetchFailed below. Override with CUE_NPX_TIMEOUT_MS.
+    timeout: Number(process.env.CUE_NPX_TIMEOUT_MS ?? 45000),
+    killSignal: "SIGKILL",
+    windowsHide: true,
   });
   if (res.error) {
     throw new NpxFetchFailed(repo, res.error.message, res.error);
