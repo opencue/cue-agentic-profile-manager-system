@@ -29,13 +29,13 @@ async function captureStdout<T>(fn: () => Promise<T>): Promise<{ stdout: string;
 
 describe("cue debug", () => {
   test("explicit profile arg wins over cwd auto-detect, reports all sections", async () => {
-    const { stdout, value } = await captureStdout(() => debugRun(["ecc"]));
+    const { stdout, value } = await captureStdout(() => debugRun(["gstack"]));
     // Exit code can be 0 or 1 — the profile may have skills missing from disk
     // (managed by other sessions). What matters is that all sections render.
     expect(value === 0 || value === 1).toBe(true);
     const clean = strip(stdout);
-    expect(clean).toContain("Profile: ecc (source: cli-arg)");
-    expect(clean).toContain("Inheritance: core → ecc");
+    expect(clean).toContain("Profile: gstack (source: cli-arg)");
+    expect(clean).toContain("Inheritance: core → gstack");
     expect(clean).toContain("Skills");
     expect(clean).toContain("MCPs");
     expect(clean).toContain("Rules");
@@ -54,9 +54,9 @@ describe("cue debug", () => {
   });
 
   test("verbose mode lists each skill individually", async () => {
-    const { stdout } = await captureStdout(() => debugRun(["ecc", "--verbose"]));
+    const { stdout } = await captureStdout(() => debugRun(["gstack", "--verbose"]));
     const clean = strip(stdout);
-    // ecc has 8 inherited skills; at least one should show up by name
+    // gstack inherits core's skills; at least one should show up by name
     expect(clean).toMatch(/meta\/analyze|caveman\/caveman|nvidia\/skill-evolution/);
   });
 });

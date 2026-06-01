@@ -67,8 +67,10 @@ async function checkProfile(profileName: string, allSkillIds: Set<string>, allMc
   const profileSkillIds = profile.skills.local.map(s => s.id);
   const profileMcpIds = profile.mcps.map(m => m.id);
 
-  // D1: Skill in profile but not on disk
+  // D1: Skill in profile but not on disk. The "*/*" wildcard is a materialize-
+  // time glob (loads every skill), not a literal slug — skip it.
   for (const id of profileSkillIds) {
+    if (id === "*/*") continue;
     if (!allSkillIds.has(id)) {
       issues.push({
         code: "D1",
@@ -342,6 +344,9 @@ Examples:
   // D3: Orphan skills (on disk, not in any profile)
   const profileNames = targetProfile ? [targetProfile] : await listProfiles();
   const allProfileSkillIds = new Set<string>();
+  // A profile carrying the "*/*" wildcard (e.g. `full`) loads every skill at
+  // materialize time, so it homes all of them — nothing is orphaned.
+  let hasGlobAll = false;
 
   const issues: Issue[] = [];
 
@@ -351,12 +356,15 @@ Examples:
 
     try {
       const profile = await loadProfile(name);
-      for (const s of profile.skills.local) allProfileSkillIds.add(s.id);
+      for (const s of profile.skills.local) {
+        if (s.id === "*/*") hasGlobAll = true;
+        else allProfileSkillIds.add(s.id);
+      }
     } catch { /* skip */ }
   }
 
-  // D3 only when checking all profiles
-  if (!targetProfile) {
+  // D3 only when checking all profiles, and only if no profile globs everything.
+  if (!targetProfile && !hasGlobAll) {
     for (const id of allSkillIds) {
       if (!allProfileSkillIds.has(id)) {
         issues.push({

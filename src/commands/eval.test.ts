@@ -10,7 +10,7 @@ import { describe, expect, test, beforeEach } from "bun:test";
 import { run as evalRun } from "./eval";
 
 // Some sibling test files set CUE_PROFILES_DIR to a temp dir and don't reset.
-// Force the repo's real profiles/ tree before each test so loadProfile finds core/ecc/etc.
+// Force the repo's real profiles/ tree before each test so loadProfile finds core/gstack/etc.
 beforeEach(() => {
   delete process.env.CUE_PROFILES_DIR;
   delete process.env.SOUL_PROFILES_DIR;
@@ -60,11 +60,11 @@ describe("cue eval", () => {
   });
 
   test("--compare emits delta and is symmetric in absolute value", async () => {
-    const { stdout, value } = await captureStdout(() => evalRun(["--compare", "core", "ecc", "--json"]));
+    const { stdout, value } = await captureStdout(() => evalRun(["--compare", "core", "gstack", "--json"]));
     expect(value).toBe(0);
     const cmp = JSON.parse(stdout) as { a: any; b: any; delta: { perMessage: number; score: number } };
     expect(cmp.a.profile).toBe("core");
-    expect(cmp.b.profile).toBe("ecc");
+    expect(cmp.b.profile).toBe("gstack");
     expect(cmp.delta.perMessage).toBe(cmp.b.tokens.perMessage - cmp.a.tokens.perMessage);
   });
 
@@ -93,9 +93,9 @@ describe("cue eval", () => {
   });
 
   test("on-demand bodies exceed per-message tokens — verifies the lazy/eager split", async () => {
-    const { stdout } = await captureStdout(() => evalRun(["ecc", "--json"]));
+    const { stdout } = await captureStdout(() => evalRun(["gstack", "--json"]));
     const report = JSON.parse(stdout) as JsonReport;
-    // ecc declares rules + commands; both should have measurable on-demand cost
+    // gstack declares rules + commands; both should have measurable on-demand cost
     expect(report.tokens.bySource.rules.onDemand).toBeGreaterThan(report.tokens.bySource.rules.perMessage);
     expect(report.tokens.bySource.commands.onDemand).toBeGreaterThan(report.tokens.bySource.commands.perMessage);
   });

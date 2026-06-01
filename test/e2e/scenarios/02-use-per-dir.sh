@@ -15,16 +15,11 @@ if echo "$output" | grep -q "not yet implemented"; then
   exit 0
 fi
 
-workspace="$repo/profiles/medusa-dev/workspace"
-assert_dir "$workspace"
-assert_file "$workspace/.mcp.json"
-assert_file "$workspace/CLAUDE.md"
-assert_file "$workspace/AGENTS.md"
-assert_symlink_tree_ok "$workspace/.claude/skills"
+# `cue use <profile>` pins the per-directory profile by writing a `.cue-profile`
+# marker in the CWD (see src/commands/use.ts). It does NOT materialize a runtime
+# under the repo — that lives in ~/.config/cue/runtime/ and is built on launch.
+marker="$repo/.cue-profile"
+assert_file "$marker"
+grep -q "medusa-dev" "$marker" || fail ".cue-profile should record 'medusa-dev', got: $(cat "$marker")"
 
-(
-  cd "$workspace"
-  [ -f .mcp.json ] || fail "workspace missing .mcp.json"
-)
-
-log "use medusa-dev creates workspace with expected files"
+log "use medusa-dev writes .cue-profile marker in the directory"
