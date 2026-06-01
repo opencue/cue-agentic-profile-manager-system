@@ -1,8 +1,8 @@
 # How to reduce Claude Code token cost — the cue playbook
 
-_Last updated: 2026-05-24_
+_Last updated: 2026-06-01_
 
-**Short answer:** A typical Claude Code session that loads every skill globally costs **~$2.70 per session**. With cue's per-directory profile isolation it drops to **~$0.12**. With RTK and caveman terse-mode stacked on top, it drops to **~$0.08**. That's a **22–33× reduction** in real spend, plus better tool-selection accuracy because the model isn't drowning in 1,900 irrelevant tool descriptions.
+**Short answer:** Loading every skill globally (the `full` everything-loadout) costs **~81k always-on tokens — ~$24 / 100 messages** at Sonnet input pricing. cue's per-directory profile isolation cuts that to **~9k tokens (~$2.70 / 100 msgs)** on a `backend` profile — **~9× less** (up to ~16× on the leanest profiles). RTK and caveman terse-mode then trim *output* tokens on top, on a separate axis. Every number here is reproducible with `cue cost --compare`, and the model also picks the right tool faster because it isn't scanning irrelevant descriptions on every message.
 
 This page is the data-backed playbook for cutting Claude Code costs.
 

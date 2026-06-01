@@ -311,8 +311,7 @@ cue list                      # see all available profiles
 
 # Measure
 cue cost                      # token budget for active profile
-cue eval --breakdown          # per-message vs on-demand
-cue eval --compare a b        # side-by-side delta
+cue cost --compare            # every profile ranked vs the `full` baseline
 
 # System dependencies
 cue cli install --all --yes   # install every missing CLI
