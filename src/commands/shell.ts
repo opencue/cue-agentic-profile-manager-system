@@ -111,7 +111,6 @@ export async function runInstall(opts: ShimOptions = {}): Promise<number> {
   }
 
   mkdirSync(shimDir, { recursive: true });
-  const cueBin = resolve(process.env.CUE_REPO_ROOT ?? join(home, "Documents", "cue"), "bin", "cue");
 
   const claudeShim = `#!/usr/bin/env bash\nexec cue launch claude "$@"\n`;
   writeFileSync(join(shimDir, "claude"), claudeShim);
