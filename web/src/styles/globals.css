@@ -1,34 +1,24 @@
 :root {
-  /* Dark-first palette tuned for terminal-adjacent feel without being all-black. */
-  --bg-base: #0b0d12;
-  --bg-elev: #14171f;
-  --bg-card: #181c26;
-  --border: #232938;
-  --text-primary: #e6eaf3;
-  --text-secondary: #9aa3b8;
-  --text-dim: #5a6378;
+  /* Vercel-style palette: true black canvas, hairline borders, high-contrast
+     near-white text. cue purple kept as the single accent. */
+  --bg-base: #000000;
+  --bg-elev: #0a0a0a;
+  --bg-card: #0a0a0a;
+  --border: #1f1f1f;
+  --border-hover: #333333;
+  --text-primary: #ededed;
+  --text-secondary: #a1a1a1;
+  --text-dim: #6b6b6b;
   --accent: #8b5cf6;
-  --accent-soft: rgba(139, 92, 246, 0.15);
-  --green: #34d399;
-  --red: #f87171;
-  --yellow: #fbbf24;
-  --radius: 10px;
+  --accent-hover: #a78bfa;
+  --accent-soft: rgba(139, 92, 246, 0.12);
+  --green: #00e599;
+  --red: #ff6166;
+  --yellow: #f5a623;
+  --radius: 8px;
   --radius-sm: 6px;
-  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, Menlo, monospace;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg-base: #f7f7fa;
-    --bg-elev: #ffffff;
-    --bg-card: #ffffff;
-    --border: #e3e6ee;
-    --text-primary: #1a1d27;
-    --text-secondary: #475067;
-    --text-dim: #8a93aa;
-    --accent: #6d28d9;
-    --accent-soft: rgba(109, 40, 217, 0.08);
-  }
+  --mono: 'Geist Mono', 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -38,10 +28,12 @@ html, body, #root {
   padding: 0;
   background: var(--bg-base);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 code { font-family: var(--mono); font-size: 0.9em; }
@@ -58,9 +50,10 @@ code { font-family: var(--mono); font-size: 0.9em; }
 }
 
 .brand {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  color: var(--text-primary);
 }
 
 .badge {
@@ -93,7 +86,9 @@ code { font-family: var(--mono); font-size: 0.9em; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px 20px;
+  transition: border-color 0.15s ease;
 }
+.card:hover { border-color: var(--border-hover); }
 
 .card-header {
   display: flex;
@@ -139,8 +134,82 @@ code { font-family: var(--mono); font-size: 0.9em; }
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 16px;
 }
-.stat-num { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat-num { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.4px; color: var(--text-primary); }
 .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px; }
+
+/* ---------- stats overview (top-of-dashboard metric row) ---------- */
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.stat-tile {
+  background: var(--bg-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background 0.15s ease;
+}
+.stat-tile:hover { background: #111111; }
+.stat-tile .tile-num {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-tile .tile-num.accent { color: var(--accent); }
+.stat-tile .tile-num.green { color: var(--green); }
+.stat-tile .tile-num.red { color: var(--red); }
+.stat-tile .tile-num.dim { color: var(--text-dim); }
+.stat-tile .tile-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.stat-tile .tile-sub { font-size: 11px; color: var(--text-secondary); font-family: var(--mono); }
+
+/* ---------- offline CTA (shared by dashboard + merge studio) ---------- */
+.offline-cta {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 28px 24px;
+  text-align: center;
+  max-width: 560px;
+  margin: 40px auto;
+}
+.offline-cta .offline-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.offline-cta .offline-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--yellow); display: inline-block; margin-right: 8px;
+  box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.12);
+}
+.offline-cta p { color: var(--text-secondary); font-size: 13px; margin: 8px 0; }
+.offline-cta pre {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: left;
+  overflow-x: auto;
+  margin: 14px 0 0;
+}
 
 .table {
   width: 100%;
