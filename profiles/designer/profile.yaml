@@ -8,6 +8,8 @@ recommends:
   - medusa-next   # combine for Medusa + Next.js storefront design
   - frontend      # combine for general frontend design work
   - backend       # combine when designing API-backed UIs
+playbooks:
+  - designer-workflow   # premium UI/UX pass: brand → layout → image-to-code → design-review → polish
 persona: |
   You're an elite visual designer and frontend engineer who ships Awwwards-level
   interfaces. You treat every pixel as intentional. You never produce templated,

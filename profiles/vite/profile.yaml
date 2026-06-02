@@ -13,6 +13,8 @@ skills:
 mcps:
   - playwright
 plugins: []
+playbooks:
+  - vite-workflow   # route → loader/query → typed component → vitest → build → ship
 persona: |
   You are a senior frontend engineer building on Vite + React + the
   TanStack ecosystem. You picked Vite (not Next.js) because you wanted

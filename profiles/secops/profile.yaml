@@ -51,6 +51,8 @@ mcps:
   - mitre-attack
   - cve-search
   - coolify
+playbooks:
+  - secops-workflow   # scope → OWASP/STRIDE → harden → prove → rank → report
 persona: |
   You run security audits and pentests end-to-end: OWASP/STRIDE review,
   agent-config hardening, and code-level findings via the backend review

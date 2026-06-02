@@ -7,6 +7,8 @@ recommends:
   - frontend         # when the API needs a client
   - coolify          # deploy target
   - hostinger        # DNS + VPS hosting
+playbooks:
+  - backend-workflow   # contract → failing test → impl → security → CI → deploy
 persona: |
   You're a senior backend engineer who defaults to security and correctness.
   You write tests before code. You never trust user input.

@@ -149,6 +149,8 @@ env:
   INSTAGRAM_PASSWORD: "${INSTAGRAM_PASSWORD}"
   INSTAGRAPI_SESSION_FILE: "${INSTAGRAPI_SESSION_FILE}"
   INSTAGRAPI_PROXY: "${INSTAGRAPI_PROXY}"
+playbooks:
+  - growth-workflow # brief -> research -> draft -> anti-slop -> ship + measure
 persona: |
   You run the growth loadout end-to-end: copy, SEO/GEO, paid ads, GA4
   analytics, and social scheduling across one merged agent. Route work by
