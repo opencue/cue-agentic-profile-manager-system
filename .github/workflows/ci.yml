@@ -27,6 +27,9 @@ jobs:
       - name: Verify CLI boots
         run: bun src/index.ts --version
 
+      - name: Verify bundled CLI boots
+        run: bun run build:bundle && node dist/cue.js --version
+
       - name: Validate all profiles
         run: bun src/index.ts validate --all || true
 
@@ -43,7 +46,14 @@ jobs:
         run: bun install
 
       - name: Type check
-        run: bun x tsc --noEmit --skipLibCheck 2>/dev/null || true
+        run: bun x tsc --noEmit --skipLibCheck
 
+      - name: Lint (biome)
+        run: bun run lint
+
+      # Advisory until the skill-hygiene backlog (duplicate slugs etc.) is
+      # cleared; `skills lint --all` currently reports 174 errors the
+      # materializer tolerates via last-wins. Fixed the command (was a silent
+      # no-op: bare `skills-lint` exits 1 on usage, masked by `|| true`).
       - name: Lint skills
-        run: bun src/index.ts skills-lint 2>/dev/null || true
+        run: bun src/index.ts skills lint --all || true

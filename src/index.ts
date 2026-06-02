@@ -154,10 +154,10 @@ function similarity(a: string, b: string): number {
 async function checkForUpdate(currentVersion: string): Promise<void> {
   const { existsSync, readFileSync: rf, writeFileSync: wf, mkdirSync } = await import("node:fs");
   const { join } = await import("node:path");
-  const { homedir } = await import("node:os");
+  const { configDir } = await import("./lib/config-paths");
 
-  const configDir = join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "cue");
-  const checkFile = join(configDir, ".last-update-check");
+  const cfgDir = configDir();
+  const checkFile = join(cfgDir, ".last-update-check");
 
   // Only check once per 24 hours
   if (existsSync(checkFile)) {
@@ -173,7 +173,7 @@ async function checkForUpdate(currentVersion: string): Promise<void> {
   if (!latest) return;
 
   // Save check timestamp
-  mkdirSync(configDir, { recursive: true });
+  mkdirSync(cfgDir, { recursive: true });
   wf(checkFile, String(Date.now()));
 
   // Compare versions
@@ -191,11 +191,12 @@ async function checkForUpdate(currentVersion: string): Promise<void> {
     const readline = await import("node:readline");
     const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
     const answer = await new Promise<string>((resolve) => {
-      rl.question("     Install now? [Y/n] ", (a) => { rl.close(); resolve(a); });
-      // Auto-accept after 5 seconds
-      setTimeout(() => { rl.close(); resolve("y"); }, 5000);
+      rl.question("     Install now? [y/N] ", (a) => { rl.close(); resolve(a); });
+      // Auto-decline after 5 seconds — never install a new global without an
+      // affirmative y/yes. Walking away from the terminal must be a no-op.
+      setTimeout(() => { rl.close(); resolve("n"); }, 5000);
     });
-    if (!answer || answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
+    if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
       process.stderr.write("     📦 Updating...\n");
       const { spawnSync } = await import("node:child_process");
       const result = spawnSync("npm", ["install", "-g", "cue-ai"], { encoding: "utf8", timeout: 60000, stdio: ["ignore", "pipe", "pipe"] });
@@ -213,8 +214,11 @@ async function checkForUpdate(currentVersion: string): Promise<void> {
 async function main(argv: string[]): Promise<number> {
   const args = argv.slice(2);
 
-  // Non-blocking update check (runs in background, shows prompt if outdated)
-  checkForUpdate(readVersion()).catch(() => {});
+  // Non-blocking update check (shows prompt if outdated). Skipped for trivial or
+  // non-interactive invocations so it never auto-installs or races command output.
+  const TRIVIAL_ARGS = new Set(["--version", "-v", "version", "--help", "-h", "help"]);
+  const skipUpdate = !process.stdout.isTTY || TRIVIAL_ARGS.has(args[0] ?? "");
+  if (!skipUpdate) checkForUpdate(readVersion()).catch(() => {});
 
   if (args.length === 0) {
     // Show status dashboard by default (like `git status`)
