@@ -30,3 +30,5 @@ mcps:
   - gbrain
   - obsidian-vault
   - Higgsfield
+playbooks:
+  - docs-writer-workflow   # outline (Diataxis) → draft → code cross-check → voice pass → render

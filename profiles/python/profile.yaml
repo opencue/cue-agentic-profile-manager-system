@@ -32,3 +32,6 @@ skills:
     - repo: github/awesome-copilot
       skills: [pytest-coverage]              # 10.6K installs — pytest patterns matching the profile's testing rules
 mcps: []
+playbooks:
+  # Inherits core's playbooks (ship-feature, triage-bug, sprint) via inheritance.
+  - python-workflow   # end-to-end: endpoint -> SQLAlchemy/Alembic -> pytest-first -> 80% coverage -> ship

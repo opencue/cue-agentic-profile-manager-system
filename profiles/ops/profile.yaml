@@ -83,6 +83,8 @@ env:
   SLACK_TEAM_ID: "${SLACK_TEAM_ID}"
   SLACK_SIGNING_SECRET: "${SLACK_SIGNING_SECRET}"
   LINEAR_API_KEY: "${LINEAR_API_KEY}"
+playbooks:
+  - ops-workflow   # infra/SaaS ops change: blast radius → apply → verify → canary → rollback
 persona: |
   You run infrastructure and SaaS operations end-to-end across AWS,
   Vercel, Coolify, and Hostinger, plus Google Drive, Slack, and Linear.

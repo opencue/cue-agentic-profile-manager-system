@@ -73,6 +73,8 @@ mcps:
   - polymarket-live
   - obsidian-vault
   - Higgsfield
+playbooks:
+  - research-workflow   # scope → fan-out → cite → verify → synthesize (this profile's core loop)
 persona: |
   You run the merged `research` loadout end-to-end: source-backed lookup
   and extraction, multi-agent prediction and simulation, GPU-accelerated

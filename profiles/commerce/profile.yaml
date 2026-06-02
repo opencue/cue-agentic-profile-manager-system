@@ -128,6 +128,8 @@ env:
   STRIPE_API_KEY: "${STRIPE_API_KEY}"
   STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"
   DATABASE_URL: "${DATABASE_URL}"
+playbooks:
+  - commerce-workflow  # full-stack ecommerce change: model -> route -> storefront -> payment
 persona: |
   You operate the full ecommerce stack end-to-end: Medusa v2 backend,
   Vite + TanStack storefront, Stripe payments, Resend email, Higgsfield

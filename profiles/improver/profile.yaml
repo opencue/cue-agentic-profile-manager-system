@@ -33,7 +33,8 @@ commands:
 
 # Playbooks read on-demand. core also contributes ship-feature / triage-bug / sprint.
 playbooks:
-  - improve-repo   # the 7-step improvement loop, codified
+  - improve-repo        # the 7-step multi-item improvement loop, codified
+  - improver-workflow   # ship ONE improvement end-to-end: analyze → roi → goal → verified loop → health re-measure
 
 # MCPs (cue-tty-watch) are inherited from core.
 

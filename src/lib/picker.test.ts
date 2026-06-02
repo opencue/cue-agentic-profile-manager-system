@@ -5,12 +5,15 @@ import {
   filterOptions,
   renderProfileList,
   resolveConflicts,
+  buildConflictMap,
   windowOptions,
   SKIP_COMBINE,
+  SHOW_ALL,
   UNIVERSAL_COMPANIONS,
   FEATURED_HINT,
   FREQUENT_HINT,
   UNIVERSAL_HINT,
+  HISTORY_HINT,
   formatTallyDelta,
   unionTallyCounts,
   formatCombinedPreview,
@@ -19,6 +22,7 @@ import {
   renderCombineFrame,
   compressCombo,
   dedupeSelectorParts,
+  applyShowAllExpansion,
   formatOverheadBadge,
   MAX_FREQUENT_AUTOCHECK,
   OVERHEAD_WARN_TOKENS,
@@ -229,6 +233,34 @@ describe("buildCompanionOptions", () => {
     expect(initialValues).toContain("higgsfield");
   });
 
+  test("a recommends-origin row carries recommended:true; a detected row does not", () => {
+    const { companionOptions } = build({
+      recommends: ["blog-writer"],
+      companions: [sig("higgsfield", 0.85, "12 image assets")],
+    });
+    expect(companionOptions.find((o) => o.value === "blog-writer")!.recommended).toBe(true);
+    expect(companionOptions.find((o) => o.value === "higgsfield")!.recommended).toBeFalsy();
+  });
+
+  test("confirm-time conflict map (curated + overflow) drops two mutually-exclusive overflow profiles", () => {
+    // postizz conflicts with neither medusa profile, so both land in overflow.
+    const { companionOptions, overflowOptions } = build({ recommends: [] });
+    const ov = overflowOptions.map((o) => o.value);
+    expect(ov).toContain("medusa-next");
+    expect(ov).toContain("medusa-vite");
+    // The fix: asciiMultiselect builds the confirm-time map from curated + overflow,
+    // so a conflict declared only between two revealed profiles is still enforced.
+    const full = buildConflictMap([...companionOptions, ...overflowOptions]);
+    expect(resolveConflicts(["medusa-next", "medusa-vite"], full)).toEqual(["medusa-next"]);
+    // Regression guard: the old curated-only map (the CRITICAL bug) let BOTH survive
+    // into the written .cue-profile while the live UI showed the conflict blocked.
+    const stale = buildConflictMap(companionOptions);
+    expect(resolveConflicts(["medusa-next", "medusa-vite"], stale)).toEqual([
+      "medusa-next",
+      "medusa-vite",
+    ]);
+  });
+
   test("a detected companion already in recommends is not duplicated", () => {
     const { companionOptions } = build({
       recommends: ["higgsfield"],
@@ -266,30 +298,48 @@ describe("buildCompanionOptions", () => {
     expect(viaPrimary.companionOptions.map((o) => o.value)).not.toContain("medusa-vite");
   });
 
-  test("dividers and unknown names are skipped", () => {
+  test("dividers and unknown names are skipped (curated rows lead, expand row trails)", () => {
     const { companionOptions } = build({
       recommends: ["__divider_x", "does-not-exist", "blog-writer"],
     });
-    expect(companionOptions.map((o) => o.value)).toEqual([SKIP_COMBINE, "blog-writer"]);
+    // Only blog-writer is a real curated row; the rest of OPTS becomes overflow,
+    // so a trailing SHOW_ALL expand row is appended after the curated companions.
+    const curated = companionOptions.filter((o) => o.kind !== "expand");
+    expect(curated.map((o) => o.value)).toEqual([SKIP_COMBINE, "blog-writer"]);
+    expect(companionOptions.at(-1)!.value).toBe(SHOW_ALL);
+    expect(companionOptions.at(-1)!.kind).toBe("expand");
   });
 
-  test("historical pairings start checked", () => {
-    const { initialValues } = build({
-      recommends: ["blog-writer", "trendradar"],
+  test("historical pairings are offered unchecked with the 'paired before' hint", () => {
+    const { companionOptions, initialValues } = build({
+      recommends: ["blog-writer"],
       pairSuggested: ["trendradar"],
     });
-    expect(initialValues).toContain("trendradar");
-    expect(initialValues).not.toContain("blog-writer");
+    // A remembered combo is a recommendation, never an auto-pin.
+    expect(companionOptions.map((o) => o.value)).toContain("trendradar");
+    expect(initialValues).not.toContain("trendradar");
+    expect(companionOptions.find((o) => o.value === "trendradar")!.hint).toBe(HISTORY_HINT);
   });
 
-  test("the SKIP_COMBINE action row leads the list only when real companions survive", () => {
+  test("the SKIP_COMBINE action row leads the list only when there's anything to combine", () => {
     const withRows = build({ companions: [sig("higgsfield", 0.85)] });
     expect(withRows.companionOptions[0]!.value).toBe(SKIP_COMBINE);
     expect(withRows.companionOptions[0]!.kind).toBe("action");
 
-    const empty = build({});
-    expect(empty.companionOptions).toEqual([]);
-    expect(empty.initialValues).toEqual([]);
+    // Genuinely empty: a primary that is the only selectable profile → no
+    // curated companions AND no overflow → no multiselect at all.
+    const solo = buildCompanionOptions({
+      primary: "only",
+      primaryLabel: "only",
+      options: [{ value: "only", label: "only", hint: "" }],
+      recommends: [],
+      pairSuggested: [],
+      companions: [],
+      autoCheckThreshold: 0.7,
+    });
+    expect(solo.companionOptions).toEqual([]);
+    expect(solo.initialValues).toEqual([]);
+    expect(solo.overflowOptions).toEqual([]);
   });
 
   // gstack is the sole pinned companion: emitted by buildUniversalSuggestions
@@ -407,6 +457,166 @@ describe("buildCompanionOptions", () => {
       autoCheckThreshold: 0.7,
     });
     expect(conflicting.companionOptions.map((o) => o.value)).not.toContain("medusa-vite");
+  });
+});
+
+describe("buildCompanionOptions · show-all overflow", () => {
+  const OPTS: PickerOption[] = [
+    { value: "postizz", label: "postizz", hint: "social", recommends: ["blog-writer"] },
+    { value: "blog-writer", label: "blog-writer", hint: "long-form" },
+    { value: "trendradar", label: "trendradar", hint: "trends" },
+    { value: "higgsfield", label: "higgsfield", hint: "image gen" },
+    { value: "__divider_x", label: "—", hint: "", divider: true },
+    { value: "core+postizz", label: "composite", hint: "" },
+    { value: "⭐ default", label: "Default", hint: "", top: true },
+    { value: "medusa-next", label: "medusa-next", hint: "next", conflicts: ["medusa-vite"] },
+    { value: "medusa-vite", label: "medusa-vite", hint: "vite", conflicts: ["medusa-next"] },
+  ];
+  const build = (args: Partial<Parameters<typeof buildCompanionOptions>[0]>) =>
+    buildCompanionOptions({
+      primary: "postizz",
+      primaryLabel: "postizz",
+      options: OPTS,
+      recommends: [],
+      pairSuggested: [],
+      companions: [],
+      autoCheckThreshold: 0.7,
+      ...args,
+    });
+
+  test("overflow = every other selectable profile, minus curated/divider/composite/default", () => {
+    const { overflowOptions, companionOptions } = build({ recommends: ["blog-writer"] });
+    const values = overflowOptions.map((o) => o.value);
+    // blog-writer is curated → not in overflow; the rest of the real profiles are.
+    expect(values).not.toContain("blog-writer");
+    expect(values).toEqual(expect.arrayContaining(["trendradar", "higgsfield", "medusa-next"]));
+    // dividers, composites, the Default entry and the primary itself never leak in.
+    expect(values).not.toContain("__divider_x");
+    expect(values).not.toContain("core+postizz");
+    expect(values).not.toContain("⭐ default");
+    expect(values).not.toContain("postizz");
+    // The expand row is appended last, carrying the overflow count.
+    const expand = companionOptions.find((o) => o.kind === "expand")!;
+    expect(expand.value).toBe(SHOW_ALL);
+    expect(expand.expandCount).toBe(overflowOptions.length);
+  });
+
+  test("overflow respects conflicts with the primary", () => {
+    const { overflowOptions } = buildCompanionOptions({
+      primary: "medusa-next",
+      primaryLabel: "medusa-next",
+      options: OPTS,
+      recommends: [],
+      pairSuggested: [],
+      companions: [],
+      autoCheckThreshold: 0.7,
+    });
+    expect(overflowOptions.map((o) => o.value)).not.toContain("medusa-vite");
+  });
+
+  test("expand row + SKIP appear even when nothing is curated, so combine stays reachable", () => {
+    const { companionOptions, overflowOptions } = build({});
+    expect(companionOptions[0]!.value).toBe(SKIP_COMBINE);
+    expect(companionOptions.some((o) => o.kind === "expand")).toBe(true);
+    expect(overflowOptions.length).toBeGreaterThan(0);
+  });
+
+  test("no expand row when there is no overflow", () => {
+    const opts: PickerOption[] = [
+      { value: "postizz", label: "postizz", hint: "" },
+      { value: "blog-writer", label: "blog-writer", hint: "" },
+    ];
+    const { companionOptions } = buildCompanionOptions({
+      primary: "postizz",
+      primaryLabel: "postizz",
+      options: opts,
+      recommends: ["blog-writer"],
+      pairSuggested: [],
+      companions: [],
+      autoCheckThreshold: 0.7,
+    });
+    expect(companionOptions.some((o) => o.kind === "expand")).toBe(false);
+  });
+});
+
+describe("applyShowAllExpansion", () => {
+  const base: AsciiMSOption[] = [
+    { value: SKIP_COMBINE, label: "use postizz alone", hint: "", kind: "action", primaryLabel: "postizz" },
+    { value: "blog-writer", label: "blog-writer", hint: "long-form" },
+    { value: SHOW_ALL, label: "", hint: "", kind: "expand", expandCount: 2 },
+  ];
+  const overflow: AsciiMSOption[] = [
+    { value: "trendradar", label: "trendradar", hint: "trends" },
+    { value: "higgsfield", label: "higgsfield", hint: "image gen" },
+  ];
+
+  test("no-op when the SHOW_ALL sentinel isn't selected", () => {
+    const out = applyShowAllExpansion({ options: base, value: ["blog-writer"], cursor: 1, overflow });
+    expect(out.expanded).toBe(false);
+    expect(out.options).toBe(base); // unchanged reference
+    expect(out.value).toEqual(["blog-writer"]);
+  });
+
+  test("reveals overflow: drops the expand row, appends overflow, lands cursor on first revealed", () => {
+    // cursor was on the expand row (index 2); the toggle added SHOW_ALL to value.
+    const out = applyShowAllExpansion({
+      options: base,
+      value: ["blog-writer", SHOW_ALL],
+      cursor: 2,
+      overflow,
+    });
+    expect(out.expanded).toBe(true);
+    // SHOW_ALL row gone; overflow appended after the curated rows.
+    expect(out.options.map((o) => o.value)).toEqual([
+      SKIP_COMBINE,
+      "blog-writer",
+      "trendradar",
+      "higgsfield",
+    ]);
+    // sentinel stripped from the selection so it never counts as a profile.
+    expect(out.value).toEqual(["blog-writer"]);
+    // cursor lands where the expand row used to sit = first revealed profile.
+    expect(out.options[out.cursor]!.value).toBe("trendradar");
+  });
+
+  test("does not mutate the input arrays", () => {
+    const opts = [...base];
+    const val = ["blog-writer", SHOW_ALL];
+    applyShowAllExpansion({ options: opts, value: val, cursor: 2, overflow });
+    expect(opts).toEqual(base); // original option list untouched
+    expect(val).toEqual(["blog-writer", SHOW_ALL]); // original value untouched
+  });
+});
+
+describe("renderCombineFrame · show-all expand row", () => {
+  const strip = (s: string) => s.replace(/\[[0-9;]*m/g, "");
+  const options: AsciiMSOption[] = [
+    { value: SKIP_COMBINE, label: "use postizz alone", hint: "", kind: "action", primaryLabel: "postizz" },
+    { value: "blog-writer", label: "blog-writer", hint: "long-form" },
+    { value: SHOW_ALL, label: "", hint: "", kind: "expand", expandCount: 12 },
+  ];
+
+  test("renders the 'show all N profiles' row from expandCount", () => {
+    const out = strip(renderCombineFrame({ message: "Combine postizz with…", options, cursor: 1, selected: [], ascii: false }));
+    expect(out).toContain("show all 12 profiles");
+  });
+
+  test("expand row signals SPACE (▾ + '(space)'), not the ↩ enter glyph that would confirm", () => {
+    const out = strip(renderCombineFrame({ message: "m", options, cursor: 2, selected: [], ascii: false }));
+    expect(out).toContain("show all 12 profiles  (space)");
+    const expandLine = out.split("\n").find((l) => l.includes("show all 12 profiles"));
+    expect(expandLine).toContain("▾");
+    // The ↩ glyph means "enter"; the expand row must not reuse it, or users press
+    // enter (which confirms the prompt) instead of space (which reveals).
+    expect(expandLine).not.toContain("↩");
+  });
+
+  test("the expand sentinel never counts toward the staged selection", () => {
+    const out = strip(
+      renderCombineFrame({ message: "m", options, cursor: 2, selected: ["blog-writer", SHOW_ALL], ascii: false }),
+    );
+    // one real profile staged, not two — SHOW_ALL is a control row.
+    expect(out).toContain("1 selected");
   });
 });
 
@@ -556,6 +766,29 @@ describe("renderCombineFrame", () => {
 
   test("footer reports the staged count", () => {
     expect(frame({ selected: ["vercel"] })).toContain("1 selected · ↑↓ move");
+  });
+
+  test("a recommended companion (not cursored) shows the → gutter marker + tag", () => {
+    const recOpts: AsciiMSOption[] = [
+      { value: "vercel", label: "🔺 vercel", hint: "deploy", recommended: true },
+      { value: SKIP_COMBINE, label: "use 🏭 gstack alone", hint: "", kind: "action", primaryLabel: "🏭 gstack" },
+    ];
+    // cursor on the action row (idx 1) → the recommended companion at idx 0 is
+    // unfocused, so its gutter shows → and the row is tagged "recommended".
+    const out = frame({ options: recOpts, cursor: 1 });
+    expect(out).toContain("→ [ ] 🔺 vercel");
+    expect(out).toContain("recommended");
+  });
+
+  test("cursor on a recommended row shows › (not →) but keeps the tag", () => {
+    const recOpts: AsciiMSOption[] = [
+      { value: "vercel", label: "🔺 vercel", hint: "deploy", recommended: true },
+      { value: SKIP_COMBINE, label: "use 🏭 gstack alone", hint: "", kind: "action", primaryLabel: "🏭 gstack" },
+    ];
+    const out = frame({ options: recOpts, cursor: 0 });
+    expect(out).toContain("› [ ] 🔺 vercel");
+    expect(out).not.toContain("→ [ ] 🔺 vercel");
+    expect(out).toContain("recommended");
   });
 
   test("nothing staged: 'alone' label, no enter hint, no count, baseline preview", () => {
@@ -739,6 +972,12 @@ describe("dedupeSelectorParts", () => {
   test("a single profile passes through; empty parts are ignored", () => {
     expect(dedupeSelectorParts(["gstack"])).toEqual(["gstack"]);
     expect(dedupeSelectorParts(["a+", "+b", "a"])).toEqual(["a", "b"]);
+  });
+
+  test("control sentinels never survive into the persisted selector (write-boundary backstop)", () => {
+    expect(dedupeSelectorParts(["postizz", SHOW_ALL, "blog-writer"])).toEqual(["postizz", "blog-writer"]);
+    expect(dedupeSelectorParts(["postizz", SKIP_COMBINE, "blog-writer"])).toEqual(["postizz", "blog-writer"]);
+    expect(dedupeSelectorParts([`postizz+${SHOW_ALL}`, "blog-writer"])).toEqual(["postizz", "blog-writer"]);
   });
 });
 

@@ -17,6 +17,7 @@ import { styleText } from "node:util";
 import type { CompanionSignal } from "./companion-detect";
 import { tokenLevelEmoji } from "./token-budget";
 import type { UniversalSuggestion, UniversalOrigin } from "./pair-suggestions";
+import { recordCombo } from "./combo-history";
 
 export interface PickerOption {
   value: string;
@@ -151,12 +152,21 @@ export type AsciiMSOption = {
    *  the final result. Symmetric — a one-sided declaration blocks both. */
   conflicts?: string[];
   /** "action" rows (e.g. the skip-combine escape hatch) render distinct: no
-   *  checkbox, a dim divider above, dim glyph when unselected. */
-  kind?: "action";
+   *  checkbox, a dim divider above, dim glyph when unselected. "expand" is the
+   *  one-shot "show all profiles" row: rendered pinned *below* the companion
+   *  window, toggling it reveals the overflow list (see `asciiMultiselect`). */
+  kind?: "action" | "expand";
   /** Primary profile's label, carried on the skip-combine action row so the
    *  live render can rebuild its text ("use X alone" ↔ "use X + Y") from the
    *  current selection instead of the static `label`. */
   primaryLabel?: string;
+  /** How many profiles the "show all" expand row reveals — drives its label
+   *  ("show all 40 profiles ↓"). Only set on the `kind:"expand"` row. */
+  expandCount?: number;
+  /** Set on the primary's `recommends:` companions. Renders a `→` gutter marker
+   *  (when not the cursor) and a dim "recommended" tag so the suggested pairing
+   *  stands out from history/detected/overflow rows. */
+  recommended?: boolean;
 };
 
 /**
@@ -164,7 +174,7 @@ export type AsciiMSOption = {
  * = [B]` on either side blocks both A→B and B→A so authors only have to write
  * the relationship once.
  */
-function buildConflictMap(options: AsciiMSOption[]): Map<string, Set<string>> {
+export function buildConflictMap(options: AsciiMSOption[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   for (const o of options) {
     for (const c of o.conflicts ?? []) {
@@ -198,6 +208,13 @@ export function resolveConflicts(
 /** Sentinel for the combine multiselect's "use <primary> alone" escape hatch. */
 export const SKIP_COMBINE = "__skip_combine__";
 
+/**
+ * Sentinel for the "show all profiles" expand row. Toggling it reveals every
+ * non-curated profile as a combine companion (one-way). Stripped from the
+ * returned selection like `SKIP_COMBINE` — it's a control, not a profile.
+ */
+export const SHOW_ALL = "__show_all__";
+
 // Always-on combine companions (gstack) now flow through the single
 // `buildUniversalSuggestions` path as the `pinned` origin — re-exported here so
 // existing `import { UNIVERSAL_COMPANIONS } from "./picker"` call sites keep
@@ -210,6 +227,9 @@ export const FEATURED_HINT = "featured";
 export const FREQUENT_HINT = "you use often";
 /** Hint shown on a row surfaced purely as a `UNIVERSAL_COMPANIONS` pick. */
 export const UNIVERSAL_HINT = "pairs with any stack";
+/** Hint shown on a row surfaced from a previously-picked combo (combo-history).
+ *  These are offered *unchecked* — a recommendation, never an auto-pin. */
+export const HISTORY_HINT = "you paired these before";
 
 /**
  * Confidence at/above which a content-detected companion starts checked in the
@@ -270,6 +290,14 @@ export interface BuildCompanionArgs {
 export function buildCompanionOptions(args: BuildCompanionArgs): {
   companionOptions: AsciiMSOption[];
   initialValues: string[];
+  /**
+   * Every selectable profile *not* already surfaced as a curated companion (and
+   * not the primary, a conflict, a divider, a composite, or the Default entry).
+   * Hidden until the user toggles the "show all profiles" expand row, at which
+   * point `asciiMultiselect` appends these to the live option list. Lets the
+   * user combine with any installed profile, not just the recommended set.
+   */
+  overflowOptions: AsciiMSOption[];
 } {
   const { primary, primaryLabel, options, recommends, pairSuggested, companions } = args;
   const universalSuggestions = args.universalSuggestions ?? [];
@@ -280,7 +308,6 @@ export function buildCompanionOptions(args: BuildCompanionArgs): {
   // checked, re-selecting it) is what duplicated profiles in the final selector.
   const primaryParts = new Set(primary.split("+"));
   const companionByName = new Map(companions.map((c) => [c.profile, c]));
-  const pairSuggestedSet = new Set(pairSuggested);
 
   // Ordered, de-duped candidates with their origin: recommends → history →
   // detected → universal (featured/frequent/pinned, in that internal order).
@@ -313,10 +340,12 @@ export function buildCompanionOptions(args: BuildCompanionArgs): {
     if ((opt.conflicts ?? []).includes(primary)) continue;
 
     const detected = companionByName.get(name);
-    // Detected rows show *why* they appeared; a featured/frequent-only row shows
-    // its origin tag; everything else keeps the profile description.
+    // Detected rows show *why* they appeared; a history row shows it's a remembered
+    // pairing; a featured/frequent-only row shows its origin tag; everything else
+    // keeps the profile description.
     let hint = opt.hint;
     if (detected) hint = detected.reason;
+    else if (origin === "history") hint = HISTORY_HINT;
     else if (origin === "featured") hint = FEATURED_HINT;
     else if (origin === "frequent") hint = FREQUENT_HINT;
     else if (origin === "pinned") hint = UNIVERSAL_HINT;
@@ -325,23 +354,47 @@ export function buildCompanionOptions(args: BuildCompanionArgs): {
       label: opt.label,
       hint,
       conflicts: opt.conflicts,
+      recommended: origin === "recommends",
     });
 
-    const checkByHistory = pairSuggestedSet.has(name);
     const checkByPreselect = opt.preselect === true;
     const checkByDetect = detected !== undefined && detected.confidence >= args.autoCheckThreshold;
     // Profiles you use often start checked — opt-out, not opt-in — but only the
     // top few (see MAX_FREQUENT_AUTOCHECK); beyond the cap they're offered
     // unchecked so a long recents tail can't auto-assemble a heavy stack.
     // Featured cross-sells never auto-check (a discovery hint, not a pin).
+    // History partners (a remembered combo) are *offered unchecked* — a
+    // recommendation surfaced with the HISTORY_HINT, never silently re-pinned.
     const checkByFrequent = origin === "frequent" && frequentChecked < MAX_FREQUENT_AUTOCHECK;
-    if (checkByHistory || checkByPreselect || checkByDetect || checkByFrequent) {
+    if (checkByPreselect || checkByDetect || checkByFrequent) {
       initialValues.push(name);
       if (checkByFrequent) frequentChecked += 1;
     }
   }
 
-  if (companionOptions.length > 0) {
+  // Overflow = every other selectable profile, hidden behind the "show all" row.
+  // Same exclusions as a curated candidate, plus anything already shown above.
+  const shownValues = new Set(companionOptions.map((o) => o.value));
+  const overflowOptions: AsciiMSOption[] = [];
+  for (const opt of options) {
+    if (opt.divider === true || opt.top === true) continue;
+    if (opt.value.includes("+")) continue;
+    if (primaryParts.has(opt.value)) continue;
+    if (primaryConflicts.has(opt.value)) continue;
+    if ((opt.conflicts ?? []).includes(primary)) continue;
+    if (shownValues.has(opt.value)) continue;
+    overflowOptions.push({
+      value: opt.value,
+      label: opt.label,
+      hint: opt.hint,
+      conflicts: opt.conflicts,
+    });
+  }
+
+  // Show the multiselect when there's *anything* to combine with — a curated
+  // companion or just the overflow list (so "combine with X" stays reachable
+  // even when nothing is recommended for this primary).
+  if (companionOptions.length > 0 || overflowOptions.length > 0) {
     // Lead with the escape hatch so the cursor's first stop (index 0) is
     // "use <primary> alone": open the picker, press enter, launch the primary
     // by itself — no navigation. The combine rows follow below it.
@@ -353,7 +406,18 @@ export function buildCompanionOptions(args: BuildCompanionArgs): {
       primaryLabel,
     });
   }
-  return { companionOptions, initialValues };
+  // Pin the "show all profiles" expand row at the end (rendered below the
+  // companion window). Toggling it reveals `overflowOptions` in place.
+  if (overflowOptions.length > 0) {
+    companionOptions.push({
+      value: SHOW_ALL,
+      label: "",
+      hint: "",
+      kind: "expand",
+      expandCount: overflowOptions.length,
+    });
+  }
+  return { companionOptions, initialValues, overflowOptions };
 }
 
 /**
@@ -496,12 +560,19 @@ export function compressCombo(parts: string[], max = 3): string {
  * preserving first-seen order. The combine picker's primary may already be a
  * composite, so a companion inside it — or one picked twice — must not double
  * up in the final selector, the runtime dir name, or the summary. Pure.
+ *
+ * Control sentinels (SHOW_ALL / SKIP_COMBINE) are dropped here as a write-
+ * boundary backstop: the upstream filters (asciiMultiselect strips SHOW_ALL,
+ * runPicker guards on SKIP_COMBINE) are the primary defense, but this is the
+ * last transform before the selector is joined and persisted to .cue-profile,
+ * so a sentinel must never survive it even if an upstream path regresses.
  */
+const CONTROL_SENTINELS = new Set<string>([SHOW_ALL, SKIP_COMBINE]);
 export function dedupeSelectorParts(picks: string[]): string[] {
   const out: string[] = [];
   for (const pick of picks) {
     for (const part of pick.split("+")) {
-      if (part.length > 0 && !out.includes(part)) out.push(part);
+      if (part.length > 0 && !CONTROL_SENTINELS.has(part) && !out.includes(part)) out.push(part);
     }
   }
   return out;
@@ -557,14 +628,26 @@ export function renderCombineFrame(state: CombineFrameState): string {
   const renderRow = (o: AsciiMSOption, idx: number) => {
     const isCursor = idx === state.cursor;
     const isSel = effective.has(o.value);
-    const arrow = isCursor ? styleText("cyan", "›") : " ";
+    // The `→`/"recommended" affordance flags a curated *companion* pairing; it
+    // must never decorate a control row (skip-combine / show-all), so guard on
+    // the row kind even though `buildCompanionOptions` only sets `recommended`
+    // on real companions today. Keeps `renderCombineFrame` honest for callers
+    // (and tests) that hand-build options.
+    const isRecommended = o.recommended === true && o.kind === undefined;
+    // Gutter glyph: the cursor `›` always wins; otherwise a `→` flags a
+    // recommended companion so the suggested pairing reads at a glance.
+    const arrow = isCursor
+      ? styleText("cyan", "›")
+      : isRecommended
+        ? styleText("magenta", "→")
+        : " ";
 
     if (o.kind === "action") {
       // Narrate what enter does *right now*: toggled on, this row forces
       // primary-alone (skips the checked companions); toggled off, it
       // mirrors the live combination so the confirm line never lies.
       const combo = [...effective]
-        .filter((v) => v !== SKIP_COMBINE)
+        .filter((v) => v !== SKIP_COMBINE && v !== SHOW_ALL)
         .map((v) => icon(state.options.find((opt) => opt.value === v)?.label ?? v));
       // The primary may itself be a composite ("a + b + c"); split it so the
       // combo count is real and `compressCombo` can fold a long line to
@@ -634,7 +717,10 @@ export function renderCombineFrame(state: CombineFrameState): string {
     // The verbose reason / description (detection signal, profile blurb)
     // stays cursor-only to keep the unfocused rows scannable.
     const hint = o.hint && isCursor ? styleText("dim", ` (${o.hint})`) : "";
-    lines.push(`${BAR}  ${arrow} ${box} ${labelStyled}${deltaStr}${hint}`);
+    // A dim trailing tag labels the `→` marker, so it reads "recommended" even
+    // when the cursor sits on the row (gutter shows `›`, not `→`).
+    const recTag = isRecommended ? styleText("dim", "  recommended") : "";
+    lines.push(`${BAR}  ${arrow} ${box} ${labelStyled}${deltaStr}${hint}${recTag}`);
   };
 
   // The lead action row ("use X alone / + …") stays pinned on top; only the
@@ -642,16 +728,38 @@ export function renderCombineFrame(state: CombineFrameState): string {
   // confirm row or preview off a short terminal. `maxRows` unset → no window.
   const rows = state.options.map((o, idx) => ({ o, idx }));
   const actionRows = rows.filter((r) => r.o.kind === "action");
-  const companions = rows.filter((r) => r.o.kind !== "action");
+  const expandRows = rows.filter((r) => r.o.kind === "expand");
+  const companions = rows.filter((r) => r.o.kind !== "action" && r.o.kind !== "expand");
   for (const r of actionRows) renderRow(r.o, r.idx);
   if (companions.length > 0) {
     lines.push(`${BAR}  ${styleText("dim", "─".repeat(28))}`);
     const max = state.maxRows && state.maxRows > 0 ? state.maxRows : companions.length;
     const cursorPos = companions.findIndex((r) => r.idx === state.cursor);
-    const win = windowOptions(companions, cursorPos < 0 ? 0 : cursorPos, max);
+    // Cursor off the companions (on the trailing expand / "show all" row) →
+    // findIndex returns -1. Pin the window to the *bottom* of the list, not the
+    // top: the user reaches the expand row by arrowing down off the last
+    // companion, so keeping the bottom in view makes that step seamless instead
+    // of snapping the long curated list back to its first rows.
+    const activePos = cursorPos < 0 ? companions.length - 1 : cursorPos;
+    const win = windowOptions(companions, activePos, max);
     if (win.hiddenAbove > 0) lines.push(`${BAR}  ${styleText("dim", `↑ ${win.hiddenAbove} more`)}`);
     for (const r of win.items) renderRow(r.o, r.idx);
     if (win.hiddenBelow > 0) lines.push(`${BAR}  ${styleText("dim", `↓ ${win.hiddenBelow} more`)}`);
+  }
+  // "Show all profiles" expand row — pinned below the window so a long curated
+  // list never pushes it off-screen. Toggling it reveals the overflow in place
+  // (asciiMultiselect appends the rows and the row removes itself).
+  for (const r of expandRows) {
+    const isCursor = r.idx === state.cursor;
+    const arrow = isCursor ? styleText("cyan", "›") : " ";
+    // Reveal is a SPACE toggle, not enter. Don't reuse the action row's ↩ (enter)
+    // glyph here — pressing enter on this row confirms the whole prompt. A ▾ +
+    // explicit "(space)" hint points at the key that actually expands.
+    const glyph = styleText(isCursor ? "cyan" : "dim", "▾");
+    const text = `show all ${r.o.expandCount} profiles  (space)`;
+    const labelStyled = isCursor ? text : styleText("dim", text);
+    lines.push(`${BAR}  ${styleText("dim", "─".repeat(28))}`);
+    lines.push(`${BAR}  ${arrow} ${glyph}  ${labelStyled}`);
   }
 
   // Live combined-total preview: the resources you'd actually pin, updated
@@ -664,7 +772,7 @@ export function renderCombineFrame(state: CombineFrameState): string {
       : [
           baseTally,
           ...[...effective]
-            .filter((v) => v !== SKIP_COMBINE)
+            .filter((v) => v !== SKIP_COMBINE && v !== SHOW_ALL)
             .map((v) => tallies.get(v) ?? EMPTY_TALLY),
         ];
     const previewLines = formatCombinedPreview(unionTallyCounts([baseTally]), unionTallyCounts(selected));
@@ -677,12 +785,50 @@ export function renderCombineFrame(state: CombineFrameState): string {
     if (badge) lines.push(`${BAR}  ${styleText("yellow", badge)}`);
   }
 
-  const staged = skipping ? 0 : [...effective].filter((v) => v !== SKIP_COMBINE).length;
+  const staged = skipping
+    ? 0
+    : [...effective].filter((v) => v !== SKIP_COMBINE && v !== SHOW_ALL).length;
   const countLabel = staged > 0 ? `${staged} selected · ` : "";
   lines.push(
     `${BAR}  ${styleText("dim", `${countLabel}↑↓ move · space toggle · enter confirm · esc cancel`)}`,
   );
   return lines.join("\n");
+}
+
+/**
+ * Compute the option/value/cursor state after the user toggles the "show all
+ * profiles" expand row. Reveal is one-way: when `SHOW_ALL` is present in the
+ * live selection, the expand row is removed, the `overflow` rows are appended,
+ * the `SHOW_ALL` sentinel is dropped from the selection, and the cursor lands on
+ * the first newly-revealed row (where the expand row used to sit). When the
+ * sentinel isn't selected, `expanded` is false and the inputs pass through
+ * unchanged.
+ *
+ * Pure (returns fresh arrays) + exported so the reveal logic is unit-testable
+ * without driving a live `MultiSelectPrompt` over a TTY; `asciiMultiselect`
+ * assigns the result back onto the prompt.
+ */
+export function applyShowAllExpansion(args: {
+  options: AsciiMSOption[];
+  value: readonly string[];
+  cursor: number;
+  overflow: AsciiMSOption[];
+}): { options: AsciiMSOption[]; value: string[]; cursor: number; expanded: boolean } {
+  const { options, value, cursor, overflow } = args;
+  if (!value.includes(SHOW_ALL)) {
+    return { options, value: [...value], cursor, expanded: false };
+  }
+  const idx = options.findIndex((o) => o.value === SHOW_ALL);
+  const nextOptions = options.filter((o) => o.value !== SHOW_ALL);
+  nextOptions.push(...overflow);
+  return {
+    options: nextOptions,
+    value: value.filter((v) => v !== SHOW_ALL),
+    // Land on the first revealed row (the old expand-row slot); fall back to the
+    // current cursor if the sentinel somehow wasn't in the option list.
+    cursor: idx >= 0 ? idx : cursor,
+    expanded: true,
+  };
 }
 
 async function asciiMultiselect(opts: {
@@ -696,16 +842,36 @@ async function asciiMultiselect(opts: {
    * each profile value (primary + every companion) to its own resources.
    */
   preview?: { primary: string; tallies: Map<string, ProfileTally> };
+  /**
+   * Rows revealed when the user toggles the "show all profiles" expand row.
+   * `onReveal` (optional) is invoked once on expansion — e.g. to lazily fill
+   * the preview tallies for the newly-shown profiles — and the prompt re-renders
+   * when it resolves. Absent → no expand behavior even if a SHOW_ALL row exists.
+   */
+  overflow?: {
+    options: AsciiMSOption[];
+    onReveal?: () => Promise<void> | void;
+  };
 }): Promise<string[] | symbol> {
-  const conflictMap = buildConflictMap(opts.options);
+  // Build from curated + overflow so the confirm-time strip knows every
+  // declarable conflict, including one between two profiles that only appear
+  // after "show all" is revealed. resolveConflicts acts only on values actually
+  // selected, so seeding the map with not-yet-revealed options is harmless — and
+  // skipping them is the CRITICAL bug where medusa-vite + medusa-next both
+  // survive into the written .cue-profile.
+  const conflictMap = buildConflictMap([
+    ...opts.options,
+    ...(opts.overflow?.options ?? []),
+  ]);
   const prompt = new MultiSelectPrompt<AsciiMSOption>({
     options: opts.options,
     initialValues: opts.initialValues,
     required: opts.required ?? false,
     render() {
       // Reserve rows for our header (2), the pinned action row + divider (2),
-      // the preview + overhead lines (3), the footer (1) and the ↑/↓ markers
-      // (2); floor at 4 so a short terminal still shows a usable window.
+      // the "show all" expand row + its divider (2), the preview + overhead
+      // lines (3), the footer (1) and the ↑/↓ markers (2); floor at 4 so a
+      // short terminal still shows a usable window.
       const termRows =
         (this as unknown as { output?: { rows?: number } }).output?.rows ?? process.stdout.rows ?? 24;
       return renderCombineFrame({
@@ -714,16 +880,51 @@ async function asciiMultiselect(opts: {
         cursor: this.cursor,
         selected: (this.value ?? []) as string[],
         preview: opts.preview,
-        maxRows: Math.max(4, termRows - 10),
+        maxRows: Math.max(4, termRows - 12),
       });
     },
   });
+  // "Show all profiles": when the user toggles the SHOW_ALL expand row,
+  // `applyShowAllExpansion` computes the revealed option/value/cursor state and
+  // we assign it back onto the live prompt (MultiSelect reads `this.options`/
+  // `this.value` on every nav/toggle, so reassigning the fields just works).
+  // One-way — once revealed, the rows stay. `onReveal` lazily fills preview
+  // tallies, then we re-render so the new rows show their counts.
+  if (opts.overflow && opts.overflow.options.length > 0) {
+    const overflow = opts.overflow;
+    let expanded = false;
+    const live = prompt as unknown as {
+      options: AsciiMSOption[];
+      value?: string[];
+      cursor: number;
+      render: () => void;
+    };
+    prompt.on("key", () => {
+      if (expanded) return;
+      const next = applyShowAllExpansion({
+        options: live.options,
+        value: (live.value ?? []) as string[],
+        cursor: live.cursor,
+        overflow: overflow.options,
+      });
+      if (!next.expanded) return;
+      expanded = true;
+      live.options = next.options;
+      live.value = next.value;
+      live.cursor = next.cursor;
+      const revealed = overflow.onReveal?.();
+      if (revealed && typeof (revealed as Promise<void>).then === "function") {
+        void (revealed as Promise<void>).then(() => live.render());
+      }
+    });
+  }
   const result = await prompt.prompt();
   if (typeof result === "symbol") return result;
-  // Final pass: strip conflict-losers from the returned selection so callers
-  // always receive a conflict-free list, regardless of what the underlying
-  // prompt's internal value contained.
-  return resolveConflicts(result as string[], conflictMap);
+  // Final pass: strip conflict-losers + the SHOW_ALL sentinel from the returned
+  // selection so callers always receive a conflict-free list of real profiles,
+  // regardless of what the underlying prompt's internal value contained.
+  const cleaned = (result as string[]).filter((v) => v !== SHOW_ALL);
+  return resolveConflicts(cleaned, conflictMap);
 }
 
 /**
@@ -982,7 +1183,7 @@ export async function runPicker(input: PickerInput): Promise<PickerOutput> {
   // registered brand dir → postizz). Empty result = plain single-profile pin;
   // users who want non-recommended combos can `cue use a+b+c` directly.
   const firstOpt = input.options.find((o) => o.value === first);
-  const { companionOptions, initialValues } = buildCompanionOptions({
+  const { companionOptions, initialValues, overflowOptions } = buildCompanionOptions({
     primary: first,
     primaryLabel: firstOpt?.label ?? first,
     options: input.options,
@@ -997,19 +1198,33 @@ export async function runPicker(input: PickerInput): Promise<PickerOutput> {
     // N) so the live render stays synchronous: per-row "+N skills" hints and
     // the combined-total preview both read from this map. Absent resolver (or a
     // failing load) just means no preview — the multiselect works regardless.
+    const tallies = new Map<string, ProfileTally>();
     let preview: { primary: string; tallies: Map<string, ProfileTally> } | undefined;
-    if (input.resourceTally) {
-      const wanted = [first, ...companionOptions.filter((o) => o.kind !== "action").map((o) => o.value)];
-      const tallies = new Map<string, ProfileTally>();
+    // Load tallies for a set of profile values into the shared map (deduped,
+    // best-effort). Reused for the initial curated set and, lazily, for the
+    // overflow list when the user expands "show all profiles".
+    const loadTallies = async (values: string[]): Promise<void> => {
+      if (!input.resourceTally) return;
       await Promise.all(
-        wanted.map(async (v) => {
-          try {
-            tallies.set(v, await input.resourceTally!(v));
-          } catch {
-            /* skip this profile — it just renders without counts */
-          }
-        }),
+        values
+          .filter((v) => !tallies.has(v))
+          .map(async (v) => {
+            try {
+              tallies.set(v, await input.resourceTally!(v));
+            } catch {
+              /* skip this profile — it just renders without counts */
+            }
+          }),
       );
+    };
+    if (input.resourceTally) {
+      const wanted = [
+        first,
+        ...companionOptions
+          .filter((o) => o.kind !== "action" && o.kind !== "expand")
+          .map((o) => o.value),
+      ];
+      await loadTallies(wanted);
       if (tallies.has(first)) preview = { primary: first, tallies };
     }
     const extra = await asciiMultiselect({
@@ -1018,6 +1233,15 @@ export async function runPicker(input: PickerInput): Promise<PickerOutput> {
       initialValues: initialValues.length > 0 ? initialValues : undefined,
       required: false,
       preview,
+      overflow:
+        overflowOptions.length > 0
+          ? {
+              options: overflowOptions,
+              // Fill in the revealed profiles' resource counts so their rows
+              // and the live preview show "+N skills" once shown.
+              onReveal: () => loadTallies(overflowOptions.map((o) => o.value)),
+            }
+          : undefined,
     });
     if (p.isCancel(extra)) {
       p.cancel("cancelled");
@@ -1039,6 +1263,13 @@ export async function runPicker(input: PickerInput): Promise<PickerOutput> {
   // selector, the runtime dir name, or the summary breakdown.
   const choiceParts = dedupeSelectorParts(picks);
   const choice = choiceParts.join("+");
+
+  // Remember this combine (≥2 parts) so the same primary re-suggests it next
+  // time — unchecked, as a "you paired these before" hint. Local + best-effort;
+  // recordCombo no-ops on a single-profile pick and never throws.
+  try {
+    recordCombo(choiceParts, new Date().toISOString());
+  } catch { /* logging must never block a launch */ }
 
   // Build a display label with icon(s) for the outro line, per deduped part.
   const pickedLabel = choiceParts

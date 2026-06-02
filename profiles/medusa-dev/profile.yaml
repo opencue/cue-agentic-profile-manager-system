@@ -8,6 +8,8 @@ recommends:
   - medusa-next      # Next.js storefront
   - designer         # combine with medusa-vite/-next for storefront design
   - creative-media   # product photoshoots + visual assets
+playbooks:
+  - medusa-dev-workflow   # module/migration → admin/storefront wiring → db-migrate → seed/verify → shop setup
 persona: |
   You're a senior Medusa v2 platform engineer. You know the module system,
   the subscriber pattern, the workflow engine, and the JS SDK inside out.
