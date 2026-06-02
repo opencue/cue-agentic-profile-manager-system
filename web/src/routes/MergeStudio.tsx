@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { fetcher, postJson } from "../lib/fetcher";
 import type { ProfileRow, OptimizeAction, PreviewResponse, SaveResponse } from "../lib/fetcher";
 import { SEED_BUCKETS } from "../data/seed-buckets";
+import { OfflineCTA } from "../components/OfflineCTA";
 import { SourcePicker } from "../components/merge/SourcePicker";
 import { OptimizePanel } from "../components/merge/OptimizePanel";
 import { MergePreview } from "../components/merge/MergePreview";
@@ -85,7 +86,12 @@ export function MergeStudio() {
     return <div className="empty">Loading profiles…</div>;
   }
   if (profilesQ.isError) {
-    return <div className="empty">Couldn't load profiles: {(profilesQ.error as Error).message}</div>;
+    const msg = (profilesQ.error as Error).message;
+    // Unreachable server → same friendly CTA as the dashboard route, not a raw error.
+    if (msg.startsWith("dashboard-server-unreachable")) {
+      return <OfflineCTA message={msg} />;
+    }
+    return <div className="empty">Couldn't load profiles: {msg}</div>;
   }
 
   const yaml = previewQ.data ? previewQ.data.yaml[mode] : "";
