@@ -66,6 +66,7 @@ function printHelp(): void {
       ["stats", "Profile usage analytics"],
       ["scan", "Tree of installed skills/plugins by domain"],
       ["why", "Trace why a skill/MCP is loaded"],
+      ["mem", "Inspect/manage per-profile claude-mem stores"],
     ],
     "Launch & Shell": [
       ["launch", "Resolve + materialize + exec claude/codex"],
