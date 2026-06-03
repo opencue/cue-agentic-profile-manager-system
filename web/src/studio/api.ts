@@ -224,6 +224,18 @@ export interface HookEntry {
   description: string;
   id: string;
   source: "profile" | "global";
+  /** Absolute path of the script the command runs, or null when it isn't one. */
+  scriptPath: string | null;
+}
+
+/** One hook's resolved script source, for the studio's source viewer. */
+export interface HookSource {
+  path: string;
+  displayPath: string;
+  filename: string;
+  dir: string;
+  language: string;
+  content: string;
 }
 export interface HooksData {
   profile: string | null;
@@ -356,6 +368,17 @@ export function useHooks(profile?: string) {
   return useQuery({
     queryKey: ["hooks", profile ?? "@active"],
     queryFn: () => fetcher<HooksData>(`/hooks${qs}`),
+  });
+}
+
+/** One hook's script source for the viewer. Only fetches when a path is set. */
+export function useHookSource(scriptPath: string | null, profile?: string) {
+  const qs = `?path=${encodeURIComponent(scriptPath ?? "")}` + (profile ? `&profile=${encodeURIComponent(profile)}` : "");
+  return useQuery({
+    queryKey: ["hook-source", scriptPath],
+    queryFn: () => fetcher<HookSource>(`/hook-source${qs}`),
+    enabled: !!scriptPath,
+    staleTime: 30_000,
   });
 }
 

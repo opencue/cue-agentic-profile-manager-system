@@ -5,11 +5,12 @@
  * every number is live from /status, /telemetry/timeline, /active-sessions.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { useProfileDetail, useTimeline, useActiveSessions, postJson, type StatusData } from "../api";
+import { useProfileDetail, useTimeline, useActiveSessions, postJson, type StatusData, type TimelineData } from "../api";
 import { partEmoji, fmtDuration, fmtAge, abbrev } from "../curated";
+import { isDemoMode } from "../../lib/fetcher";
 
 /** Honor the OS "reduce motion" setting: no pulsing dot, no radar ping. */
 const REDUCED_MOTION =
@@ -96,8 +97,25 @@ export function Dashboard({ profile, status }: { profile: string | null; status?
   const [paused, setPaused] = useState(false);
   const chartLive = !paused && !REDUCED_MOTION;
   const detail = useProfileDetail(profile ?? undefined);
-  const timeline = useTimeline(range, paused ? false : 5000);
+  // SSE drives live updates; the poll is just a slow safety net (and the only
+  // source in demo mode / if EventSource is unavailable). Frozen when paused.
+  const timeline = useTimeline(range, paused ? false : 30000);
   const sessions = useActiveSessions();
+
+  // Live activity push: stream timeline updates over SSE straight into the query
+  // cache. The "live"/"paused" pill opens/closes the socket. EventSource
+  // auto-reconnects on transient errors; the 30s poll above covers a hard drop.
+  useEffect(() => {
+    if (paused || isDemoMode() || typeof EventSource === "undefined") return;
+    const es = new EventSource(`/api/v1/telemetry/stream?since=${range}`);
+    es.addEventListener("timeline", (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as TimelineData;
+        qc.setQueryData(["timeline", range], data);
+      } catch { /* ignore a malformed frame; the next one replaces it */ }
+    });
+    return () => es.close();
+  }, [paused, range, qc]);
 
   const counts = detail.data?.counts;
   const daily = timeline.data?.daily ?? [];

@@ -746,6 +746,8 @@ interface FlatHook {
   description: string;
   id: string;
   source: "profile" | "global";
+  /** Absolute path of the script the command runs, if it resolves to one. */
+  scriptPath: string | null;
 }
 
 interface SettingsHookEntry {
@@ -753,8 +755,43 @@ interface SettingsHookEntry {
   hooks?: { type?: string; command?: string; description?: string; id?: string }[];
 }
 
+/** The Claude config dir a hook's `${CLAUDE_CONFIG_DIR}` expands to, by source. */
+function claudeDirForSource(source: FlatHook["source"], profileName: string | null): string | null {
+  if (source === "global") return join(homedir(), ".claude");
+  return profileName ? join(configDir(), "runtime", profileName, "claude") : null;
+}
+
+/**
+ * Resolve the script file a hook command runs, if any. Expands the env vars cue
+ * bakes into materialized hook commands (`${CLAUDE_CONFIG_DIR}` and `~`) and
+ * returns an absolute path — or null when the command isn't a script invocation
+ * or the path can't be fully resolved (so the UI hides the "view source" link).
+ */
+function resolveHookScript(command: string, source: FlatHook["source"], profileName: string | null): string | null {
+  const m = command.match(/(\S+\.(?:sh|bash|zsh|js|mjs|cjs|ts|py|rb|pl))\b/);
+  if (!m) return null;
+  const claudeDir = claudeDirForSource(source, profileName);
+  let p = m[1]!
+    .replace(/\$\{CLAUDE_CONFIG_DIR\}|\$CLAUDE_CONFIG_DIR/g, claudeDir ?? "\0")
+    .replace(/^~(?=\/)/, homedir());
+  if (p.includes("\0") || p.includes("$")) return null; // unresolved variable
+  if (!p.startsWith("/")) return null;                  // only absolute paths
+  return resolve(p);
+}
+
+/** Extension → human language label for the source viewer's badge + highlighter. */
+function hookLanguage(path: string): string {
+  const ext = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
+  const map: Record<string, string> = {
+    sh: "bash", bash: "bash", zsh: "bash",
+    js: "javascript", mjs: "javascript", cjs: "javascript",
+    ts: "typescript", py: "python", rb: "ruby", pl: "perl",
+  };
+  return map[ext] ?? ext ?? "text";
+}
+
 /** Parse the `hooks` map out of one settings.json, tagging each with `source`. */
-function readHooksFile(path: string, source: FlatHook["source"]): FlatHook[] {
+function readHooksFile(path: string, source: FlatHook["source"], profileName: string | null): FlatHook[] {
   if (!existsSync(path)) return [];
   let parsed: { hooks?: Record<string, SettingsHookEntry[]> };
   try {
@@ -779,6 +816,7 @@ function readHooksFile(path: string, source: FlatHook["source"]): FlatHook[] {
           description: h.description ?? "",
           id: h.id ?? `${event}:${matcher}:${h.command}`,
           source,
+          scriptPath: resolveHookScript(h.command, source, profileName),
         });
       }
     }
@@ -786,34 +824,32 @@ function readHooksFile(path: string, source: FlatHook["source"]): FlatHook[] {
   return out;
 }
 
-export async function handleHooks(params: URLSearchParams): Promise<ApiResult<unknown>> {
-  let name = resolveProfileQuery(params.get("profile"));
-  if (!name) {
-    const resolved = await resolveProfileForCwd({
-      cwd: process.cwd(),
-      homeDir: homedir(),
-      configDir: configDir(),
-    });
-    if (resolved.source !== "none") name = (resolved as { profile: string }).profile;
-  }
+/** Resolve the profile a hooks query targets — explicit param, else cwd. */
+async function resolveHooksProfile(profileParam: string | null): Promise<string | null> {
+  const explicit = resolveProfileQuery(profileParam);
+  if (explicit) return explicit;
+  const resolved = await resolveProfileForCwd({ cwd: process.cwd(), homeDir: homedir(), configDir: configDir() });
+  return resolved.source !== "none" ? (resolved as { profile: string }).profile : null;
+}
 
-  // The materialized runtime settings are what Claude Code actually loads for
-  // this profile; the global file is the user-wide baseline.
+/** All hooks (global + this profile's runtime), deduped by id — the shared
+ *  source of truth for both the hooks list and the source-viewer allowlist. */
+function enumerateHooks(profileName: string | null): FlatHook[] {
   const globalPath = join(homedir(), ".claude", "settings.json");
-  const runtimePath = name
-    ? join(configDir(), "runtime", name, "claude", "settings.json")
-    : null;
-
+  const runtimePath = profileName ? join(configDir(), "runtime", profileName, "claude", "settings.json") : null;
   const flat: FlatHook[] = [
-    ...readHooksFile(globalPath, "global"),
-    ...(runtimePath ? readHooksFile(runtimePath, "profile") : []),
+    ...readHooksFile(globalPath, "global", null),
+    ...(runtimePath ? readHooksFile(runtimePath, "profile", profileName) : []),
   ];
-
-  // Dedup by id (a profile hook overriding a global one keeps the profile copy,
-  // which appears later in the array).
+  // Dedup by id (a profile hook overriding a global one wins — it appears later).
   const byId = new Map<string, FlatHook>();
   for (const h of flat) byId.set(h.id, h);
-  const deduped = [...byId.values()];
+  return [...byId.values()];
+}
+
+export async function handleHooks(params: URLSearchParams): Promise<ApiResult<unknown>> {
+  const name = await resolveHooksProfile(params.get("profile"));
+  const deduped = enumerateHooks(name);
 
   // Group by event in a stable lifecycle order; unknown events sort last.
   const EVENT_ORDER = [
@@ -832,12 +868,42 @@ export async function handleHooks(params: URLSearchParams): Promise<ApiResult<un
     })
     .map((event) => ({ event, hooks: byEvent.get(event)! }));
 
+  return { ok: true, data: { profile: name, total: deduped.length, events } };
+}
+
+const HOOK_SOURCE_MAX_BYTES = 256 * 1024;
+
+/**
+ * Read one hook's script source for the studio's source viewer. Security: the
+ * requested path must be one of the *enumerated* hook script paths for this
+ * profile (an allowlist rebuilt per request) — an arbitrary path, or any
+ * `../` traversal, fails the membership check before any file is read.
+ */
+export async function handleHookSource(params: URLSearchParams): Promise<ApiResult<unknown>> {
+  const requested = params.get("path");
+  if (!requested) return { ok: false, error: "missing-path" };
+
+  const name = await resolveHooksProfile(params.get("profile"));
+  const allow = new Set(
+    enumerateHooks(name).map((h) => h.scriptPath).filter((p): p is string => !!p),
+  );
+  const abs = resolve(requested);
+  if (!allow.has(abs)) return { ok: false, error: "not-a-hook-script" };
+  if (!existsSync(abs) || !statSync(abs).isFile()) return { ok: false, error: "not-found" };
+  if (statSync(abs).size > HOOK_SOURCE_MAX_BYTES) return { ok: false, error: "too-large" };
+
+  const home = homedir();
+  const displayPath = abs.startsWith(home) ? "~" + abs.slice(home.length) : abs;
+  const slash = displayPath.lastIndexOf("/");
   return {
     ok: true,
     data: {
-      profile: name,
-      total: deduped.length,
-      events,
+      path: abs,
+      displayPath,
+      filename: displayPath.slice(slash + 1),
+      dir: displayPath.slice(0, slash + 1),
+      language: hookLanguage(abs),
+      content: readFileSync(abs, "utf8"),
     },
   };
 }
@@ -1080,24 +1146,92 @@ export async function handleKillSession(
   }
 }
 
-export async function handleTelemetryTimeline(params: URLSearchParams): Promise<ApiResult<unknown>> {
-  if (!telemetryEnabled()) return { ok: false, error: "telemetry-disabled" };
-  const sinceDays = parseSinceDays(params.get("since"));
+/**
+ * The activity-chart payload (gap-filled sessions-per-day + per-profile counts)
+ * for a window. Shared by the polling GET and the SSE stream so both emit the
+ * exact same shape — the stream is just this, pushed on change.
+ */
+export function buildTimeline(sinceDays: number): {
+  windowDays: number;
+  daily: ReturnType<typeof computeDailyActivity>;
+  profiles: { profile: string; sessions: number; lastUsed: string | null }[];
+} {
   const cutoff = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
   const events = computeStats({ since: cutoff });
   return {
-    ok: true,
-    data: {
-      windowDays: sinceDays,
-      // Gap-filled sessions-per-day for the activity area chart.
-      daily: computeDailyActivity(sinceDays),
-      profiles: events.map((e) => ({
-        profile: e.profile,
-        sessions: e.sessions,
-        lastUsed: e.last_used,
-      })),
-    },
+    windowDays: sinceDays,
+    daily: computeDailyActivity(sinceDays),
+    profiles: events.map((e) => ({
+      profile: e.profile,
+      sessions: e.sessions,
+      lastUsed: e.last_used,
+    })),
   };
+}
+
+export async function handleTelemetryTimeline(params: URLSearchParams): Promise<ApiResult<unknown>> {
+  if (!telemetryEnabled()) return { ok: false, error: "telemetry-disabled" };
+  return { ok: true, data: buildTimeline(parseSinceDays(params.get("since"))) };
+}
+
+// SSE response headers — no caching, and X-Accel-Buffering: no so any reverse
+// proxy (or vite's dev proxy) forwards each event instead of buffering it.
+const SSE_HEADERS = {
+  "Content-Type": "text/event-stream; charset=utf-8",
+  "Cache-Control": "no-cache, no-transform",
+  "Connection": "keep-alive",
+  "X-Accel-Buffering": "no",
+} as const;
+const STREAM_TICK_MS = 3000;
+const STREAM_HEARTBEAT_MS = 20000;
+
+/**
+ * Live activity stream (Server-Sent Events). Sends the timeline payload on
+ * connect, then re-sends it whenever it changes (recompute + diff every few
+ * seconds; identical payloads are suppressed). A periodic comment heartbeat
+ * keeps the connection from going idle. One-way + read-only; the browser's
+ * EventSource handles reconnection. Returns a streaming Response —
+ * `writeWebResponse` pipes text/event-stream bodies instead of buffering them.
+ */
+export function handleTelemetryStream(params: URLSearchParams): Response {
+  const sinceDays = parseSinceDays(params.get("since"));
+  const enabled = telemetryEnabled();
+  const enc = new TextEncoder();
+  let tick: ReturnType<typeof setInterval> | null = null;
+  let beat: ReturnType<typeof setInterval> | null = null;
+  let lastSent = "";
+
+  const stop = () => {
+    if (tick) { clearInterval(tick); tick = null; }
+    if (beat) { clearInterval(beat); beat = null; }
+  };
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const emit = (frame: string) => {
+        try { controller.enqueue(enc.encode(frame)); } catch { stop(); }
+      };
+      if (!enabled) {
+        // Keep the connection open (heartbeat only) so EventSource doesn't
+        // reconnect-spam; the polling GET surfaces "telemetry-disabled" itself.
+        emit("event: error\ndata: telemetry-disabled\n\n");
+      } else {
+        const send = () => {
+          let json: string;
+          try { json = JSON.stringify(buildTimeline(sinceDays)); } catch { return; }
+          if (json === lastSent) return; // suppress unchanged payloads
+          lastSent = json;
+          emit(`event: timeline\ndata: ${json}\n\n`);
+        };
+        send(); // initial snapshot, immediately
+        tick = setInterval(send, STREAM_TICK_MS);
+      }
+      beat = setInterval(() => emit(": ping\n\n"), STREAM_HEARTBEAT_MS);
+    },
+    cancel() { stop(); },
+  });
+
+  return new Response(stream, { status: 200, headers: SSE_HEADERS });
 }
 
 /**
@@ -1548,6 +1682,7 @@ const ROUTES: Record<string, (params: URLSearchParams) => Promise<ApiResult<unkn
   "/api/v1/profiles/full":      () => handleProfilesFull(),
   "/api/v1/profile-detail":     (p) => handleProfileDetail(p),
   "/api/v1/hooks":              (p) => handleHooks(p),
+  "/api/v1/hook-source":        (p) => handleHookSource(p),
   "/api/v1/skill-report":       (p) => handleSkillReport(p),
   "/api/v1/pairs":              (p) => handlePairs(p),
   "/api/v1/gates":              (p) => handleGates(p),
@@ -1615,6 +1750,12 @@ export function createHandler(): (req: Request) => Promise<Response> {
       try { body = await req.json(); } catch { /* malformed */ }
       const result = await handleWorkflowSave(body);
       return Response.json(result, { status: result.ok ? 200 : 400 });
+    }
+
+    // Live activity stream (Server-Sent Events, not JSON): pushes the timeline
+    // payload on change so the dashboard chart auto-updates without polling.
+    if (req.method === "GET" && url.pathname === "/api/v1/telemetry/stream") {
+      return handleTelemetryStream(url.searchParams);
     }
 
     // Profile logo bytes (not JSON): GET /api/v1/profile-icon?profile=<name>.
