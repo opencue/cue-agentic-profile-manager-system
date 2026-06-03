@@ -4,9 +4,12 @@ import { ActiveProfile } from "./components/ActiveProfile";
 import { ActiveSessions } from "./components/ActiveSessions";
 import { SkillActivation } from "./components/SkillActivation";
 import { TokenCostChart } from "./components/TokenCostChart";
+import { ActivityChart } from "./components/ActivityChart";
 import { PairSuggestions } from "./components/PairSuggestions";
 import { TriggerGaps } from "./components/TriggerGaps";
 import { GateTimeline } from "./components/GateTimeline";
+import { StatsOverview } from "./components/StatsOverview";
+import { OfflineCTA } from "./components/OfflineCTA";
 import { MergeStudio } from "./routes/MergeStudio";
 import { fetcher } from "./lib/fetcher";
 
@@ -63,36 +66,11 @@ export function App() {
           <MergeStudio />
         </main>
       ) : offline ? (
-        <section className="card" style={{ borderColor: "var(--yellow)" }}>
-          <div className="card-header">
-            <span className="card-title">Dashboard server not running</span>
-          </div>
-          <p className="muted" style={{ marginTop: 0 }}>
-            The React app is up but it can't reach the cue dashboard server
-            on <code>127.0.0.1:7891</code>. The proxy returned:{" "}
-            <code>{(probe.error as Error).message}</code>
-          </p>
-          <p className="muted">Start it in another terminal:</p>
-          <pre style={{
-            background: "var(--bg-elev)",
-            border: "1px solid var(--border)",
-            borderRadius: 6,
-            padding: 12,
-            fontFamily: "var(--mono)",
-            fontSize: 12,
-            margin: 0,
-          }}>
-            cd {"<cue-repo>"} && bun src/index.ts dashboard --no-open
-          </pre>
-          <p className="muted" style={{ fontSize: 12, marginTop: 12, marginBottom: 0 }}>
-            Or build the React app once + skip Vite:
-            <br />
-            <code>cd web && npm run build</code> &nbsp;then&nbsp;
-            <code>bun src/index.ts dashboard</code> (it serves <code>web/dist/</code> at <code>/</code>).
-          </p>
-        </section>
+        <OfflineCTA message={(probe.error as Error).message} />
       ) : (
         <main className="app-grid">
+          <StatsOverview />
+          <ActivityChart />
           <ActiveProfile />
           <ActiveSessions />
           <SkillActivation />

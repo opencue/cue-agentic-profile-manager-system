@@ -103,6 +103,76 @@ describe("computeTriggerGaps", () => {
     expect(rows.map((r) => r.id)).toEqual(["b", "a", "c"]);
   });
 
+  test("word-boundary: single-word trigger does NOT match inside a larger word", () => {
+    const skills = [skill("meta/analyze", "analyze", ["analyze"])];
+    // "reanalyze" / "analyzer" must not count as the bare word "analyze".
+    const prompts = ["please reanalyze the data", "run the analyzer"];
+    expect(
+      computeTriggerGaps({ skills, userPrompts: prompts, hits: new Map() }),
+    ).toEqual([]);
+  });
+
+  test("word-boundary: 'help' does not match 'helpful' / 'helper'", () => {
+    const skills = [skill("meta/help", "help", ["help"])];
+    const prompts = ["that was helpful", "ask the helper agent"];
+    expect(
+      computeTriggerGaps({ skills, userPrompts: prompts, hits: new Map() }),
+    ).toEqual([]);
+  });
+
+  test("weak single-word trigger only counts when it dominates a short prompt", () => {
+    const skills = [skill("meta/help", "help", ["help"])];
+    const longPrompt =
+      "i need some help refactoring this enormous function that spans several files and modules";
+    expect(longPrompt.length).toBeGreaterThan(80);
+    // Long prompt that merely contains "help" → not an invocation.
+    expect(
+      computeTriggerGaps({ skills, userPrompts: [longPrompt], hits: new Map() }),
+    ).toEqual([]);
+    // Short, trigger-dominant prompt → genuine.
+    const rows = computeTriggerGaps({
+      skills, userPrompts: ["help"], hits: new Map(),
+    });
+    expect(rows[0]?.gap).toBe(1);
+  });
+
+  test("slash-command trigger matches at any prompt length", () => {
+    const skills = [skill("caveman/caveman", "caveman", ["/caveman"])];
+    const longPrompt =
+      "please switch to /caveman mode because this explanation has gotten far too verbose for me";
+    expect(longPrompt.length).toBeGreaterThan(80);
+    const rows = computeTriggerGaps({
+      skills, userPrompts: [longPrompt], hits: new Map(),
+    });
+    expect(rows[0]?.gap).toBe(1);
+  });
+
+  test("multi-word trigger matches at any length (word-boundary, not substring)", () => {
+    const skills = [skill("caveman/caveman-commit", "caveman-commit", ["commit message"])];
+    const longPrompt =
+      "after you finish the refactor, write a clear commit message that explains the reasoning behind it";
+    expect(longPrompt.length).toBeGreaterThan(80);
+    const rows = computeTriggerGaps({
+      skills, userPrompts: [longPrompt], hits: new Map(),
+    });
+    expect(rows[0]?.gap).toBe(1);
+  });
+
+  test("weakTriggerMaxPromptChars is configurable", () => {
+    const skills = [skill("meta/help", "help", ["help"])];
+    const prompt = "help me please"; // 14 chars
+    // Default (80) → counts.
+    expect(
+      computeTriggerGaps({ skills, userPrompts: [prompt], hits: new Map() })[0]?.gap,
+    ).toBe(1);
+    // Tightened to 4 → the 14-char prompt is now "too long" for a weak trigger.
+    expect(
+      computeTriggerGaps({
+        skills, userPrompts: [prompt], hits: new Map(), weakTriggerMaxPromptChars: 4,
+      }),
+    ).toEqual([]);
+  });
+
   test("limit caps the row count", () => {
     const skills = Array.from({ length: 5 }, (_, i) =>
       skill(`s${i}`, `s${i}`, [`trigger phrase ${i}`]),

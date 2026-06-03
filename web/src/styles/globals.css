@@ -1,34 +1,24 @@
 :root {
-  /* Dark-first palette tuned for terminal-adjacent feel without being all-black. */
-  --bg-base: #0b0d12;
-  --bg-elev: #14171f;
-  --bg-card: #181c26;
-  --border: #232938;
-  --text-primary: #e6eaf3;
-  --text-secondary: #9aa3b8;
-  --text-dim: #5a6378;
+  /* Vercel-style palette: true black canvas, hairline borders, high-contrast
+     near-white text. cue purple kept as the single accent. */
+  --bg-base: #000000;
+  --bg-elev: #0a0a0a;
+  --bg-card: #0a0a0a;
+  --border: #1f1f1f;
+  --border-hover: #333333;
+  --text-primary: #ededed;
+  --text-secondary: #a1a1a1;
+  --text-dim: #6b6b6b;
   --accent: #8b5cf6;
-  --accent-soft: rgba(139, 92, 246, 0.15);
-  --green: #34d399;
-  --red: #f87171;
-  --yellow: #fbbf24;
-  --radius: 10px;
+  --accent-hover: #a78bfa;
+  --accent-soft: rgba(139, 92, 246, 0.12);
+  --green: #00e599;
+  --red: #ff6166;
+  --yellow: #f5a623;
+  --radius: 8px;
   --radius-sm: 6px;
-  --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, Menlo, monospace;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg-base: #f7f7fa;
-    --bg-elev: #ffffff;
-    --bg-card: #ffffff;
-    --border: #e3e6ee;
-    --text-primary: #1a1d27;
-    --text-secondary: #475067;
-    --text-dim: #8a93aa;
-    --accent: #6d28d9;
-    --accent-soft: rgba(109, 40, 217, 0.08);
-  }
+  --mono: 'Geist Mono', 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -38,10 +28,12 @@ html, body, #root {
   padding: 0;
   background: var(--bg-base);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  font-family: var(--sans);
   font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 code { font-family: var(--mono); font-size: 0.9em; }
@@ -58,9 +50,10 @@ code { font-family: var(--mono); font-size: 0.9em; }
 }
 
 .brand {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  color: var(--text-primary);
 }
 
 .badge {
@@ -93,7 +86,9 @@ code { font-family: var(--mono); font-size: 0.9em; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px 20px;
+  transition: border-color 0.15s ease;
 }
+.card:hover { border-color: var(--border-hover); }
 
 .card-header {
   display: flex;
@@ -139,8 +134,131 @@ code { font-family: var(--mono); font-size: 0.9em; }
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 16px;
 }
-.stat-num { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat-num { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.4px; color: var(--text-primary); }
 .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.6px; }
+
+/* ---------- stats overview (top-of-dashboard metric row) ---------- */
+/* Grouped overview: Scale / Usage / Health (DESIGN.md gap #1). */
+.stats-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.stats-group {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.stats-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding-left: 2px;
+}
+.stats-group-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.stat-tile {
+  background: var(--bg-card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: background 0.15s ease;
+}
+.stat-tile:hover { background: #111111; }
+.stat-tile .tile-num {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.stat-tile .tile-num.accent { color: var(--accent); }
+.stat-tile .tile-num.green { color: var(--green); }
+.stat-tile .tile-num.red { color: var(--red); }
+.stat-tile .tile-num.dim { color: var(--text-dim); }
+.stat-tile .tile-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.stat-tile .tile-sub { font-size: 11px; color: var(--text-secondary); font-family: var(--mono); }
+
+/* Segmented window control (Activity over time). */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.seg-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.seg-btn:not(:last-child) { border-right: 1px solid var(--border); }
+.seg-btn:hover { color: var(--text-secondary); }
+.seg-btn.on { background: var(--accent-soft); color: var(--accent); }
+.activity-summary { margin: 2px 0 12px; }
+.activity-summary .big {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- offline CTA (shared by dashboard + merge studio) ---------- */
+.offline-cta {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 28px 24px;
+  text-align: center;
+  max-width: 560px;
+  margin: 40px auto;
+}
+.offline-cta .offline-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.offline-cta .offline-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--yellow); display: inline-block; margin-right: 8px;
+  box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.12);
+}
+.offline-cta p { color: var(--text-secondary); font-size: 13px; margin: 8px 0; }
+.offline-cta pre {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: left;
+  overflow-x: auto;
+  margin: 14px 0 0;
+}
 
 .table {
   width: 100%;
@@ -337,3 +455,53 @@ code { font-family: var(--mono); font-size: 0.9em; }
 .save-ok code { color: var(--text-secondary); }
 .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 @media (max-width: 700px) { .diff-grid { grid-template-columns: 1fr; } }
+
+/* ---------- active sessions ---------- */
+.session-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 300px;
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 999px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: border-color 0.15s ease;
+}
+.session-chip:hover { border-color: var(--border-hover); }
+.session-chip .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-chip .chip-count {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.session-chip .chip-tok { flex: none; color: var(--text-dim); font-size: 11px; }
+.session-total { font-size: 12px; color: var(--text-dim); align-self: center; }
+
+.session-stop {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.session-stop:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+.session-stop:disabled { opacity: 0.5; cursor: wait; }
+
+.session-table tbody tr { transition: background 0.12s ease; }
+.session-table tbody tr:hover { background: var(--bg-elev); }
+.session-table td { vertical-align: middle; }
+.session-table .copyable { cursor: pointer; }
+.session-table .copyable:hover { color: var(--accent); }
