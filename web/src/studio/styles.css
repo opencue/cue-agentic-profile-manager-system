@@ -1023,3 +1023,74 @@ body{background:var(--bg1);color:var(--fg);font-family:var(--ui);font-size:13px;
 .hsrc-str{color:var(--amber)}
 .hsrc-var{color:var(--cyan)}
 .hsrc-num{color:var(--green)}
+
+/* ════════ ENVIRONMENT VARIABLES ════════
+   Per-folder .env viewer (design: studio-env.jsx). Folder rail + table/raw +
+   server-masked secrets + type badges. Lives here, not globals.css (dead). */
+.envpage{flex:1;display:flex;min-width:0;min-height:0}
+.env-rail{width:280px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);overflow:auto;padding:14px 12px;display:flex;flex-direction:column}
+.env-rail-h{font-size:11px;letter-spacing:1px;color:var(--fg2);font-weight:600;margin:0 4px 12px;display:flex;align-items:center;gap:8px}
+.env-rail-h span{color:var(--fg3);font-family:var(--mono)}
+.env-folder{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:9px;cursor:pointer;border:1px solid transparent;margin-bottom:4px;transition:.1s}
+.env-folder:hover{background:var(--bg3)}
+.env-folder.on{background:var(--bg3);border-color:var(--violet-d)}
+.ef-ico{font-size:14px;flex-shrink:0}
+.ef-mid{flex:1;min-width:0}
+.ef-tag{font-family:var(--mono);font-size:12px;color:var(--fg)}
+.env-folder.on .ef-tag{color:#fff}
+.ef-path{font-family:var(--mono);font-size:10px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ef-count{font-family:var(--mono);font-size:11px;color:var(--violet);background:rgba(139,123,240,.12);border-radius:999px;padding:2px 9px;flex-shrink:0}
+.ef-count.zero{color:var(--fg3);background:var(--bg1)}
+.env-rail-note{margin-top:auto;padding:14px 6px 2px;font-size:11px;color:var(--fg3);line-height:1.5}
+.env-rail-note .mono{color:var(--fg2)}
+.env-main{flex:1;min-width:0;overflow:auto;padding:24px 28px 50px;display:flex;flex-direction:column}
+.env-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}
+.env-sub{font-size:12.5px;color:var(--fg2);margin-top:6px}
+.env-sub .mono{color:var(--fg)} .env-dim{color:var(--fg3)} .env-sub b{color:var(--fg)}
+.env-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.env-modetog{display:flex;border:1px solid var(--bd2);border-radius:8px;overflow:hidden}
+.env-modetog button{font-family:var(--mono);font-size:11px;color:var(--fg2);background:var(--bg1);border:none;padding:7px 14px;cursor:pointer;transition:.1s}
+.env-modetog button:hover{color:var(--fg)}
+.env-modetog button.on{background:var(--violet-d);color:#fff}
+.env-revealbtn{font-family:var(--mono);font-size:11px;color:var(--fg2);background:var(--bg2);border:1px solid var(--bd2);border-radius:8px;padding:7px 12px;cursor:pointer;transition:.1s;white-space:nowrap}
+.env-revealbtn:hover{color:var(--fg);border-color:var(--violet)}
+.env-rawwrap{flex:1;display:flex;flex-direction:column;min-height:0}
+.env-rawhint{font-size:12px;color:var(--fg3);margin-bottom:10px}
+.env-rawhint .mono{color:var(--fg2)}
+.env-raw{flex:1;min-height:420px;background:var(--bg0);border:1px solid var(--bd2);border-radius:12px;padding:16px 18px;color:#8fd3a8;font-family:var(--mono);font-size:13px;line-height:1.7;outline:none;resize:vertical;tab-size:2}
+.env-raw:focus{border-color:var(--violet)}
+.env-table{border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.env-trow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr) 84px;gap:14px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--bd)}
+.env-trow:last-child{border-bottom:none}
+.env-trow:not(.env-thead):hover{background:var(--bg2)}
+.env-thead{background:var(--bg2);font-size:10px;letter-spacing:1px;color:var(--fg3);text-transform:uppercase;font-weight:600}
+.env-key{font-family:var(--mono);font-size:12.5px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.env-val{display:flex;align-items:center;gap:8px;min-width:0}
+.env-valtxt{font-family:var(--mono);font-size:12px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.env-valtxt.masked{color:var(--fg3);letter-spacing:1px}
+.env-copy{flex-shrink:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--bd2);border-radius:7px;color:var(--fg2);cursor:pointer;font-size:14px;transition:.12s}
+.env-copy:hover{color:var(--fg);border-color:var(--violet);background:var(--bg4)}
+.env-copy:active{transform:scale(.88)}
+.env-copy.done{color:var(--green);border-color:#1f4a37;background:#0f1d17;animation:copypop .3s ease-out}
+@keyframes copypop{0%{transform:scale(.7)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+.env-eye{flex-shrink:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;font-size:13px;opacity:.7;border-radius:7px}
+.env-eye:hover{opacity:1;background:var(--bg3)}
+.env-type{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;border:1px solid;border-radius:5px;padding:2px 7px;text-align:center;justify-self:start}
+.env-type.secret{color:var(--red);border-color:#4a2530;background:#1f1014}
+.env-type.url{color:var(--cyan);border-color:#1f3a44;background:#0d1a1f}
+.env-type.bool{color:var(--amber);border-color:#4a3a1f;background:#1f1a10}
+.env-type.num{color:var(--violet);border-color:#34306a;background:#161630}
+.env-type.plain{color:var(--fg3);border-color:var(--bd2);background:var(--bg1)}
+.env-empty{padding:26px 16px;color:var(--fg3);font-size:12.5px}
+.env-empty .mono{color:var(--fg2)}
+/* secret-mcp vault footer */
+.env-vault{display:flex;align-items:center;gap:14px;margin-top:22px;padding:14px 18px;border:1px solid var(--bd);border-radius:12px;background:var(--bg2)}
+.env-vault-ic{font-size:18px;flex-shrink:0}
+.env-vault-mid{flex:1;min-width:0}
+.env-vault-h{font-size:13px;color:var(--fg)}
+.env-vault-h .mono{font-family:var(--mono);color:var(--violet)}
+.env-vault-sub{font-size:11.5px;color:var(--fg3);margin-top:3px;line-height:1.5}
+.env-vault-btn{flex-shrink:0;font-family:var(--mono);font-size:11px;color:#fff;background:var(--violet-d);border:1px solid var(--violet-d);border-radius:8px;padding:8px 16px;cursor:pointer;transition:.12s}
+.env-vault-btn:hover:not(:disabled){background:var(--violet)}
+.env-vault-btn:disabled{opacity:.5;cursor:not-allowed}
+.env-vault-msg{font-family:var(--mono);font-size:11px;color:var(--green);flex-shrink:0}
