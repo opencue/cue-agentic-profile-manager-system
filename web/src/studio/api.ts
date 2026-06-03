@@ -415,3 +415,57 @@ export function useMarket() {
     staleTime: 60_000,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Environment variables (per-folder .env, secrets masked server-side)
+// ---------------------------------------------------------------------------
+
+export type EnvKind = "secret" | "url" | "bool" | "num" | "plain";
+/** One parsed var. `masked` true → `value` is the dotted mask, not the secret. */
+export interface EnvVarRow { key: string; value: string; kind: EnvKind; masked: boolean }
+export interface EnvFolderRow { path: string; tag: string; count: number }
+export interface EnvFoldersData { folders: EnvFolderRow[] }
+export interface EnvData { folder: string; tag: string; exists: boolean; vars: EnvVarRow[] }
+
+/** The allowlisted project folders + their .env var counts (rail list). */
+export function useEnvFolders() {
+  return useQuery({
+    queryKey: ["env-folders"],
+    queryFn: () => fetcher<EnvFoldersData>("/env/folders"),
+    staleTime: 30_000,
+  });
+}
+
+/** Parsed vars for one folder's .env. ALWAYS masked — revealed plaintext is
+ *  never cached. Both per-row and global reveal go through the one-shot
+ *  fetch* helpers below into transient component state. Empty folder → no fetch. */
+export function useEnv(folder: string | null) {
+  return useQuery({
+    queryKey: ["env", folder],
+    queryFn: () => fetcher<EnvData>(`/env?folder=${encodeURIComponent(folder ?? "")}`),
+    enabled: Boolean(folder),
+  });
+}
+
+/**
+ * One-shot fetch of a single secret's RAW value (reveal click). Kept off the
+ * react-query cache so revealed plaintext never lingers in the query store; the
+ * caller holds it transiently in component state.
+ */
+export async function fetchEnvReveal(folder: string, key: string): Promise<string> {
+  const data = await fetcher<EnvData>(`/env?folder=${encodeURIComponent(folder)}&reveal=${encodeURIComponent(key)}`);
+  return data.vars.find((v) => v.key === key)?.value ?? "";
+}
+
+/**
+ * One-shot fetch of EVERY secret's RAW value (the global "Reveal secrets"
+ * toggle). Like fetchEnvReveal, plaintext is returned for transient component
+ * state and never enters the react-query cache. Returns a key→raw-value map of
+ * the secret rows only (non-secrets are already unmasked in the cached query).
+ */
+export async function fetchEnvRevealAll(folder: string): Promise<Record<string, string>> {
+  const data = await fetcher<EnvData>(`/env?folder=${encodeURIComponent(folder)}&reveal=*`);
+  const out: Record<string, string> = {};
+  for (const v of data.vars) if (v.kind === "secret") out[v.key] = v.value;
+  return out;
+}
