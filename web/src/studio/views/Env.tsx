@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 
-import { useEnvFolders, useEnv, fetchEnvReveal, addMcp, type EnvVarRow } from "../api";
+import { useEnvFolders, useEnv, fetchEnvReveal, fetchEnvRevealAll, addMcp, type EnvVarRow } from "../api";
 
 export function EnvView({ profile }: { profile: string | null }) {
   const folders = useEnvFolders();
@@ -33,13 +33,22 @@ export function EnvView({ profile }: { profile: string | null }) {
   }, [list, sel]);
   useEffect(() => { setRevealed({}); setRevealAll(false); }, [sel]);
 
-  const env = useEnv(sel, revealAll);
+  const env = useEnv(sel);
   const vars = env.data?.vars ?? [];
 
   const copy = (key: string, value: string) => {
     try { void navigator.clipboard.writeText(value); } catch { /* clipboard blocked */ }
     setCopied(key);
     setTimeout(() => setCopied((c) => (c === key ? null : c)), 1100);
+  };
+  // Global reveal: one-shot fetch every secret raw into the same transient
+  // `revealed` map per-row reveal uses, so no plaintext ever enters the query
+  // cache. Toggling off just drops the transient values.
+  const toggleRevealAll = async () => {
+    if (revealAll) { setRevealAll(false); setRevealed({}); return; }
+    if (!sel) return;
+    setRevealed(await fetchEnvRevealAll(sel));
+    setRevealAll(true);
   };
   const toggleRow = async (v: EnvVarRow) => {
     if (revealed[v.key] !== undefined) {
@@ -99,7 +108,7 @@ export function EnvView({ profile }: { profile: string | null }) {
               <button className={mode === "table" ? "on" : ""} onClick={() => setMode("table")}>Table</button>
               <button className={mode === "raw" ? "on" : ""} onClick={() => setMode("raw")}>Raw</button>
             </div>
-            <button className="env-revealbtn" onClick={() => setRevealAll((r) => !r)}>{revealAll ? "🙈 Hide" : "👁 Reveal"} secrets</button>
+            <button className="env-revealbtn" onClick={() => void toggleRevealAll()}>{revealAll ? "🙈 Hide" : "👁 Reveal"} secrets</button>
           </div>
         </div>
 
