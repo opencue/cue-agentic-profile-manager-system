@@ -224,6 +224,18 @@ export interface HookEntry {
   description: string;
   id: string;
   source: "profile" | "global";
+  /** Absolute path of the script the command runs, or null when it isn't one. */
+  scriptPath: string | null;
+}
+
+/** One hook's resolved script source, for the studio's source viewer. */
+export interface HookSource {
+  path: string;
+  displayPath: string;
+  filename: string;
+  dir: string;
+  language: string;
+  content: string;
 }
 export interface HooksData {
   profile: string | null;
@@ -359,6 +371,17 @@ export function useHooks(profile?: string) {
   });
 }
 
+/** One hook's script source for the viewer. Only fetches when a path is set. */
+export function useHookSource(scriptPath: string | null, profile?: string) {
+  const qs = `?path=${encodeURIComponent(scriptPath ?? "")}` + (profile ? `&profile=${encodeURIComponent(profile)}` : "");
+  return useQuery({
+    queryKey: ["hook-source", scriptPath],
+    queryFn: () => fetcher<HookSource>(`/hook-source${qs}`),
+    enabled: !!scriptPath,
+    staleTime: 30_000,
+  });
+}
+
 /** Real Claude Code tool-permission rules (allow/ask/deny) from settings.json. */
 export function usePermissions() {
   return useQuery({
@@ -413,9 +436,9 @@ export function useEnvFolders() {
   });
 }
 
-/** Parsed vars for one folder's .env — ALWAYS masked. Revealing (per-row or
- *  global) goes through the one-shot fetchers below, never this cached query,
- *  so plaintext secrets never enter the react-query store. Empty folder → no fetch. */
+/** Parsed vars for one folder's .env. ALWAYS masked — revealed plaintext is
+ *  never cached. Both per-row and global reveal go through the one-shot
+ *  fetch* helpers below into transient component state. Empty folder → no fetch. */
 export function useEnv(folder: string | null) {
   return useQuery({
     queryKey: ["env", folder],
@@ -425,9 +448,9 @@ export function useEnv(folder: string | null) {
 }
 
 /**
- * One-shot fetch of a single secret's RAW value (per-row reveal click). Kept off
- * the react-query cache so revealed plaintext never lingers; the caller holds it
- * transiently in component state and drops it on hide / folder change.
+ * One-shot fetch of a single secret's RAW value (reveal click). Kept off the
+ * react-query cache so revealed plaintext never lingers in the query store; the
+ * caller holds it transiently in component state.
  */
 export async function fetchEnvReveal(folder: string, key: string): Promise<string> {
   const data = await fetcher<EnvData>(`/env?folder=${encodeURIComponent(folder)}&reveal=${encodeURIComponent(key)}`);
@@ -435,10 +458,10 @@ export async function fetchEnvReveal(folder: string, key: string): Promise<strin
 }
 
 /**
- * One-shot fetch of EVERY secret's raw value (global "Reveal secrets" toggle).
- * Also bypasses the query cache — returns a {key: rawValue} map the caller holds
- * transiently and clears on hide / folder change. This is the fix for the
- * cache-poisoning path where a cached reveal=* response lingered after hide.
+ * One-shot fetch of EVERY secret's RAW value (the global "Reveal secrets"
+ * toggle). Like fetchEnvReveal, plaintext is returned for transient component
+ * state and never enters the react-query cache. Returns a key→raw-value map of
+ * the secret rows only (non-secrets are already unmasked in the cached query).
  */
 export async function fetchEnvRevealAll(folder: string): Promise<Record<string, string>> {
   const data = await fetcher<EnvData>(`/env?folder=${encodeURIComponent(folder)}&reveal=*`);

@@ -16,6 +16,11 @@ function detectMode(): Mode {
   return (window as { __CUE_MODE__?: Mode }).__CUE_MODE__ ?? "local";
 }
 
+/** True on the static demo deploy (no local server → no SSE / live push). */
+export function isDemoMode(): boolean {
+  return detectMode() === "demo";
+}
+
 let demoCache: Record<string, unknown> | null = null;
 async function loadDemoData(): Promise<Record<string, unknown>> {
   if (demoCache) return demoCache;

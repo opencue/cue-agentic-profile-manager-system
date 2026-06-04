@@ -7,7 +7,7 @@
 
 import { describe, expect, test } from "bun:test";
 
-import { handleProfileDetail, handleMcpCatalog, handleMcpAdd, handleMarket, createHandler, semverGt, computeVersionInfo } from "./dashboard-server";
+import { handleProfileDetail, handleMcpCatalog, handleMcpAdd, handleMarket, createHandler, semverGt, computeVersionInfo, buildTimeline, handleHooks, handleHookSource } from "./dashboard-server";
 
 function detail(profile: string) {
   return handleProfileDetail(new URLSearchParams({ profile }));
@@ -282,5 +282,70 @@ describe("handleMcpAdd validation", () => {
     const res = await handleMcpAdd({ id: "not-a-real-mcp-xyz", profile: "core" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/unknown-mcp/);
+  });
+});
+
+describe("buildTimeline", () => {
+  test("returns gap-filled daily buckets spanning the window", () => {
+    const t = buildTimeline(7);
+    expect(t.windowDays).toBe(7);
+    expect(t.daily).toHaveLength(7);
+    expect(t.daily.every((d) => typeof d.sessions === "number" && /^\d{4}-\d{2}-\d{2}$/.test(d.date))).toBe(true);
+    expect(Array.isArray(t.profiles)).toBe(true);
+  });
+});
+
+describe("GET /api/v1/hook-source", () => {
+  test("rejects a missing path", async () => {
+    const r = await handleHookSource(new URLSearchParams());
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe("missing-path");
+  });
+
+  test("rejects an arbitrary path — only enumerated hook scripts are readable", async () => {
+    const r = await handleHookSource(new URLSearchParams({ path: "/etc/passwd" }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe("not-a-hook-script");
+  });
+
+  test("rejects a path traversal that escapes the hooks dir", async () => {
+    const r = await handleHookSource(new URLSearchParams({ path: "/x/hooks/../../../../etc/passwd" }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe("not-a-hook-script");
+  });
+
+  test("serves a real enumerated hook script's source", async () => {
+    const hk = await handleHooks(new URLSearchParams());
+    if (!hk.ok) return; // telemetry/profile unresolved in this env — security cases still cover it
+    const events = (hk.data as { events: { hooks: { scriptPath: string | null }[] }[] }).events;
+    const withScript = events.flatMap((e) => e.hooks).find((h) => h.scriptPath);
+    if (!withScript?.scriptPath) return; // no resolvable hook scripts here
+    const r = await handleHookSource(new URLSearchParams({ path: withScript.scriptPath }));
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const d = r.data as { filename: string; content: string; language: string };
+      expect(d.filename.length).toBeGreaterThan(0);
+      expect(typeof d.content).toBe("string");
+      expect(d.language.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("GET /api/v1/telemetry/stream (SSE)", () => {
+  test("responds as an event-stream and pushes an initial frame", async () => {
+    const handler = createHandler();
+    const res = await handler(new Request("http://localhost/api/v1/telemetry/stream?since=7"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+    expect(res.body).not.toBeNull();
+    // Read just the first frame, then cancel so the stream's interval timers
+    // stop and the test process can exit.
+    const reader = res.body!.getReader();
+    const { value, done } = await reader.read();
+    expect(done).toBe(false);
+    const text = new TextDecoder().decode(value);
+    // A real timeline frame when telemetry is on, or the disabled error frame.
+    expect(text).toMatch(/event: (timeline|error)/);
+    await reader.cancel();
   });
 });
