@@ -33,22 +33,25 @@ export function EnvView({ profile }: { profile: string | null }) {
   }, [list, sel]);
   useEffect(() => { setRevealed({}); setRevealAll(false); }, [sel]);
 
+  // Baseline is ALWAYS masked; revealed plaintext lives only in `revealed`
+  // (transient state), never in the cached query — so it can't linger after Hide.
   const env = useEnv(sel);
   const vars = env.data?.vars ?? [];
+
+  // Global reveal: fetch every secret raw once into the transient map; Hide
+  // clears it. Per-row reveal uses the same map, so both paths stay cache-free.
+  const toggleRevealAll = async () => {
+    if (revealAll) { setRevealAll(false); setRevealed({}); return; }
+    if (!sel) return;
+    const all = await fetchEnvRevealAll(sel);
+    setRevealed(all);
+    setRevealAll(true);
+  };
 
   const copy = (key: string, value: string) => {
     try { void navigator.clipboard.writeText(value); } catch { /* clipboard blocked */ }
     setCopied(key);
     setTimeout(() => setCopied((c) => (c === key ? null : c)), 1100);
-  };
-  // Global reveal: one-shot fetch every secret raw into the same transient
-  // `revealed` map per-row reveal uses, so no plaintext ever enters the query
-  // cache. Toggling off just drops the transient values.
-  const toggleRevealAll = async () => {
-    if (revealAll) { setRevealAll(false); setRevealed({}); return; }
-    if (!sel) return;
-    setRevealed(await fetchEnvRevealAll(sel));
-    setRevealAll(true);
   };
   const toggleRow = async (v: EnvVarRow) => {
     if (revealed[v.key] !== undefined) {
