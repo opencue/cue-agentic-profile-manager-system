@@ -1,32 +1,30 @@
 ---
 title: "Discovered Claude Code Skills"
-description: "100 community Claude Code skills curated by cue across 12 profiles. Find skills for backend, frontend, marketing, cybersecurity, and more."
+description: "100 community Claude Code skills curated by cue across 10 profiles. Find skills for backend, frontend, marketing, cybersecurity, and more."
 layout: page
-updated: 2026-06-03
+updated: 2026-06-04
 tags: [claude-code, skills, mcp, ai-agents, marketplace]
 ---
 
 # 🎯 Discovered Claude Code Skills
 
-> **100 hidden-gem skills** discovered by [cue](https://github.com/opencue/cuecards) across **12 profiles**.
-> Last updated: 2026-06-03 · refreshed nightly via GitHub Code Search.
+> **100 hidden-gem skills** discovered by [cue](https://github.com/opencue/cuecards) across **10 profiles**.
+> Last updated: 2026-06-04 · refreshed nightly via GitHub Code Search.
 
 ## Browse by profile
 
 | Profile | Skills | Sample |
 |---|---|---|
-| [**core**](./core.md) | 66 | `narrator-ai-cli-skill`, `context-mode`, `antigravity-workspace-template` |
-| [**backend**](./backend.md) | 13 | `n8n`, `carbon`, `grpvn` |
-| [**creative-media**](./creative-media.md) | 6 | `claude-wechat-bridge-with-files`, `takeaway-skill`, `image-skill-cli` |
+| [**core**](./core.md) | 64 | `antigravity-workspace-template`, `Unity-MCP`, `master-skill` |
+| [**backend**](./backend.md) | 18 | `n8n`, `awesome-claude`, `systemprompt-template` |
+| [**frontend**](./frontend.md) | 5 | `suanfish-design-system`, `lottie-marketplace`, `ionik-capacitor-flux-patterns` |
 | [**cybersecurity**](./cybersecurity.md) | 4 | `nsauditor-ai-agent-skill`, `hydra`, `Claude-OSINT` |
-| [**research**](./research.md) | 3 | `econ-paper-studio`, `china-report-navigator`, `venture-analyst` |
-| [**frontend**](./frontend.md) | 3 | `suanfish-design-system`, `lottie-marketplace`, `ai-atelie` |
-| [**fleet-control**](./fleet-control.md) | 3 | `multi-agent-revenue-orchestrator`, `rolepod`, `queen-protocol` |
+| [**fleet-control**](./fleet-control.md) | 3 | `superx-agentic-orchestrator`, `multi-agent-revenue-orchestrator`, `rolepod` |
+| [**creative-media**](./creative-media.md) | 3 | `claude-wechat-bridge-with-files`, `ai-atelie`, `redesigned-pancake` |
+| [**docs-writer**](./docs-writer.md) | 2 | `wiki-vis`, `project-to-study` |
 | [**niche**](./niche.md) | 2 | `grant-thinking-cn-biology`, `grant-thinking-skill` |
-| [**marketing**](./marketing.md) | 1 | `brand-launchpad` |
-| [**docs-writer**](./docs-writer.md) | 1 | `solomd` |
-| [**python**](./python.md) | 1 | `memory-cloud` |
-| [**video**](./video.md) | 1 | `social-media-scraper-skill` |
+| [**rust**](./rust.md) | 1 | `systemprompt-core` |
+| [**research**](./research.md) | 1 | `popper-scope` |
 
 ## How scoring works
 

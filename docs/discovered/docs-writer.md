@@ -1,29 +1,46 @@
 ---
 title: "Claude Code Skills for docs-writer"
-description: "1 community Claude Code skills curated by cue for the docs-writer profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "2 community Claude Code skills curated by cue for the docs-writer profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-03
+updated: 2026-06-04
 tags: [claude-code, docs-writer, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `docs-writer`
 
-> 1 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **docs-writer** profile.
+> 2 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **docs-writer** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="zhitongblog-solomd"></a>
-## 💎 [zhitongblog/solomd](https://github.com/zhitongblog/solomd)
+<a id="yanqiyang62-wiki-vis"></a>
+## 💎 [yanqiyang62/wiki-vis](https://github.com/yanqiyang62/wiki-vis)
 
-**★ 349** · exceptional (score 11.5) · TypeScript · tags: agent, autogit, byok, knowledge-base, markdown
+**★ 1** · exceptional (score 13.3) · HTML · tags: claude-code, claude-code-skill, documentation, documentation-generator, markdown
 
-A markdown editor — and the bridge to your LLM. Local-first, MIT, ~15 MB. Bundled MCP server lets Claude Code / Codex / Cursor drive your vault directly. 14 AI providers BYOK.
+Turn a codebase into a single, self-contained, good-looking wiki.html — a standard project-wiki solution and Claude Code skill (sidebar nav, collapsible sections, Mermaid diagrams, light/dark themes).
+
+✅ SKILL.md
 
 ```bash
-cue skills add zhitongblog/solomd --profile docs-writer
+cue skills add yanqiyang62/wiki-vis --profile docs-writer
+```
+
+---
+
+<a id="wxggzz-project-to-study"></a>
+## 💎 [wxggzz/project-to-study](https://github.com/wxggzz/project-to-study)
+
+**★ 0** · exceptional (score 13) · tags: ai-agents, anthropic, claude, claude-code, claude-skill
+
+A Claude Code skill that turns any codebase into a structured Markdown study-docs package (operation, deployment, learning, architecture, API/data, troubleshooting) with an evidence trail.
+
+✅ SKILL.md
+
+```bash
+cue skills add wxggzz/project-to-study --profile docs-writer
 ```
 
 ---

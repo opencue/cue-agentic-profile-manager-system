@@ -2,7 +2,7 @@
 title: "Claude Code Skills for fleet-control"
 description: "3 community Claude Code skills curated by cue for the fleet-control profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-03
+updated: 2026-06-04
 tags: [claude-code, fleet-control, skills, mcp, ai-agents]
 ---
 
@@ -12,6 +12,19 @@ tags: [claude-code, fleet-control, skills, mcp, ai-agents]
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
+
+---
+
+<a id="marcos-auguusto-superx-agentic-orchestrator"></a>
+## 💎 [Marcos-Auguusto/superx-agentic-orchestrator](https://github.com/Marcos-Auguusto/superx-agentic-orchestrator)
+
+**★ 0** · exceptional (score 10) · HTML · tags: agent-orchestration, ai-agent, ai-coding, ai-orchestration, anthropic
+
+SuperX Autonomous AI Agent 2026: 14 Specialized Coders, 10x Parallel Execution & Adaptive Skill Learning
+
+```bash
+cue skills add Marcos-Auguusto/superx-agentic-orchestrator --profile fleet-control
+```
 
 ---
 
@@ -31,25 +44,12 @@ cue skills add aadiieee/multi-agent-revenue-orchestrator --profile fleet-control
 <a id="nuttaruj-rolepod"></a>
 ## ✨ [nuttaruj/rolepod](https://github.com/nuttaruj/rolepod)
 
-**★ 1** · strong (score 6.2) · Shell · tags: agent-orchestration, ai-agents, automation, claude-code, prompt-engineering
+**★ 1** · strong (score 6.1) · Shell · tags: agent-orchestration, ai-agents, automation, claude-code, prompt-engineering
 
 Universal AI dev team workflow system for Claude Code — 18 specialist agents, lazy-load rules, parallel-safe by path/concern ownership
 
 ```bash
 cue skills add nuttaruj/rolepod --profile fleet-control
-```
-
----
-
-<a id="raydenai-queen-protocol"></a>
-## ✨ [raydenai/queen-protocol](https://github.com/raydenai/queen-protocol)
-
-**★ 1** · strong (score 5) · Shell · tags: agent-protocol, anthropic, claude-code, claude-mesh, codex
-
-Queen Protocol v2.14.0 — Auto-acquire dispatch-lock from prompt-file path. Closes v2.13's adoption gap (one queen acquiring + other queen bypassing). kimi-task.sh now refuses dispatch when another queen holds the shard lock. Plus colony-watcher daemon + 10 named operator-discipline patterns from production. Workers: claude/kimi/codex/gemma4-local.
-
-```bash
-cue skills add raydenai/queen-protocol --profile fleet-control
 ```
 
 ---

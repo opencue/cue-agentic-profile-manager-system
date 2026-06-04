@@ -2,7 +2,7 @@
 title: "JeremiahChurch/claude-skill-wsl-interop — Claude Code skill discovered by cue"
 description: "Claude Code skill for seamless WSL/Windows interoperability — path conversion, SSH agent, clipboard, filesystem quirks"
 layout: page
-updated: 2026-06-03
+updated: 2026-06-04
 tags: [claude-code, skill, core]
 ---
 
