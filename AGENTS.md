@@ -32,6 +32,7 @@ The user can choose **direct shell install** (one block, runs end-to-end) or **a
 1. **Detect the OS first.** Don't assume — Linux/macOS look similar at the surface but `brew` vs `apt`, `/opt/homebrew` vs `/usr/local`, and shell vs PowerShell flow differently. Use `uname -s` (macOS = Darwin, Linux = Linux) and `$OS` / `$env:OS` on Windows.
 
 2. **Pick the right setup file** and load it:
+   - **Lean stack only** (cue CLI + `core` profile + caveman + RTK, no memory/brain/Office MCPs) → `setup/lean-cue.md`. Cross-OS; the fastest minimal path.
    - macOS → `setup/macos.md`
    - Linux → `setup/linux.md`
    - Windows → `setup/windows.md`
