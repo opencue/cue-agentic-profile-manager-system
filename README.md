@@ -360,7 +360,8 @@ claude                        # launches with the marketing cuecard
 |---|---|
 | One-line script | `curl -fsSL https://raw.githubusercontent.com/opencue/cuecards/main/get.sh \| bash` |
 | Manual clone | `git clone https://github.com/opencue/cuecards.git ~/Documents/cue && ~/Documents/cue/install.sh` |
-| Per-OS bootstrap | paste [`setup/macos.md`](./setup/macos.md) · [`setup/linux.md`](./setup/linux.md) · [`setup/windows.md`](./setup/windows.md) into Claude Code |
+| Lean stack (core + caveman + RTK only, cross-OS) | paste [`setup/lean-cue.md`](./setup/lean-cue.md) into Claude Code |
+| Per-OS bootstrap (full stack) | paste [`setup/macos.md`](./setup/macos.md) · [`setup/linux.md`](./setup/linux.md) · [`setup/windows.md`](./setup/windows.md) into Claude Code |
 
 </details>
 
