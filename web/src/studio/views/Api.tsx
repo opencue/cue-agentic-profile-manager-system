@@ -140,30 +140,41 @@ function ApiTokens({ email }: { email: string }) {
     await reload();
   };
 
-  // BetterAuth has no rotate endpoint; regenerate = delete + recreate with the
-  // same name + expiry, returning a fresh value shown once.
+  // BetterAuth has no rotate endpoint, so regenerate = recreate with the same
+  // name + remaining expiry. Create FIRST, then delete the old key — never
+  // destroy the existing token until the replacement exists, so a failed
+  // create can't lock the user out. (Note: a long-lived token regenerated late
+  // in its life inherits only its *remaining* lifetime, by design.)
   const regenerate = async (row: ApiKeyRow) => {
     setError(null);
     const expiresIn = row.expiresAt
       ? Math.max(DAY, Math.round((new Date(row.expiresAt).getTime() - Date.now()) / 1000))
       : null;
-    const del = await authClient.apiKey.delete({ keyId: row.id });
-    if (del.error) { setError(del.error.message ?? "Failed to regenerate"); return; }
     const res = await authClient.apiKey.create({
       name: row.name ?? "token",
       ...(expiresIn ? { expiresIn } : {}),
     });
     if (res.error) { setError(res.error.message ?? "Failed to regenerate"); return; }
+    const del = await authClient.apiKey.delete({ keyId: row.id });
+    if (del.error) {
+      setError("New token created, but removing the old one failed — delete it manually below.");
+    }
     setFreshToken((res.data as { key: string }).key);
     setReveal(false);
     await reload();
   };
 
-  const copy = () => {
+  const copy = async () => {
     if (!freshToken) return;
-    try { navigator.clipboard.writeText(freshToken); } catch { /* ignore */ }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    try {
+      // Await the promise: writeText rejects (not throws) on permission denial
+      // or a non-secure context, so a sync try/catch would flash a false "✓".
+      await navigator.clipboard.writeText(freshToken);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setError("Couldn't copy automatically — reveal the token and copy it manually.");
+    }
   };
 
   return (
@@ -219,7 +230,7 @@ function ApiTokens({ email }: { email: string }) {
               <code>{reveal ? freshToken : "•".repeat(Math.min(40, freshToken.length))}</code>
               <button className="api-icobtn" title={reveal ? "Hide" : "Reveal"}
                 onClick={() => setReveal((r) => !r)}>{reveal ? "🙈" : "👁"}</button>
-              <button className="api-icobtn" title="Copy" onClick={copy}>{copied ? "✓" : "⧉"}</button>
+              <button className="api-icobtn" title="Copy" onClick={() => void copy()}>{copied ? "✓" : "⧉"}</button>
             </div>
             <button className="api-tokenbanner-close" title="Dismiss" onClick={() => setFreshToken(null)}>×</button>
           </div>

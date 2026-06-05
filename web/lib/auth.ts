@@ -32,7 +32,14 @@ export const auth = betterAuth({
   // Signs session cookies + tokens. Required in every environment so a missing
   // secret fails loudly at boot instead of silently weakening sessions.
   secret: required("BETTER_AUTH_SECRET"),
-  database: new Pool({ connectionString: required("DATABASE_URL") }),
+  // On Vercel each function instance gets its own Pool; an unbounded pool
+  // exhausts Neon's connection cap under concurrency. Default to 1 connection
+  // per instance (use Neon's pooler endpoint in DATABASE_URL for real
+  // concurrency); raise via PG_POOL_MAX for the long-lived local dev server.
+  database: new Pool({
+    connectionString: required("DATABASE_URL"),
+    max: Number(process.env.PG_POOL_MAX ?? 1),
+  }),
   emailAndPassword: {
     enabled: true,
     // Free signup: no email-verification gate so a new user can register and
@@ -44,6 +51,15 @@ export const auth = betterAuth({
       // Without this an API key never resolves into a session, so
       // `getSession()` on the /me endpoint would ignore the Bearer token.
       enableSessionForAPIKeys: true,
+      // The plugin defaults to 10 requests / 24h PER KEY, which silently
+      // cripples a token meant for programmatic use (Claude, CI, scripts).
+      // Use a generous per-minute ceiling instead; coarse abuse control
+      // belongs at the edge/network layer, not baked into every token.
+      rateLimit: {
+        enabled: true,
+        maxRequests: 120,
+        timeWindow: 60_000,
+      },
       // The screenshot's token UX is "Authorization: Bearer <token>". The
       // plugin reads `x-api-key` by default; this getter accepts either.
       customAPIKeyGetter: (ctx: { headers?: Headers | null }) => {

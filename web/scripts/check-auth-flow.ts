@@ -79,7 +79,19 @@ async function main(): Promise<void> {
   }
   console.log(`ok   me (Bearer)     -> 200 (authenticated as ${me.data?.email})`);
 
-  console.log("\nPASS  full auth flow: register -> login -> token -> Bearer /me");
+  // 5. The apiKey plugin defaults to 10 requests/24h per key, which would
+  //    silently cripple a programmatic token. Fire >10 calls to prove the
+  //    configured (generous) rate limit is in effect, not the default.
+  const BURST = 15;
+  for (let i = 0; i < BURST; i++) {
+    res = await fetch(`${BASE}/api/v1/me`, { headers: { authorization: `Bearer ${token}` } });
+    if (res.status !== 200) {
+      fail("rate-limit", `Bearer call ${i + 1}/${BURST} returned ${res.status} (default 10/day cap not lifted?): ${await res.text()}`);
+    }
+  }
+  console.log(`ok   ${BURST}× Bearer     -> all 200 (per-key rate limit is generous, not 10/day)`);
+
+  console.log("\nPASS  full auth flow: register -> login -> token -> Bearer /me (+burst)");
 }
 
 main().catch((err) => fail("uncaught", String(err)));

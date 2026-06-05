@@ -2,24 +2,19 @@
 // Vite dev server: register a new user, then create an API token, asserting the
 // copy-once banner renders the token. Saves a screenshot for visual proof.
 //
-// Prereqs: Vite dev on :5173 (AUTH_TARGET -> auth server), auth server running.
+// Prereqs: Vite dev on :5173 (AUTH_TARGET -> auth server), auth server running,
+// and Playwright available. If Playwright is installed globally rather than in
+// this project, point PW_PKG at its package dir, e.g.
+//   PW_PKG="$(npm root -g)/playwright" node scripts/smoke-ui.mjs
 // Run: node scripts/smoke-ui.mjs
 import { createRequire } from "node:module";
 
-// Playwright is installed globally, not in this project. Resolve it from the
-// project first, then fall back to known global locations.
 const require = createRequire(import.meta.url);
 function loadPlaywright() {
-  const candidates = [
-    "playwright",
-    process.env.PW_PKG,
-    "/home/deadpool/.nvm/versions/node/v22.22.0/lib/node_modules/@playwright/mcp/node_modules/playwright",
-    "/home/deadpool/.nvm/versions/node/v22.22.0/lib/node_modules/designlang/node_modules/playwright",
-  ].filter(Boolean);
-  for (const c of candidates) {
+  for (const c of ["playwright", process.env.PW_PKG].filter(Boolean)) {
     try { return require(c); } catch { /* try next */ }
   }
-  throw new Error("could not resolve the playwright package");
+  throw new Error("could not resolve 'playwright' — install it or set PW_PKG");
 }
 const { chromium } = loadPlaywright();
 
@@ -68,6 +63,22 @@ try {
   const rows = await page.locator(".api-tokenrow").count();
   if (rows < 1) fail("no token rows listed after create");
   console.log(`ok   token row listed (count=${rows})`);
+
+  // Regenerate (create-then-delete): a fresh token appears and exactly one row
+  // survives — proving the rotation didn't leave the user with zero tokens.
+  const before = (await page.textContent(".api-tokenbox code"))?.trim() ?? "";
+  await page.click('.api-tokenrow button:has-text("Regenerate")');
+  await page.waitForFunction(
+    (prev) => {
+      const el = document.querySelector(".api-tokenbox code");
+      return el && el.textContent && el.textContent.trim() !== prev;
+    },
+    before, { timeout: 8000 },
+  );
+  await page.waitForTimeout(300); // let reload() settle the list
+  const afterRows = await page.locator(".api-tokenrow").count();
+  if (afterRows !== 1) fail(`regenerate left ${afterRows} rows, expected exactly 1`);
+  console.log(`ok   regenerate       -> new token, exactly ${afterRows} row survives`);
 
   await page.screenshot({ path: SHOT, fullPage: true });
   console.log(`\nPASS  UI smoke: register -> token page -> create token (shot: ${SHOT})`);
