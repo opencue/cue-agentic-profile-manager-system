@@ -44,6 +44,14 @@ describe("mergeProfiles", () => {
     expect(p.skills.some((id) => id.startsWith("design/"))).toBe(true);
   });
 
+  test("core pins subagents to Sonnet (cost-knob regression guard)", async () => {
+    // A future core edit must not silently drop this — it fans out to every
+    // inheriting profile and is the one automatic Opus→Sonnet lever. Surfaced
+    // into settings.json `env` by buildClaudeSettings (runtime-materializer).
+    const core = await loadProfile("core");
+    expect(core.env.CLAUDE_CODE_SUBAGENT_MODEL).toBe("claude-sonnet-4-6");
+  });
+
   test("skill conflicts are deduped to unique pairs (not per-directive)", async () => {
     const p = await mergeProfiles(["medusa-dev", "designer"]);
     const keys = p.skillConflicts.map((c) => [c.skillA, c.skillB].sort().join("|") + c.domain);
