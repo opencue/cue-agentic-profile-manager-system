@@ -531,11 +531,18 @@ export async function materializeRuntime(input: MaterializeInput): Promise<Mater
     process.env.CUE_TRIGGER_PHRASES === "1" ||
     process.env.CUE_TRIGGER_PHRASES === "true"
   );
+  // Cap the capability table so heavy profiles (60+ skills) don't blow past
+  // Claude Code's 40KB CLAUDE.md perf threshold. Overflow skills stay listed
+  // under "Available Skills" and loadable on demand. Override with
+  // CUE_MAX_CAPABILITY_ROWS (0 disables the cap).
+  const maxCapEnv = Number(process.env.CUE_MAX_CAPABILITY_ROWS);
+  const maxCapabilityRows = Number.isFinite(maxCapEnv) && maxCapEnv >= 0 ? maxCapEnv : 50;
   const routerBlock = renderRouter(routerParsed, {
     overrides: routerOverrides,
     zombies: zombieIds,
     lean,
     omitTriggerPhrases,
+    maxCapabilityRows,
   });
   if (routerBlock) stamp += routerBlock;
 
