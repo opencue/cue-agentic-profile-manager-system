@@ -62,13 +62,13 @@ describe("summon", () => {
     await expect(summon({ cwd: dir, profile: "does-not-exist-xyz", active: null })).rejects.toThrow(/unknown profile/);
   });
 
-  test("writes the .cue-profile pin by default, skips it with noPin", async () => {
+  test("writes the .cue.profile pin by default, skips it with noPin", async () => {
     // Arrange / Act
     const r1 = await summon({ cwd: dir, profile: "vercel", active: null });
     // Assert
     expect(r1.pin_written).toBe(true);
-    expect(r1.pin_path).toBe(join(dir, ".cue-profile"));
-    expect((await readFile(join(dir, ".cue-profile"), "utf8")).trim()).toBe("vercel");
+    expect(r1.pin_path).toBe(join(dir, ".cue.profile"));
+    expect((await readFile(join(dir, ".cue.profile"), "utf8")).trim()).toBe("vercel");
 
     const r2 = await summon({ cwd: dir, profile: "vercel", active: null, noPin: true });
     expect(r2.pin_written).toBe(false);
@@ -78,12 +78,12 @@ describe("summon", () => {
     const r = await summon({ cwd: dir, profile: "vercel", active: null, dryRun: true });
     expect(r.pin_written).toBe(false);
     expect(r.pin_previous).toBeNull();
-    await expect(stat(join(dir, ".cue-profile"))).rejects.toThrow();
+    await expect(stat(join(dir, ".cue.profile"))).rejects.toThrow();
   });
 
   test("re-pinning the same profile is a no-op, not a clobber", async () => {
     // Arrange: already pinned to vercel
-    await writeFile(join(dir, ".cue-profile"), "vercel\n");
+    await writeFile(join(dir, ".cue.profile"), "vercel\n");
     // Act
     const r = await summon({ cwd: dir, profile: "vercel", active: null });
     // Assert: no rewrite, but the prior pin is surfaced
@@ -93,13 +93,13 @@ describe("summon", () => {
 
   test("re-pinning a different profile surfaces the replaced pin", async () => {
     // Arrange: pinned to a different profile
-    await writeFile(join(dir, ".cue-profile"), "core\n");
+    await writeFile(join(dir, ".cue.profile"), "core\n");
     // Act
     const r = await summon({ cwd: dir, profile: "vercel", active: null });
     // Assert: written, and the previous pin is reported (not silently clobbered)
     expect(r.pin_written).toBe(true);
     expect(r.pin_previous).toBe("core");
-    expect((await readFile(join(dir, ".cue-profile"), "utf8")).trim()).toBe("vercel");
+    expect((await readFile(join(dir, ".cue.profile"), "utf8")).trim()).toBe("vercel");
   });
 
   test("mcp_status reflects the active session's loaded MCPs", async () => {

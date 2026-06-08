@@ -455,9 +455,9 @@ export function getInstalledIn(gem: GemRepo, profilesDir = join(REPO_ROOT, "prof
   return hits;
 }
 
-/** Detect active profile from cwd (`.cue-profile` file). Returns undefined if none. */
+/** Detect active profile from cwd (`.cue.profile` file). Returns undefined if none. */
 export function getActiveProfile(cwd: string = process.cwd()): string | undefined {
-  const f = join(cwd, ".cue-profile");
+  const f = join(cwd, ".cue.profile");
   if (!existsSync(f)) return undefined;
   try {
     const s = readFileSync(f, "utf8").trim();

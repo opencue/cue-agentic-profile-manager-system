@@ -3,7 +3,7 @@
  * `cue shell install` — install shims
  *
  * Usage: eval "$(cue shell hook)"
- * Adds a cd wrapper that checks .cue-profile on directory change.
+ * Adds a cd wrapper that checks .cue.profile on directory change.
  */
 
 import { existsSync, readFileSync, statSync, accessSync, constants } from "node:fs";
@@ -33,8 +33,8 @@ __cue_check_profile() {
   local dir="$PWD"
   local profile=""
   while [ "$dir" != "/" ] && [ "$dir" != "$HOME" ]; do
-    if [ -f "$dir/.cue-profile" ]; then
-      profile="$(cat "$dir/.cue-profile" 2>/dev/null | tr -d '\\n')"
+    if [ -f "$dir/.cue.profile" ]; then
+      profile="$(cat "$dir/.cue.profile" 2>/dev/null | tr -d '\\n')"
       break
     fi
     dir="$(dirname "$dir")"
@@ -57,8 +57,8 @@ __cue_check_profile() {
   local dir="$PWD"
   local profile=""
   while [[ "$dir" != "/" && "$dir" != "$HOME" ]]; do
-    if [[ -f "$dir/.cue-profile" ]]; then
-      profile="$(cat "$dir/.cue-profile" | tr -d '\\n')"
+    if [[ -f "$dir/.cue.profile" ]]; then
+      profile="$(cat "$dir/.cue.profile" | tr -d '\\n')"
       break
     fi
     dir="$(dirname "$dir")"
@@ -82,8 +82,8 @@ function __cue_check_profile --on-variable PWD
   set -l dir $PWD
   set -l profile ""
   while test "$dir" != "/" -a "$dir" != "$HOME"
-    if test -f "$dir/.cue-profile"
-      set profile (cat "$dir/.cue-profile" | string trim)
+    if test -f "$dir/.cue.profile"
+      set profile (cat "$dir/.cue.profile" | string trim)
       break
     end
     set dir (dirname "$dir")

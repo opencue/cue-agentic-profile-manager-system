@@ -1147,15 +1147,15 @@ async function readSharedClaudeMd(profile?: { name: string; inheritanceChain?: s
 async function buildUserClaudeMd(profile: ResolvedProfile, agent: "claude-code" | "codex"): Promise<string> {
   let content = await readSharedClaudeMd(profile) + await readUserClaudeMd(agent);
 
-  // First-time profile suggestion: if no .cue-profile in cwd, inject marker
-  const cueProfilePath = join(process.cwd(), ".cue-profile");
+  // First-time profile suggestion: if no .cue.profile in cwd, inject marker
+  const cueProfilePath = join(process.cwd(), ".cue.profile");
   if (!existsSync(cueProfilePath)) {
     content += "\n<!-- cue:first-time-suggest -->\n" +
       "## ⚡ First-Time Setup\n\n" +
-      "No `.cue-profile` is pinned to this directory. Before answering the user's first message, " +
+      "No `.cue.profile` is pinned to this directory. Before answering the user's first message, " +
       "summon the right profile into THIS session — no restart. Invoke the `meta/profile-summon` " +
       "skill, or run `cue summon` (auto-detects from the repo). It soft-loads the profile's persona " +
-      "and skill playbooks inline, pins `.cue-profile`, and prints `claude --continue` for the MCP / " +
+      "and skill playbooks inline, pins `.cue.profile`, and prints `claude --continue` for the MCP / " +
       "/slash-command tail (which needs a warm re-exec). Propose the detected profile in 3-4 lines, " +
       "apply on the user's OK, then proceed with their request.\n\n" +
       "Available profiles:\n```\n" +

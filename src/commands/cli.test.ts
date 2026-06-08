@@ -46,17 +46,17 @@ describe("cue cli list", () => {
     expect(installable.length).toBeGreaterThan(5);
   });
 
-  test("no positional + no .cue-profile → usage error", async () => {
+  test("no positional + no .cue.profile → usage error", async () => {
     const orig = process.stderr.write.bind(process.stderr);
     let err = "";
     (process.stderr as any).write = (c: string | Uint8Array) => { err += String(c); return true; };
     try {
-      // run from /tmp so no .cue-profile lookup succeeds
+      // run from /tmp so no .cue.profile lookup succeeds
       const cwd = process.cwd();
       process.chdir("/tmp");
       try {
         const exit = await cliRun(["list"]);
-        // either succeeds via parent .cue-profile resolution, or returns 1 with usage
+        // either succeeds via parent .cue.profile resolution, or returns 1 with usage
         if (exit !== 0) expect(err).toContain("Usage");
       } finally {
         process.chdir(cwd);

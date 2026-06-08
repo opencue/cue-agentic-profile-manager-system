@@ -54,7 +54,7 @@ describe("cue suggest", () => {
 
   test("returns 1 with no active profile", async () => {
     const { run } = await import("./suggest");
-    // Without a .cue-profile in cwd, should fail gracefully
+    // Without a .cue.profile in cwd, should fail gracefully
     const origCwd = process.cwd();
     process.chdir(tmp);
     const { code, stderr } = await capture(() => run([]));

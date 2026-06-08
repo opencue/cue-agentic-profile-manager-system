@@ -295,7 +295,7 @@ describe("buildCompanionOptions", () => {
     const full = buildConflictMap([...companionOptions, ...overflowOptions]);
     expect(resolveConflicts(["medusa-next", "medusa-vite"], full)).toEqual(["medusa-next"]);
     // Regression guard: the old curated-only map (the CRITICAL bug) let BOTH survive
-    // into the written .cue-profile while the live UI showed the conflict blocked.
+    // into the written .cue.profile while the live UI showed the conflict blocked.
     const stale = buildConflictMap(companionOptions);
     expect(resolveConflicts(["medusa-next", "medusa-vite"], stale)).toEqual([
       "medusa-next",

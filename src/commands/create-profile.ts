@@ -118,11 +118,11 @@ export async function run(args: string[]): Promise<number> {
   await writeFile(yamlPath, renderYaml(parsed));
 
   if (parsed.pin) {
-    await writeFile(join(process.cwd(), ".cue-profile"), `${parsed.name}\n`);
+    await writeFile(join(process.cwd(), ".cue.profile"), `${parsed.name}\n`);
   }
 
   process.stdout.write(`✓ created ${yamlPath}\n`);
-  if (parsed.pin) process.stdout.write(`✓ pinned to ${process.cwd()}/.cue-profile\n`);
+  if (parsed.pin) process.stdout.write(`✓ pinned to ${process.cwd()}/.cue.profile\n`);
   process.stdout.write(`launch with: claude\n`);
   return 0;
 }

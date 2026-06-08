@@ -129,7 +129,7 @@ Options:
     }
 
     if (apply) {
-      writeFileSync(join(process.cwd(), ".cue-profile"), best.name + "\n");
+      writeFileSync(join(process.cwd(), ".cue.profile"), best.name + "\n");
       process.stdout.write(`  ${green("✓")} Pinned ${bold(best.name)} to this directory.\n\n`);
     } else {
       process.stdout.write(`  Use it:  ${bold(`cue use ${best.name}`)}\n`);
@@ -164,7 +164,7 @@ Options:
     const profileDir = join(PROFILES_DIR, profileName);
     mkdirSync(profileDir, { recursive: true });
     writeFileSync(join(profileDir, "profile.yaml"), output);
-    writeFileSync(join(process.cwd(), ".cue-profile"), profileName + "\n");
+    writeFileSync(join(process.cwd(), ".cue.profile"), profileName + "\n");
     process.stdout.write(`\n  ${green("✓")} Created ${bold(profileName)} (inherits from ${inheritsFrom})\n`);
     process.stdout.write(`  ${green("✓")} Pinned to this directory.\n`);
     process.stdout.write(`  Edit: profiles/${profileName}/profile.yaml\n\n`);

@@ -219,7 +219,7 @@ async function cmdSearch(query: string, json: boolean): Promise<number> {
 async function cmdAddToProfile(id: string, preview = false): Promise<number> {
   const profileName = await getActiveProfileName();
   if (!profileName) {
-    process.stderr.write("No active profile. Pin one with `echo <name> > .cue-profile`\n");
+    process.stderr.write("No active profile. Pin one with `echo <name> > .cue.profile`\n");
     return 1;
   }
 
@@ -808,8 +808,8 @@ async function cmdNpxAdd(args: string[]): Promise<number> {
     // #2: Auto-pin option
     const pin = await p.confirm({ message: `Pin "${name}" to current directory?`, initialValue: true });
     if (!p.isCancel(pin) && pin) {
-      await writeFile(join(process.cwd(), ".cue-profile"), `${name}\n`);
-      p.log.success(`Pinned → .cue-profile`);
+      await writeFile(join(process.cwd(), ".cue.profile"), `${name}\n`);
+      p.log.success(`Pinned → .cue.profile`);
     }
 
     // #10: Post-create launch prompt

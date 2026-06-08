@@ -1,7 +1,7 @@
 /**
  * `cue summon [profile]` — bind a profile into the LIVE session, no cold restart.
  *
- * When you open a directory with no `.cue-profile`, the right profile's skills
+ * When you open a directory with no `.cue.profile`, the right profile's skills
  * and MCPs normally need a pin + a full `claude` restart (CLAUDE_CONFIG_DIR, the
  * Skill() list, MCP servers, and /slash commands are frozen at boot). `summon`
  * is the two-tier bridge:
@@ -10,7 +10,7 @@
  *     readable SKILL.md paths + a persona, so the running agent can soft-load
  *     them inline (the `meta/profile-summon` skill drives this — same mechanism
  *     as `meta/smart-loader`, just whole-profile).
- *   Tier B (durable + full fidelity): write the `.cue-profile` pin so the next
+ *   Tier B (durable + full fidelity): write the `.cue.profile` pin so the next
  *     launch is correct, and hand back the warm re-exec (`claude --continue`)
  *     that resumes THIS conversation under the fully-materialized profile —
  *     the only honest way to get the MCP servers + /slash commands the soft
@@ -22,7 +22,7 @@
  * Flags:
  *   [profile]        force this profile (else auto-detect from cwd)
  *   --json           machine-readable output (consumed by meta/profile-summon)
- *   --no-pin         don't write .cue-profile
+ *   --no-pin         don't write .cue.profile
  *   --pick           list detected candidates and exit (no pin, no apply)
  *   --active <name>  override active-session profile detection (for mcp_status)
  *   --dry-run        compute everything, write nothing
@@ -73,7 +73,7 @@ export interface SummonResult {
   active_profile: string | null;
   pin_written: boolean;
   pin_path: string;
-  /** Existing `.cue-profile` content before this summon, or null when none.
+  /** Existing `.cue.profile` content before this summon, or null when none.
    * Lets the consumer flag a re-pin over a *different* profile instead of a
    * silent clobber, and skip a redundant write when it already matches. */
   pin_previous: string | null;
@@ -182,7 +182,7 @@ export async function summon(opts: SummonOptions): Promise<SummonResult> {
     skills.push({ id: s.id, path, mcp_status: skillMcpStatus(s.id, activeMcps) });
   }
 
-  const pinPath = join(opts.cwd, ".cue-profile");
+  const pinPath = join(opts.cwd, ".cue.profile");
   const pinPrevious = existsSync(pinPath) ? readFileSync(pinPath, "utf8").trim() || null : null;
   let pinWritten = false;
   // Skip the write when it's already pinned to this profile (no-op, respects
@@ -222,12 +222,12 @@ Usage: cue summon [profile] [flags]
 
 Resolves a profile (explicit arg, else auto-detected from this directory),
 lists its skills as readable SKILL.md paths so the running agent can soft-load
-them inline, pins .cue-profile, and prints the warm re-exec (\`${REEXEC_CMD}\`)
+them inline, pins .cue.profile, and prints the warm re-exec (\`${REEXEC_CMD}\`)
 that resumes this conversation under the full profile (MCPs + /slash commands).
 
 Flags:
   --json           machine-readable output (for meta/profile-summon)
-  --no-pin         don't write .cue-profile
+  --no-pin         don't write .cue.profile
   --pick           list detected candidates and exit (no pin)
   --active <name>  override active-session profile (affects mcp_status)
   --dry-run        compute everything, write nothing
@@ -266,9 +266,9 @@ function printHuman(r: SummonResult): void {
 
   out.push("");
   if (r.pin_written && r.pin_previous && r.pin_previous !== r.profile) {
-    out.push(`📌 repinned .cue-profile: ${r.pin_previous} → ${r.profile} (replaced a different pin)`);
+    out.push(`📌 repinned .cue.profile: ${r.pin_previous} → ${r.profile} (replaced a different pin)`);
   } else if (r.pin_written) {
-    out.push(`📌 pinned .cue-profile → ${r.profile}`);
+    out.push(`📌 pinned .cue.profile → ${r.profile}`);
   } else if (r.pin_previous === r.profile) {
     out.push(`📌 already pinned → ${r.profile}`);
   } else {

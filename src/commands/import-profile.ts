@@ -86,7 +86,7 @@ async function cmdImport(args: string[]): Promise<number> {
 
   process.stdout.write(`✅ Imported profile "${name}" to profiles/${name}/\n`);
   process.stdout.write(`   Activate with: cue use ${name}\n`);
-  process.stdout.write(`   Pin with: echo ${name} > .cue-profile\n`);
+  process.stdout.write(`   Pin with: echo ${name} > .cue.profile\n`);
   return 0;
 }
 

@@ -108,7 +108,7 @@ COPY resources/ /app/resources/
 WORKDIR /app
 
 # Pin profile
-RUN echo "${profileName}" > .cue-profile
+RUN echo "${profileName}" > .cue.profile
 
 # Pre-materialize runtime
 RUN cue use ${profileName} || true

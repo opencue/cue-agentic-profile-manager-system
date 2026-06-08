@@ -43,8 +43,8 @@ export async function run(args: string[]): Promise<number> {
 
   if (apply && results.length > 0) {
     const best = results[0]!;
-    writeFileSync(join(cwd, ".cue-profile"), best.profile + "\n");
-    process.stdout.write(`✅ Pinned "${best.profile}" to .cue-profile\n`);
+    writeFileSync(join(cwd, ".cue.profile"), best.profile + "\n");
+    process.stdout.write(`✅ Pinned "${best.profile}" to .cue.profile\n`);
   } else if (!apply && results.length > 0) {
     process.stdout.write(`Run with --apply to pin the top match, or use \`cue init\` for interactive selection.\n`);
   }

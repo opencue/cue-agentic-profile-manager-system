@@ -6,7 +6,7 @@
  *      default-profile composite, opts into local analytics, and marks
  *      `.onboarded` so subsequent `cue init` calls skip straight to phase 2.
  *   2. **Per-directory pinning** (always): scan cwd, suggest the best
- *      profile, write `.cue-profile`, offer to install discovered gems.
+ *      profile, write `.cue.profile`, offer to install discovered gems.
  */
 
 import { spawnSync } from "node:child_process";
@@ -61,7 +61,7 @@ export async function runGlobalOnboarding(): Promise<boolean> {
 
   // Step 1: default-profile composite.
   const defaultPick = await p.select<string>({
-    message: "Default profile — loads when no .cue-profile is pinned to a directory:",
+    message: "Default profile — loads when no .cue.profile is pinned to a directory:",
     options: [
       {
         value: "core",
@@ -307,7 +307,7 @@ export async function run(args: string[]): Promise<number> {
     const { run: createProfile } = await import("./create-profile");
     await createProfile([name as string, "--description", desc as string, "--icon", "🔧"]);
 
-    writeFileSync(join(cwd, ".cue-profile"), (name as string) + "\n");
+    writeFileSync(join(cwd, ".cue.profile"), (name as string) + "\n");
     await offerDiscoverGems(name as string);
     await ensureShim();
     p.outro(`✅ Created profile "${name}" and pinned to this directory.`);
@@ -315,7 +315,7 @@ export async function run(args: string[]): Promise<number> {
   }
 
   // Pin the chosen profile
-  writeFileSync(join(cwd, ".cue-profile"), (choice as string) + "\n");
+  writeFileSync(join(cwd, ".cue.profile"), (choice as string) + "\n");
   await offerDiscoverGems(choice as string);
   await ensureShim();
   p.outro(`✅ Pinned "${choice}" to this directory. Next \`claude\` launch will use it.`);

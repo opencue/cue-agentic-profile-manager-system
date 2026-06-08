@@ -32,7 +32,7 @@ which claude   # should print /home/<you>/.local/bin/claude
 which codex    # should print /home/<you>/.local/bin/codex
 ```
 
-Run `cue launch claude --dry-run` in any directory that has a `.cue-profile` to
+Run `cue launch claude --dry-run` in any directory that has a `.cue.profile` to
 confirm the full resolve → materialize path works without launching an actual
 Claude session.
 

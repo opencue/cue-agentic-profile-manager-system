@@ -25,7 +25,7 @@ async function cmdSnapshot(args: string[]): Promise<number> {
 
   const profileName = await resolveActiveProfile();
   if (!profileName) {
-    process.stderr.write("No active profile. Pin one with `echo <name> > .cue-profile`\n");
+    process.stderr.write("No active profile. Pin one with `echo <name> > .cue.profile`\n");
     return 1;
   }
 
@@ -101,6 +101,6 @@ async function cmdRestore(args: string[]): Promise<number> {
 
   writeFileSync(join(profileDir, "profile.yaml"), yaml.stringify(profileYaml));
   process.stdout.write(`✅ Restored profile "${snapshot.profile.name}" from snapshot\n`);
-  process.stdout.write(`   Pin with: echo ${snapshot.profile.name} > .cue-profile\n`);
+  process.stdout.write(`   Pin with: echo ${snapshot.profile.name} > .cue.profile\n`);
   return 0;
 }

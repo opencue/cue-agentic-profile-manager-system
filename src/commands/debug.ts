@@ -2,7 +2,7 @@
  * `cue debug [profile]` — trace why skills/MCPs aren't loading.
  *
  * Walks the full resolution chain and reports at each step:
- * - Profile resolution (which .cue-profile, inheritance chain)
+ * - Profile resolution (which .cue.profile, inheritance chain)
  * - Skill resolution (found/missing, path, size)
  * - MCP resolution (in registry or not, env vars set)
  * - Plugin resolution (installed or not)
@@ -45,7 +45,7 @@ export async function run(args: string[]): Promise<number> {
       const resolved = await resolveProfileForCwd({ cwd, homeDir: homedir(), configDir: join(homedir(), ".config", "cue") });
       if (resolved.source === "none") {
         process.stdout.write(`    ${red("✗")} No profile found for ${cwd}\n`);
-        process.stdout.write(`    ${dim("Fix: echo <profile> > .cue-profile or pass a profile name")}\n\n`);
+        process.stdout.write(`    ${dim("Fix: echo <profile> > .cue.profile or pass a profile name")}\n\n`);
         return 1;
       }
       profileName = (resolved as any).profile;

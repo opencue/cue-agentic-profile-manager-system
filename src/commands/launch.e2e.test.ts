@@ -47,9 +47,9 @@ describe.skipIf(!BUN_SPAWNABLE)("cue launch e2e", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  test("launch --rematerialize with .cue-profile resolves and builds runtime", async () => {
-    // Create a .cue-profile pointing to a real profile
-    await writeFile(join(tmpDir, ".cue-profile"), "caveman-quick\n");
+  test("launch --rematerialize with .cue.profile resolves and builds runtime", async () => {
+    // Create a .cue.profile pointing to a real profile
+    await writeFile(join(tmpDir, ".cue.profile"), "caveman-quick\n");
 
     const res = cue(["launch", "claude", "--rematerialize"], { cwd: tmpDir });
 
@@ -67,7 +67,7 @@ describe.skipIf(!BUN_SPAWNABLE)("cue launch e2e", () => {
   });
 
   test("launch --rematerialize second call is cache hit (rebuilt=false)", async () => {
-    await writeFile(join(tmpDir, ".cue-profile"), "core\n");
+    await writeFile(join(tmpDir, ".cue.profile"), "core\n");
 
     const first = cue(["launch", "claude", "--rematerialize"], { cwd: tmpDir });
     expect(first.status).toBe(0);
@@ -83,12 +83,12 @@ describe.skipIf(!BUN_SPAWNABLE)("cue launch e2e", () => {
     expect(secondJson.profile).toBe("core");
   });
 
-  test("launch resolves profile from .cue-profile in parent directory", async () => {
-    // Create a subdirectory and put .cue-profile in parent
+  test("launch resolves profile from .cue.profile in parent directory", async () => {
+    // Create a subdirectory and put .cue.profile in parent
     const { mkdir } = await import("node:fs/promises");
     const subDir = join(tmpDir, "src", "lib");
     await mkdir(subDir, { recursive: true });
-    await writeFile(join(tmpDir, ".cue-profile"), "rust\n");
+    await writeFile(join(tmpDir, ".cue.profile"), "rust\n");
 
     const res = cue(["launch", "claude", "--rematerialize"], { cwd: subDir });
     expect(res.status).toBe(0);
@@ -97,7 +97,7 @@ describe.skipIf(!BUN_SPAWNABLE)("cue launch e2e", () => {
   });
 
   test("launch produces CLAUDE.md with profile stamp in runtime dir", async () => {
-    await writeFile(join(tmpDir, ".cue-profile"), "backend\n");
+    await writeFile(join(tmpDir, ".cue.profile"), "backend\n");
 
     const res = cue(["launch", "claude", "--rematerialize"], { cwd: tmpDir });
     expect(res.status).toBe(0);
@@ -109,7 +109,7 @@ describe.skipIf(!BUN_SPAWNABLE)("cue launch e2e", () => {
   });
 
   test("launch produces settings.json with MCPs and plugins", async () => {
-    await writeFile(join(tmpDir, ".cue-profile"), "backend\n");
+    await writeFile(join(tmpDir, ".cue.profile"), "backend\n");
 
     const res = cue(["launch", "claude", "--rematerialize"], { cwd: tmpDir });
     expect(res.status).toBe(0);
@@ -121,7 +121,7 @@ describe.skipIf(!BUN_SPAWNABLE)("cue launch e2e", () => {
   });
 
   test("launch creates skills/ symlinks in runtime dir", async () => {
-    await writeFile(join(tmpDir, ".cue-profile"), "backend\n");
+    await writeFile(join(tmpDir, ".cue.profile"), "backend\n");
 
     const res = cue(["launch", "claude", "--rematerialize"], { cwd: tmpDir });
     expect(res.status).toBe(0);

@@ -50,7 +50,7 @@ Agents: ${AGENT_IDS.join(", ")}
 
 Flags:
   --dir <path>       Target directory (default: cwd or agent's config dir)
-  --profile <name>   Use specific profile (default: resolved from .cue-profile)
+  --profile <name>   Use specific profile (default: resolved from .cue.profile)
   --all              Materialize for all agents listed in the profile
   --dry-run          Show what would be written without writing
 
@@ -89,7 +89,7 @@ Examples:
     if (!name) throw new Error("no active profile");
     profile = await loadProfile(name);
   } catch {
-    process.stderr.write("No active profile. Pin one with `echo <name> > .cue-profile`\n");
+    process.stderr.write("No active profile. Pin one with `echo <name> > .cue.profile`\n");
     return 1;
   }
 

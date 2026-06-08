@@ -1,7 +1,7 @@
 /**
  * `cue use <profile>` — pin a profile to the current directory.
  *
- * Writes `.cue-profile` in CWD (or $HOME with --global).
+ * Writes `.cue.profile` in CWD (or $HOME with --global).
  *
  * Composite selectors are accepted: `cue use postizz+trendradar` validates
  * each part separately and pins the full `a+b` string verbatim.
@@ -11,7 +11,7 @@
  * prompt with `--no-prompt` (or in non-TTY environments — auto-skipped).
  */
 
-import { writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline/promises";
@@ -19,9 +19,44 @@ import { stdin, stdout } from "node:process";
 
 import { isCompositeSelector, listProfiles, loadProfile, parseProfileSelector } from "../lib/profile-loader";
 
+/** Ensure `entry` appears in the .gitignore at `dir` (idempotent). */
+function ensureGitignoreEntry(dir: string, entry: string): void {
+  const path = join(dir, ".gitignore");
+  const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const lines = existing.split("\n").map(l => l.trim());
+  if (lines.includes(entry)) return;
+  const suffix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+  writeFileSync(path, existing + suffix + entry + "\n");
+}
+
+/** Write profiles/<name>.json for each profile part into dir (best-effort). */
+async function writeProfilesDir(parts: string[], dir: string): Promise<void> {
+  try {
+    mkdirSync(join(dir, "profiles"), { recursive: true });
+    await Promise.all(parts.map(async (name) => {
+      try {
+        const p = await loadProfile(name);
+        const snapshot = {
+          name: p.name,
+          description: p.description,
+          ...(p.icon ? { icon: p.icon } : {}),
+          ...(p.inheritanceChain.length > 1 ? { inherits: p.inheritanceChain.slice(0, -1) } : {}),
+          ...(p.recommends.length > 0 ? { recommends: p.recommends } : {}),
+        };
+        writeFileSync(join(dir, "profiles", `${name}.json`), JSON.stringify(snapshot, null, 2) + "\n");
+      } catch {
+        // best-effort per profile — missing profile metadata is non-fatal
+      }
+    }));
+  } catch {
+    // never fail the pin because of profiles/ write errors
+  }
+}
+
 export async function run(args: string[]): Promise<number> {
   const global = args.includes("--global") || args.includes("-g");
   const noPrompt = args.includes("--no-prompt");
+  const noProfilesDir = args.includes("--no-profiles-dir");
   const selector = args.find(a => !a.startsWith("-"));
 
   if (!selector) {
@@ -49,13 +84,22 @@ export async function run(args: string[]): Promise<number> {
   }
 
   const writePin = (value: string) => {
-    const target = global ? join(homedir(), ".cue-profile") : join(process.cwd(), ".cue-profile");
+    const target = global ? join(homedir(), ".cue.profile") : join(process.cwd(), ".cue.profile");
     writeFileSync(target, value + "\n");
   };
 
   writePin(selector);
   const scope = global ? "globally" : `in ${process.cwd()}`;
   process.stdout.write(`✅ Now using "${selector}" ${scope}\n`);
+
+  // Write profiles/<name>.json manifest + gitignore both cue artifacts (project-local only).
+  if (!global && !noProfilesDir) {
+    await writeProfilesDir(parts, process.cwd());
+    const created = parts.map(p => `profiles/${p}.json`).join(", ");
+    process.stdout.write(`📁 Profile manifest written: ${created}\n`);
+    ensureGitignoreEntry(process.cwd(), ".cue.profile");
+    ensureGitignoreEntry(process.cwd(), "profiles/");
+  }
 
   // Recommendation surfacing — only on plain (non-composite) selections.
   if (!isCompositeSelector(selector)) {

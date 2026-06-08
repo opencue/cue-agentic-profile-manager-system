@@ -5,7 +5,7 @@
  *   - renderProfileList(): pure formatter (testable)
  *   - runPicker(): interactive TUI driven by @clack/prompts; opens stdin/stdout
  *
- * Picker writes the chosen profile to ./.cue-profile unless --no-pin is passed.
+ * Picker writes the chosen profile to ./.cue.profile unless --no-pin is passed.
  * Cancel (esc / Ctrl-C) → exit code 130 (caller handles).
  */
 
@@ -80,7 +80,7 @@ export function renderProfileList(opts: PickerOption[], render: RenderOptions): 
 export interface PickerInput {
   cwd: string;
   options: PickerOption[];
-  /** Skip writing .cue-profile if true. */
+  /** Skip writing .cue.profile if true. */
   noPin?: boolean;
   /**
    * Optional hook invoked after the user picks a profile (and pin confirm),
@@ -701,7 +701,7 @@ export function compressCombo(parts: string[], max = 3): string {
  * Control sentinels (SHOW_ALL / SKIP_COMBINE) are dropped here as a write-
  * boundary backstop: the upstream filters (asciiMultiselect strips SHOW_ALL,
  * runPicker guards on SKIP_COMBINE) are the primary defense, but this is the
- * last transform before the selector is joined and persisted to .cue-profile,
+ * last transform before the selector is joined and persisted to .cue.profile,
  * so a sentinel must never survive it even if an upstream path regresses.
  */
 const CONTROL_SENTINELS = new Set<string>([SHOW_ALL, SKIP_COMBINE]);
@@ -1050,7 +1050,7 @@ async function asciiMultiselect(opts: {
   // after "show all" is revealed. resolveConflicts acts only on values actually
   // selected, so seeding the map with not-yet-revealed options is harmless — and
   // skipping them is the CRITICAL bug where medusa-vite + medusa-next both
-  // survive into the written .cue-profile.
+  // survive into the written .cue.profile.
   const conflictMap = buildConflictMap([
     ...opts.options,
     ...(opts.overflow?.options ?? []),
@@ -1484,7 +1484,7 @@ export async function runPicker(input: PickerInput): Promise<PickerOutput> {
       process.exit(130);
     }
     if (pinChoice === true) {
-      await writeFile(join(input.cwd, ".cue-profile"), `${choice}\n`);
+      await writeFile(join(input.cwd, ".cue.profile"), `${choice}\n`);
       pinned = true;
     }
   }

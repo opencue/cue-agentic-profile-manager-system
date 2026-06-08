@@ -109,8 +109,8 @@ printf 'core\ncaveman-quick\n' > "${XDG_CONFIG_HOME:-$HOME/.config}/cue/default-
 # verify the composite resolves:
 cue current
 
-# (Per-project override instead of global: drop a .cue-profile file in the repo)
-#   echo core > .cue-profile
+# (Per-project override instead of global: drop a .cue.profile file in the repo)
+#   echo core > .cue.profile
 ```
 
 `cue init` is the interactive alternative — it walks you through the same default-profile + analytics choice.
@@ -144,7 +144,7 @@ PY
 
 ```bash
 cue --version                 # cue CLI on PATH
-cue current                   # shows core+caveman-quick (or core in a repo with no .cue-profile)
+cue current                   # shows core+caveman-quick (or core in a repo with no .cue.profile)
 rtk --version && rtk gain     # RTK installed; gain shows savings once you use it
 cat ~/.claude/settings.json   # enabledPlugins has cavekit@cavekit-marketplace: true
 ```
@@ -158,7 +158,7 @@ Open Claude Code in any directory — `claude` routes through cue, loads `core+c
 Read the above, then ask:
 
 1. **OS / shell?** Linux, macOS, or Windows-via-WSL2 — picks §1 / §2 / §3.
-2. **Global or per-project default?** §4 writes a global `default-profile`; if you'd rather pin per-repo, use `.cue-profile` instead and skip 4a.
+2. **Global or per-project default?** §4 writes a global `default-profile`; if you'd rather pin per-repo, use `.cue.profile` instead and skip 4a.
 3. **RTK telemetry** — leave disabled (default) or opt in? Disabled = nothing leaves your machine (`rtk telemetry status` to confirm).
 
 Run one section at a time, verify, then move on — don't paste the whole file as one blob.

@@ -33,7 +33,7 @@ to `cue launch <agent> "$@"`. This is the hot path:
 Profile resolution stops at the first match, in this order:
 
 1. `--cue-profile <name>` flag passed to `claude` (or `cue launch`).
-2. `.cue-profile` file found by walking up from cwd; walk stops at the git
+2. `.cue.profile` file found by walking up from cwd; walk stops at the git
    repo root or `$HOME`, whichever comes first.
 3. `~/.config/cue/repo-defaults.json` — a JSON map of git-repo-root absolute
    paths to profile names, consulted when cwd is inside a git repo.
@@ -44,7 +44,7 @@ Profile resolution stops at the first match, in this order:
 
 On first launch in a new directory, the picker opens in the terminal. Arrow keys
 navigate; Enter selects. By default the chosen profile is written to
-`.cue-profile` in the current directory so the next launch is instant. Pass
+`.cue.profile` in the current directory so the next launch is instant. Pass
 `--cue-pick` to force the picker open even when a pin is present.
 
 ## Materialize

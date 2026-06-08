@@ -126,7 +126,7 @@ export async function runSecurityAudit(args: string[]): Promise<number> {
   }
 
   if (!profileName) {
-    process.stderr.write("No active profile. Specify a profile name or set .cue-profile.\n");
+    process.stderr.write("No active profile. Specify a profile name or set .cue.profile.\n");
     return 1;
   }
 

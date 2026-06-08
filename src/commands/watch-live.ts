@@ -1,7 +1,7 @@
 /**
  * `cue watch-live [--profile <name>]` — file watcher for auto-rematerialization.
  *
- * Monitors profile.yaml, referenced SKILL.md files, and .cue-profile in cwd.
+ * Monitors profile.yaml, referenced SKILL.md files, and .cue.profile in cwd.
  * On change: re-runs materialization with 500ms debounce.
  */
 
@@ -25,7 +25,7 @@ Usage: cue watch-live [--profile <name>]
 Monitors:
   • Active profile's profile.yaml
   • All SKILL.md files referenced by the profile
-  • .cue-profile in cwd
+  • .cue.profile in cwd
 
 On any change, re-runs materialization (500ms debounce).
 Press Ctrl+C to stop.
@@ -43,7 +43,7 @@ Press Ctrl+C to stop.
   }
 
   if (!profileName) {
-    process.stderr.write("No active profile. Use --profile <name> or set .cue-profile.\n");
+    process.stderr.write("No active profile. Use --profile <name> or set .cue.profile.\n");
     return 1;
   }
 
@@ -68,8 +68,8 @@ Press Ctrl+C to stop.
     if (existsSync(skillMd)) watchPaths.push(skillMd);
   }
 
-  // 3. .cue-profile in cwd
-  const cueProfile = join(process.cwd(), ".cue-profile");
+  // 3. .cue.profile in cwd
+  const cueProfile = join(process.cwd(), ".cue.profile");
   if (existsSync(cueProfile)) watchPaths.push(cueProfile);
 
   if (watchPaths.length === 0) {
