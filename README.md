@@ -4,7 +4,6 @@
   and via GitHub Pages, so the JSON-LD blocks below are picked up by both Google's
   rich-results parser and LLM scrapers.
 -->
-<!--
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -23,7 +22,6 @@
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
 }
 </script>
--->
 
 <br>
 

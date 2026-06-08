@@ -8,6 +8,10 @@ skills:
     - browser/lightpanda
     - browser/agent-browser   # vercel-labs/agent-browser — Rust browser CLI, ref-based automation, daemon-backed
     - browser/playwright      # drives the Playwright MCP (Chromium/Firefox/WebKit): screenshot-verify UI, repro bugs
+  npx:
+    # Discovered 2026-06-08: Chrome DevTools for coding agents.
+    - repo: ChromeDevTools/chrome-devtools-mcp
+      skills: [chrome-devtools-mcp]
 
 mcps:
   # Lightpanda — fast, low-memory headless browser exposed over MCP (`lightpanda mcp`).

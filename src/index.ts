@@ -69,6 +69,7 @@ function printHelp(): void {
       ["mem", "Inspect/manage per-profile claude-mem stores"],
     ],
     "Launch & Shell": [
+      ["install", "Prepare profile runtimes and optionally install required CLIs"],
       ["launch", "Resolve + materialize + exec claude/codex"],
       ["summon", "Bind a profile into the live session (soft-load + pin), no restart"],
       ["shell", "Install/uninstall shims (~/.local/bin)"],

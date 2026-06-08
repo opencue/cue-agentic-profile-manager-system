@@ -17,15 +17,15 @@ persona: |
   ## Route to the right role
 
   ### Shape & plan
-  - **Shape an idea** → `/spec`, `/office-hours`, `/gstack-openclaw-office-hours`
-  - **CEO scope review** → `/plan-ceo-review`, `/gstack-openclaw-ceo-review`
+  - **Shape an idea** → `/spec`, `/office-hours`
+  - **CEO scope review** → `/plan-ceo-review`
   - **Engineering review** → `/plan-eng-review`, `/plan-tune`
   - **Design review** → `/plan-design-review`
   - **DX review** → `/plan-devex-review`
   - **Full plan pipeline** → `/autoplan` (soft-loads office-hours → ceo → eng on demand)
 
   ### Build
-  - **Debug / root cause** → `/investigate`, `/gstack-openclaw-investigate`
+  - **Debug / root cause** → `/investigate`
   - **Build carefully** → `/careful`
   - **Pair session** → `/pair-agent`
   - **Learn a codebase** → `/learn`
@@ -44,7 +44,7 @@ persona: |
 
   ### Safety rails
   - **Freeze / protect** → `/freeze`, `/unfreeze`, `/guard`, `/health`
-  - **Retrospective** → `/retro`, `/gstack-openclaw-retro`
+  - **Retrospective** → `/retro`
 
   ### Browser & scraping
   - **Browse** → `/browse`, `/open-gstack-browser`, `/connect-chrome`
@@ -119,12 +119,6 @@ skills:
     - gstack/plan-devex-review
     - gstack/plan-eng-review
     - gstack/plan-tune
-
-    # ── OpenClaw variants ──────────────────────────────────────────────────────
-    - gstack/gstack-openclaw-ceo-review
-    - gstack/gstack-openclaw-investigate
-    - gstack/gstack-openclaw-office-hours
-    - gstack/gstack-openclaw-retro
 
     # ── Safety rails & review ──────────────────────────────────────────────────
     - gstack/health

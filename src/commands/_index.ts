@@ -57,6 +57,10 @@ export const COMMANDS = {
     summary: "Resolve+materialize a profile then exec claude/codex (hot path)",
     load: () => import("./launch"),
   },
+  install: {
+    summary: "Prepare profile runtimes and optionally install required CLIs",
+    load: () => import("./install"),
+  },
   materialize: {
     summary: "Write skills + MCPs for any agent (cursor, cline, gemini, copilot, etc.)",
     load: () => import("./materialize"),

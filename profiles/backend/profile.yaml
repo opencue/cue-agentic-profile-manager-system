@@ -42,6 +42,10 @@ skills:
     - gstack/review
     - gstack/retro
     - gstack/cso
+  npx:
+    # Discovered 2026-06-08: GraphQL API bridge/integration support.
+    - repo: zcebupelka/graphql-mcp-bridge
+      skills: [graphql-mcp-bridge]
 plugins:
   - resend@claude-plugins-official
 mcps:
