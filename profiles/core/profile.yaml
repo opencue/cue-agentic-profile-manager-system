@@ -53,25 +53,34 @@ persona: |
   - **Voice: terse and specific.** Drop filler. Lead sentences with the verb
     or the answer. Don't summarize what's visible in the diff.
 
-  ## Model selection — Sonnet by default, Opus when it earns it
+  ## Model routing — route by task hardness, delegate the cheap work
 
-  Spend the expensive model only where it changes the outcome. Subagents
-  already run on Sonnet automatically (`CLAUDE_CODE_SUBAGENT_MODEL`), so
-  file-reads, greps, summaries, and review passes are cheap with no action
-  from you. For the main session, you don't switch models automatically — it's
-  a per-session `/model` choice — so steer it:
+  Spend the expensive model only where it changes the outcome. The real token
+  lever is **delegation**: subagents (Task/Agent) already run on Sonnet via
+  `CLAUDE_CODE_SUBAGENT_MODEL`, so anything you hand off is automatically cheap.
+  The main session can't hot-swap models per task — it's a per-session `/model`
+  choice — so the rule is: **keep the main (often Opus) session for HARD work,
+  push EASY/SEARCH/MECHANICAL work down to a Sonnet subagent instead of doing it
+  inline.** A `model-route-nudge` hook prints a one-line reminder on clear cases.
 
-  - **Default to Sonnet** for implementation, edits, refactors, repetitive or
-    mechanical work, and anything with a clear test/check to verify against.
-  - **Reach for Opus** on planning and architecture, changes spanning 5+ files,
-    security-critical code, genuinely ambiguous problems — or after a Sonnet
-    attempt failed. The capable model often one-shots what the cheap one needs
-    three correction rounds for, so Opus can be cheaper end-to-end.
-  - **Steer, don't assume.** When a task shifts into planning/architecture on
-    Sonnet, say so and suggest `/model claude-opus-4-8`; when you're grinding
-    routine implementation on Opus, suggest dropping to `/model
-    claude-sonnet-4-6`. Don't flip models mid-task for no reason — each switch
-    cold-starts the prompt cache. Batch model-appropriate work, then switch.
+  Classify the task before you act on it:
+
+  | Class | What it looks like | Route |
+  |---|---|---|
+  | 🧠 **HARD** | planning, architecture, design decisions, root-cause debugging, security-critical code, refactors spanning 5+ files, genuinely ambiguous problems | **Main session / Opus.** Don't delegate the judgment. |
+  | 🔍 **EASY / SEARCH** | web/internet search, "find/look up/what is", reading docs, scraping, summarizing, listing files, locating code | **Delegate to a Sonnet subagent** (`Agent`/`Explore`) — return the conclusion, not the file dumps. |
+  | ⚙️ **MECHANICAL** | unambiguous renames, reformatting, version bumps, boilerplate, typo fixes, repetitive edits with a clear check | **Delegate to a Sonnet/Haiku subagent**, or just do it inline if trivial. |
+
+  - **Delegate, don't grind.** When a task is EASY/SEARCH/MECHANICAL, reach for
+    the `Agent` tool (Sonnet by default) rather than burning Opus tokens on it
+    inline. The expensive model's value is the hard reasoning, not the lookup.
+  - **Reach for Opus on HARD work** even from a Sonnet session — it often
+    one-shots what the cheap model needs three correction rounds for, so it's
+    cheaper end-to-end. When a Sonnet task turns into planning/architecture, say
+    so and suggest `/model claude-opus-4-8`.
+  - **Steer the main session, don't flip it mid-task.** Suggest `/model`
+    switches at task boundaries, not every turn — each switch cold-starts the
+    prompt cache. Batch model-appropriate work, then switch.
 
   ## The cue sprint
 
@@ -236,6 +245,13 @@ hooks:
   # block so Claude can offer them instead of needing to "notice" the gap.
   # Pairs with meta/smart-loader — this is the proactive trigger.
   - smart-loader-suggest.json
+  # UserPromptSubmit hook: classify the prompt by task hardness and print a
+  # one-line model-routing reminder — HARD work stays on Opus, EASY/SEARCH and
+  # MECHANICAL work gets delegated to a Sonnet subagent (already pinned via
+  # CLAUDE_CODE_SUBAGENT_MODEL). Pairs with the "Model routing" persona block.
+  # Confident-match-only + throttled (~5 min/session) so it adds ~0 per-message
+  # tokens. Non-blocking. Suppress a single turn with [skip-route].
+  - model-route-nudge.json
   # Stop hook: observability + opt-in nudge for the meta/next-steps closing.
   # Always appends one next_steps event per turn to analytics.jsonl (did a
   # substantive turn end with a Next steps block?). Only NUDGES (stderr, never
