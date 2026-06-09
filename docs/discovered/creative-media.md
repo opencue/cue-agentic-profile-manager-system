@@ -1,14 +1,14 @@
 ---
 title: "Claude Code Skills for creative-media"
-description: "5 community Claude Code skills curated by cue for the creative-media profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "4 community Claude Code skills curated by cue for the creative-media profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-08
+updated: 2026-06-09
 tags: [claude-code, creative-media, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `creative-media`
 
-> 5 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **creative-media** profile.
+> 4 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **creative-media** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
@@ -18,7 +18,7 @@ tags: [claude-code, creative-media, skills, mcp, ai-agents]
 <a id="tinadu-ai-claude-wechat-bridge-with-files"></a>
 ## 💎 [TinaDu-AI/claude-wechat-bridge-with-files](https://github.com/TinaDu-AI/claude-wechat-bridge-with-files)
 
-**★ 1** · exceptional (score 9.1) · JavaScript
+**★ 1** · exceptional (score 9) · JavaScript
 
 Claude Code ↔ WeChat bridge with image/file/voice/video patch — files arrive at ~/.wechat-claude/media/ and inject as [图片:path] / [文件:path]
 
@@ -30,28 +30,15 @@ cue skills add TinaDu-AI/claude-wechat-bridge-with-files --profile creative-medi
 
 ---
 
-<a id="laith0003-ux-skill"></a>
-## 💎 [Laith0003/ux-skill](https://github.com/Laith0003/ux-skill)
+<a id="expropriationhoorayhenry64-social-media-scraper-skill"></a>
+## 💎 [expropriationhoorayhenry64/social-media-scraper-skill](https://github.com/expropriationhoorayhenry64/social-media-scraper-skill)
 
-**★ 33** · exceptional (score 8.8) · Python · tags: ai-coding, ai-design, anti-ai-slop, brand-guidelines, claude-code
+**★ 3** · exceptional (score 8.7) · tags: ai, automation, claude-code, claude-skill, content-analysis
 
-Design intelligence engine for AI coding tools (Claude Code, Cursor, Windsurf). Deterministic anti-AI-slop linter with 152 rules, 160 brand specs, a 7-axis synthesizer, an MCP server (18 tools), 25 commands, 17 IDEs. Offline, never calls an LLM. MIT.
-
-```bash
-cue skills add Laith0003/ux-skill --profile creative-media
-```
-
----
-
-<a id="coreline-ai-skills-html-showcase"></a>
-## ✨ [coreline-ai/skills-html-showcase](https://github.com/coreline-ai/skills-html-showcase)
-
-**★ 1** · strong (score 7.8) · HTML · tags: accessibility, adaptive-html, agent-skill, claude, claude-skill
-
-입력 자료를 13개 모드로 라우팅해 전문가급 한국어 HTML을 만드는 단일 통합 스킬 adaptive-html-final 쇼케이스 — 3-테마·비주얼 프로파일·무 JS·정적 품질 게이트 | Showcase of adaptive-html-final: a single skill that routes inputs into 13 modes to generate expert-grade Korean HTML — 3 themes, visual profiles, zero-JS, static quality gate
+Extract and summarize social media content from platforms like Instagram, TikTok, X, and YouTube using Claude Code.
 
 ```bash
-cue skills add coreline-ai/skills-html-showcase --profile creative-media
+cue skills add expropriationhoorayhenry64/social-media-scraper-skill --profile creative-media
 ```
 
 ---

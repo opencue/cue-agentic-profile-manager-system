@@ -2,7 +2,7 @@
 title: "Claude Code Skills for cybersecurity"
 description: "7 community Claude Code skills curated by cue for the cybersecurity profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-08
+updated: 2026-06-09
 tags: [claude-code, cybersecurity, skills, mcp, ai-agents]
 ---
 
@@ -45,17 +45,17 @@ cue skills add Zandereins/hydra --profile cybersecurity
 
 ---
 
-<a id="welshofer-elevate"></a>
-## 💎 [welshofer/elevate](https://github.com/welshofer/elevate)
+<a id="leontynestirredup43-slowmist-security-cc"></a>
+## 💎 [Leontynestirredup43/slowmist-security-cc](https://github.com/Leontynestirredup43/slowmist-security-cc)
 
-**★ 0** · exceptional (score 12) · tags: anthropic, claude, claude-code, claude-skill, code-review
+**★ 0** · exceptional (score 13) · tags: agent-security, aml, audit, blockchain, claude-code
 
-A Claude skill that audits a codebase end-to-end and produces a top-5-per-dimension improvement plan across seven lenses (Performance, Functionality, Stability, Reliability, Security, Usability, Attractiveness).
+Audit Claude Code agents with this security framework to detect vulnerabilities, social engineering, and supply chain threats in adversarial environments.
 
 ✅ SKILL.md
 
 ```bash
-cue skills add welshofer/elevate --profile cybersecurity
+cue skills add Leontynestirredup43/slowmist-security-cc --profile cybersecurity
 ```
 
 ---
@@ -63,12 +63,25 @@ cue skills add welshofer/elevate --profile cybersecurity
 <a id="elementalsouls-claude-osint"></a>
 ## 💎 [elementalsouls/Claude-OSINT](https://github.com/elementalsouls/Claude-OSINT)
 
-**★ 1636** · exceptional (score 11.4) · Python · tags: agentskills, claude, skills
+**★ 1644** · exceptional (score 11.5) · Python · tags: agentskills, claude, skills
 
 Two paired Claude skills · 90+ recon modules · 48 secret-regex patterns · 80+ dorks · 9 read-only credential validators · 27 attack-path templates · 5,500+ lines of structured tradecraft. Drop-in SKILL.md files that turn Claude into a god-mode external recon operator for authorized red-team and bug-bounty engagements.
 
 ```bash
 cue skills add elementalsouls/Claude-OSINT --profile cybersecurity
+```
+
+---
+
+<a id="x-glacier-kali-pentest"></a>
+## 💎 [x-glacier/kali-pentest](https://github.com/x-glacier/kali-pentest)
+
+**★ 48** · exceptional (score 10.4) · tags: ai-agent, claude-code-skill, cybersecurity, ethical-hacking, hermes-agent
+
+Kali Linux penetration testing skill for AI agents (Claude Code, OpenClaw, Hermes Agent). 200+ CLI tools, 15 scenario playbooks. Autonomously plans attack paths, selects tools, and integrates results across phases to adapt the penetration strategy — with human approval gates for high-risk actions.
+
+```bash
+cue skills add x-glacier/kali-pentest --profile cybersecurity
 ```
 
 ---
@@ -95,19 +108,6 @@ Secure MCP server for ComfyUI — workflow inspection, path sanitization, rate l
 
 ```bash
 cue skills add hybridindie/comfyui_mcp --profile cybersecurity
-```
-
----
-
-<a id="cognis-digital-threatmodeler"></a>
-## ✨ [cognis-digital/threatmodeler](https://github.com/cognis-digital/threatmodeler)
-
-**★ 0** · strong (score 6) · Python · tags: automation, cli, cognis-digital, cognis-neural-suite, defense
-
-Generate STRIDE threat models and attack trees from a YAML system spec.
-
-```bash
-cue skills add cognis-digital/threatmodeler --profile cybersecurity
 ```
 
 ---

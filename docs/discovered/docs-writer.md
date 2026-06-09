@@ -1,29 +1,68 @@
 ---
 title: "Claude Code Skills for docs-writer"
-description: "1 community Claude Code skills curated by cue for the docs-writer profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "4 community Claude Code skills curated by cue for the docs-writer profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-07
+updated: 2026-06-09
 tags: [claude-code, docs-writer, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `docs-writer`
 
-> 1 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **docs-writer** profile.
+> 4 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **docs-writer** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="amri854-obsidian-mcp-server"></a>
-## ✨ [Amri854/obsidian-mcp-server](https://github.com/Amri854/obsidian-mcp-server)
+<a id="megaphone-tokyo-kioku"></a>
+## 💎 [megaphone-tokyo/kioku](https://github.com/megaphone-tokyo/kioku)
 
-**★ 0** · strong (score 6.5) · TypeScript · tags: claude, claude-desktop, cursor, knowledge-base, llm
+**★ 4** · exceptional (score 9.3) · JavaScript · tags: ai, automation, claude, claude-code, claude-desktop
 
-🗂️ Boost your Obsidian experience with a powerful Model Context Protocol server for vault access, knowledge graph analysis, and seamless integrations.
+Memory for Claude Code — auto-accumulate sessions into an Obsidian Wiki
 
 ```bash
-cue skills add Amri854/obsidian-mcp-server --profile docs-writer
+cue skills add megaphone-tokyo/kioku --profile docs-writer
+```
+
+---
+
+<a id="howdow698-ui-llm-wiki"></a>
+## 💎 [howdow698-ui/llm-wiki](https://github.com/howdow698-ui/llm-wiki)
+
+**★ 0** · exceptional (score 8.5) · tags: agent-skill, claude-code-skill, cli, codex, gemini
+
+Build a structured knowledge base with LLM agents to automate documentation, link concepts, and maintain long-term information retention in Markdown.
+
+```bash
+cue skills add howdow698-ui/llm-wiki --profile docs-writer
+```
+
+---
+
+<a id="mindgameolympiangames78-llm-knowledge-base"></a>
+## 💎 [mindgameolympiangames78/llm-knowledge-base](https://github.com/mindgameolympiangames78/llm-knowledge-base)
+
+**★ 0** · exceptional (score 8) · tags: bert-models, biomedical-informatics, claude-code, claude-code-skill, gpt
+
+Automate your personal knowledge base in Obsidian using Claude. Feed raw content and let the LLM organize, link, and synthesize your notes.
+
+```bash
+cue skills add mindgameolympiangames78/llm-knowledge-base --profile docs-writer
+```
+
+---
+
+<a id="fourparty-utnapishtim59-llm-knowledge-base"></a>
+## ✨ [fourparty-utnapishtim59/llm-knowledge-base](https://github.com/fourparty-utnapishtim59/llm-knowledge-base)
+
+**★ 1** · strong (score 6.3) · tags: agent-skills, bioinformatics, bioinformatics-algorithms, claude-code-skill, google-adk
+
+Build and maintain LLM-compiled knowledge bases with a versioned schema, structured learning layer, and clear markdown workflows
+
+```bash
+cue skills add fourparty-utnapishtim59/llm-knowledge-base --profile docs-writer
 ```
 
 ---

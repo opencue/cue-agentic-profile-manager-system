@@ -2,7 +2,7 @@
 title: "Claude Code Skills for rust"
 description: "1 community Claude Code skills curated by cue for the rust profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-04
+updated: 2026-06-09
 tags: [claude-code, rust, skills, mcp, ai-agents]
 ---
 
@@ -15,15 +15,15 @@ tags: [claude-code, rust, skills, mcp, ai-agents]
 
 ---
 
-<a id="systempromptio-systemprompt-core"></a>
-## 💎 [systempromptio/systemprompt-core](https://github.com/systempromptio/systemprompt-core)
+<a id="muhdur-plsql-intelligence"></a>
+## ✨ [MuhDur/plsql-intelligence](https://github.com/MuhDur/plsql-intelligence)
 
-**★ 4** · exceptional (score 10.8) · Rust · tags: a2a, agent-orchestration, agentic-ai, ai-agents, ai-governance
+**★ 1** · strong (score 6.3) · Rust · tags: agent-tools, cargo-workspace, change-impact, code-intelligence, dba-tools
 
-AI governance infrastructure for agentic systems. Rust library behind systemprompt.io — MCP, A2A, OAuth2, audit trails, compile-time extensions. Evaluate with systemprompt-template.
+Offline, package-aware Oracle PL/SQL code intelligence in Rust — change impact, dependency graph, honest uncertainty, self-healing coverage
 
 ```bash
-cue skills add systempromptio/systemprompt-core --profile rust
+cue skills add MuhDur/plsql-intelligence --profile rust
 ```
 
 ---

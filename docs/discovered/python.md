@@ -2,7 +2,7 @@
 title: "Claude Code Skills for python"
 description: "1 community Claude Code skills curated by cue for the python profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-07
+updated: 2026-06-09
 tags: [claude-code, python, skills, mcp, ai-agents]
 ---
 
@@ -15,15 +15,15 @@ tags: [claude-code, python, skills, mcp, ai-agents]
 
 ---
 
-<a id="mugoherick12-boop-skillz"></a>
-## 💎 [mugoherick12-boop/skillz](https://github.com/mugoherick12-boop/skillz)
+<a id="pipulate-pipulate"></a>
+## 💎 [pipulate/pipulate](https://github.com/pipulate/pipulate)
 
-**★ 4** · exceptional (score 8.3) · Python · tags: agent, ai, basketball, coding-challenge, django
+**★ 12** · exceptional (score 10.2) · Python · tags: ai, fasthtml, htmx, machine-learning, mcp
 
-🛠️ Enable skills in any MCP client with Skillz, a server converting Claude-style skills into callable tools for seamless integration.
+Local First AI SEO Software on Nix, FastHTML & HTMX
 
 ```bash
-cue skills add mugoherick12-boop/skillz --profile python
+cue skills add pipulate/pipulate --profile python
 ```
 
 ---

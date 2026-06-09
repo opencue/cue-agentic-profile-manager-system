@@ -1,94 +1,133 @@
 ---
 title: "Claude Code Skills for backend"
-description: "8 community Claude Code skills curated by cue for the backend profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
+description: "12 community Claude Code skills curated by cue for the backend profile. Hidden-gem repos with SKILL.md, MCP servers, and CLI integrations."
 layout: page
-updated: 2026-06-08
+updated: 2026-06-09
 tags: [claude-code, backend, skills, mcp, ai-agents]
 ---
 
 # Claude Code Skills for `backend`
 
-> 8 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **backend** profile.
+> 12 community-built skills curated by [cue](https://github.com/opencue/cuecards) for the **backend** profile.
 > Each one was discovered via GitHub Code Search, scored on signal quality, and mapped to this profile by keyword overlap.
 
 **[← back to all discovered skills](./index.md)**
 
 ---
 
-<a id="ayaanjan76-awesome-mcp-servers"></a>
-## 💎 [ayaanjan76/awesome-mcp-servers](https://github.com/ayaanjan76/awesome-mcp-servers)
+<a id="optave-ops-codegraph-tool"></a>
+## 💎 [optave/ops-codegraph-tool](https://github.com/optave/ops-codegraph-tool)
 
-**★ 2** · exceptional (score 10) · tags: ai, ai-agent, awesome, awesome-mcp, collection
+**★ 68** · exceptional (score 13.1) · TypeScript · tags: ai-agents, architecture, ci-cd, cli, code-analysis
 
-🚀 Explore a curated collection of top Model Context Protocol (MCP) servers for seamless connectivity and enhanced experiences in your projects.
+Code intelligence CLI — function-level dependency graph across 11 languages, 30-tool MCP server for AI agents, complexity metrics, architecture boundary enforcement, CI quality gates, git diff impact with co-change analysis, hybrid semantic search. Fully local, zero API keys required.
 
 ```bash
-cue skills add ayaanjan76/awesome-mcp-servers --profile backend
+cue skills add optave/ops-codegraph-tool --profile backend
 ```
 
 ---
 
-<a id="getgantry-gantry"></a>
-## 💎 [getgantry/gantry](https://github.com/getgantry/gantry)
+<a id="cdeust-cortex"></a>
+## 💎 [cdeust/Cortex](https://github.com/cdeust/Cortex)
 
-**★ 16** · exceptional (score 8.4) · Swift · tags: ai-agents, containers, developer-tools, docker, macos
+**★ 48** · exceptional (score 10.8) · Python · tags: agent-memory-system, anthropic, artificial-intelligence, causal-inference, claude
 
-Native macOS app for managing and monitoring Docker — local and over SSH. Agent-ready: built-in MCP server and App Intents. Free and open source.
+Persistent memory for Claude Code — 41 neuroscience papers, 26 biological mechanisms with paper-bearing per-mechanism ablation evidence (E1 v3). LongMemEval R@10 98.4% / MRR 0.9124 (n=500). LoCoMo R@10 94.2% / MRR 0.8278 (n=1986). BEAM-10M +33.4% over flat retrieval. PostgreSQL + pgvector. Verified via 31-row two-benchmark ablation campaign.
 
 ```bash
-cue skills add getgantry/gantry --profile backend
+cue skills add cdeust/Cortex --profile backend
 ```
 
 ---
 
-<a id="zcebupelka-graphql-mcp-bridge"></a>
-## ✨ [zcebupelka/graphql-mcp-bridge](https://github.com/zcebupelka/graphql-mcp-bridge)
+<a id="patsa2561-art-mneme-ai"></a>
+## 💎 [patsa2561-art/mneme-ai](https://github.com/patsa2561-art/mneme-ai)
 
-**★ 1** · strong (score 7.8) · TypeScript · tags: ai-tools, api-integration, api-translator, bridge, developer-tools
+**★ 5** · exceptional (score 8.9) · TypeScript · tags: ai-coding-assistant, ai-memory, codebase-memory, developer-tools, ghost-code
 
-🌉 Connect GraphQL APIs seamlessly with the Model Context Protocol for enhanced data management and integration.
+the memory layer of your codebase. Knows the WHY, the WHAT, the WHERE-IT-BREAKS.
 
 ```bash
-cue skills add zcebupelka/graphql-mcp-bridge --profile backend
+cue skills add patsa2561-art/mneme-ai --profile backend
 ```
 
 ---
 
-<a id="luis13-source-jira-simple-mcp"></a>
-## ✨ [Luis13-source/jira-simple-mcp](https://github.com/Luis13-source/jira-simple-mcp)
+<a id="sreypovrupp-ticktick-terminal-control"></a>
+## 💎 [sreypovrupp/ticktick-terminal-control](https://github.com/sreypovrupp/ticktick-terminal-control)
 
-**★ 0** · strong (score 7.5) · JavaScript · tags: ai-assistant, ai-tools, atlassian, atlassian-confluence, atlassian-jira
+**★ 0** · exceptional (score 8) · HTML · tags: ai-assistant, claude-code, claude-code-plugin, claude-desktop, claude-mcp
 
-🚀 Access and manage Jira issues effortlessly with this simple MCP server, enabling AI assistants to enhance your project workflows.
+TickTick CLI Mastery 2026 - Ultimate Task Manager, MCP & Skill Hub
 
 ```bash
-cue skills add Luis13-source/jira-simple-mcp --profile backend
+cue skills add sreypovrupp/ticktick-terminal-control --profile backend
 ```
 
 ---
 
-<a id="mircheaaa-spring-ai-weather-tool"></a>
-## ✨ [Mircheaaa/spring-ai-weather-tool](https://github.com/Mircheaaa/spring-ai-weather-tool)
+<a id="michaelzelbel-menerio"></a>
+## ✨ [MichaelZelbel/menerio](https://github.com/MichaelZelbel/menerio)
 
-**★ 0** · strong (score 7.5) · Kotlin · tags: ai-agents, ai-integration, ai-tools, chatbot, groq-api
+**★ 1** · strong (score 7.8) · TypeScript · tags: ai, knowledge-graph, mcp-server, obsidian, react
 
-🌤️ Build a versatile weather tool with AI capabilities, integrating real-time data and user-friendly features for enhanced travel planning.
+One brain for all your AI tools. Capture your thoughts once, and every AI can understand, use, and build on them.
 
 ```bash
-cue skills add Mircheaaa/spring-ai-weather-tool --profile backend
+cue skills add MichaelZelbel/menerio --profile backend
 ```
 
 ---
 
-<a id="gnodux-adb-link"></a>
-## ✨ [gnodux/adb-link](https://github.com/gnodux/adb-link)
+<a id="alex-jb-bilingual-content-sync-agent"></a>
+## ✨ [alex-jb/bilingual-content-sync-agent](https://github.com/alex-jb/bilingual-content-sync-agent)
 
-**★ 0** · strong (score 6) · Go · tags: agent, ai-tools, data-analysis, database-gateway, go
+**★ 3** · strong (score 6.7) · Python · tags: batch-api, chinese, claude, english, i18n
 
-An MCP server that connects to multiple databases. Supports access control and dynamic SQL query tool registration and invocation.
+🌏 EN ↔ 中文 i18n diff + Claude translate + HITL apply. Batch API path @ 50% off. MIT.
 
 ```bash
-cue skills add gnodux/adb-link --profile backend
+cue skills add alex-jb/bilingual-content-sync-agent --profile backend
+```
+
+---
+
+<a id="muhdur-plsql-intelligence"></a>
+## ✨ [MuhDur/plsql-intelligence](https://github.com/MuhDur/plsql-intelligence)
+
+**★ 1** · strong (score 6.3) · Rust · tags: agent-tools, cargo-workspace, change-impact, code-intelligence, dba-tools
+
+Offline, package-aware Oracle PL/SQL code intelligence in Rust — change impact, dependency graph, honest uncertainty, self-healing coverage
+
+```bash
+cue skills add MuhDur/plsql-intelligence --profile backend
+```
+
+---
+
+<a id="johnfire-notes-world"></a>
+## ✨ [johnfire/notes-world](https://github.com/johnfire/notes-world)
+
+**★ 1** · strong (score 6.3) · TypeScript · tags: docker, mcp-server, notes-app, notes-application, notes-keeper-organization-tool
+
+an app for your computer that  holds notes, organizes them and has an MCP
+
+```bash
+cue skills add johnfire/notes-world --profile backend
+```
+
+---
+
+<a id="orderchlorococcalesdresswhites76-bb-bash"></a>
+## ✨ [Orderchlorococcalesdresswhites76/bb-bash](https://github.com/Orderchlorococcalesdresswhites76/bb-bash)
+
+**★ 0** · strong (score 6) · Shell · tags: automation, bash, bash-scripting, bbs, bitbucket
+
+Control Bitbucket Cloud via terminal or AI agents with this zero-config, single-file bash script for seamless PR management and automated workflow integration.
+
+```bash
+cue skills add Orderchlorococcalesdresswhites76/bb-bash --profile backend
 ```
 
 ---
@@ -102,6 +141,19 @@ Self-hosted LLM gateway that turns flat-rate AI subscriptions (Claude Code Max, 
 
 ```bash
 cue skills add renefichtmueller/adaptive-llm-gateway --profile backend
+```
+
+---
+
+<a id="hello-123123-canva-mcp-secure-proxy"></a>
+## ✨ [hello-123123/canva-mcp-secure-proxy](https://github.com/hello-123123/canva-mcp-secure-proxy)
+
+**★ 0** · strong (score 5.5) · HTML · tags: canva, claude-mcp, design, mcp-server, oauth2
+
+🔒 Secure Canva AI Tools 2026 - MCP Server & API Hardening Suite
+
+```bash
+cue skills add hello-123123/canva-mcp-secure-proxy --profile backend
 ```
 
 ---
