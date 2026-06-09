@@ -28,6 +28,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
+from evolution.core.atomic_io import atomic_write_text
 from evolution.core.config import CueEvolutionConfig
 from evolution.core.cue_lint import lint_path, lint_text
 from evolution.core.cue_skill import (
@@ -241,7 +242,7 @@ def _finalize_skill(
         if profile:
             ran, ok = validate_profile(config, profile)
             if ran and not ok:
-                profile_path.write_text(content, encoding="utf-8")  # revert
+                atomic_write_text(profile_path, content)  # revert (atomic)
                 console.print("[red]✗ cue validate rejected the edited profile — reverted.[/red]")
                 return _write_proposal(config, canonical_id, ts, evolved_desc, baseline_desc,
                                        rows, "cue validate rejected the edit (reverted)",
@@ -287,12 +288,13 @@ def _write_proposal(config, canonical_id, ts, evolved_desc, baseline_desc,
     out_dir = (config.cue_repo_path / "evolution" / "proposals" / "descriptions"
                / canonical_id.replace("/", "_") / ts)
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "evolved_description.txt").write_text(evolved_desc + "\n")
-    (out_dir / "baseline_description.txt").write_text(baseline_desc + "\n")
+    (out_dir / "evolved_description.txt").write_text(evolved_desc + "\n", encoding="utf-8")
+    (out_dir / "baseline_description.txt").write_text(baseline_desc + "\n", encoding="utf-8")
     (out_dir / "persona_routing.yaml").write_text(
-        yaml.dump({"persona_routing": rows}, sort_keys=False, allow_unicode=True)
+        yaml.dump({"persona_routing": rows}, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
     )
-    (out_dir / "reason.txt").write_text(reason + "\n")
+    (out_dir / "reason.txt").write_text(reason + "\n", encoding="utf-8")
     _log_evolution(config, {
         "ts": ts, "kind": "persona-routing", "skill": canonical_id, "applied": applied,
         "reason": reason, "proposal_dir": str(out_dir), "improvement": improvement,
@@ -396,7 +398,7 @@ def _finalize_persona(config, profile, profile_path, which, evolved, baseline,
         backup = backup_and_write(profile_path, new_content, ts, original_content=content)
         ran, ok = validate_profile(config, profile)
         if ran and not ok:
-            profile_path.write_text(content, encoding="utf-8")  # revert
+            atomic_write_text(profile_path, content)  # revert (atomic)
             console.print("[red]✗ cue validate rejected the edit — reverted.[/red]")
             return _write_persona_proposal(config, profile, which, ts, evolved, baseline,
                                            scores_base, scores_evo,
