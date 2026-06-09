@@ -98,6 +98,42 @@ def test_reflective_extract_falls_back_without_sentinel():
     assert _extract_body("<SKILL_BODY></SKILL_BODY>", fb) == fb
 
 
+def test_auto_evolve_selects_top_existing_skill(tmp_path, monkeypatch):
+    """Seeded skill_gap events → pick the most-flagged skill that EXISTS and is
+    not in cooldown (the auto-trigger CHECK)."""
+    from datetime import datetime, timezone
+    from evolution.auto_evolve import select_skill
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    cfg = CueEvolutionConfig()  # skills_root auto-resolves to the real repo
+    now = datetime.now(timezone.utc)
+    ts = now.isoformat()
+    al = cfg.analytics_log
+    al.parent.mkdir(parents=True, exist_ok=True)
+
+    def ev(skill, n):
+        return "\n".join(
+            f'{{"ts":"{ts}","event":"skill_gap","source":"critic","skill":"{skill}"}}'
+            for _ in range(n))
+
+    # nonexistent skill is most-flagged (5) but must be skipped; ted (3) wins.
+    al.write_text("\n".join([
+        ev("nope/does-not-exist", 5),
+        ev("eu-funding/ted-tender-search", 3),
+        ev("hostinger/dns", 1),
+    ]) + "\n", encoding="utf-8")
+
+    skill, count = select_skill(cfg, window_days=7, cooldown_days=7,
+                                now=now.timestamp())
+    assert skill == "eu-funding/ted-tender-search" and count == 3
+
+    # Cooldown: mark ted recently evolved → next existing skill (dns) is chosen.
+    cfg.evolution_log.write_text(
+        f'{{"ts":"{ts}","kind":"skill-content","skill":"eu-funding/ted-tender-search","applied":true}}\n',
+        encoding="utf-8")
+    skill2, _ = select_skill(cfg, window_days=7, cooldown_days=7, now=now.timestamp())
+    assert skill2 == "hostinger/dns"
+
+
 def test_judge_is_better_parses_verdicts(monkeypatch):
     """The self-judge maps only BETTER → apply; everything else (incl. an
     unparseable reply) → don't apply. Conservative by design."""
