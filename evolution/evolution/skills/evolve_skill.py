@@ -54,6 +54,12 @@ def _print_constraints(results) -> bool:
     return all_pass
 
 
+def claude_or_model(config: CueEvolutionConfig) -> str:
+    """Readable backend label for the optimizer model."""
+    m = config.optimizer_model
+    return "claude -p, keyless" if m.startswith("claude-code/") else m
+
+
 def _log_evolution(config: CueEvolutionConfig, entry: dict) -> None:
     log = config.evolution_log
     log.parent.mkdir(parents=True, exist_ok=True)
@@ -80,6 +86,55 @@ def _atomic_write(path: Path, text: str) -> None:
         raise
 
 
+def _finalize(config, skill_id, skill, skill_path, evolved_body, candidate_ok,
+              improvement, extra_meta=None):
+    """Shared decision: auto-apply (lint-clean + improved/changed) else proposal.
+
+    improvement=None means "no numeric metric" (single-shot): gate on lint-clean
+    + body actually changed. Otherwise gate on lint-clean + improvement > 0.
+    """
+    evolved_full = reassemble_skill(skill["frontmatter"], evolved_body)
+    changed = evolved_body.strip() != skill["body"].strip()
+    if improvement is None:
+        should_apply, why = candidate_ok and changed, "lint-clean + body changed"
+    else:
+        should_apply, why = candidate_ok and improvement > 1e-6, f"holdout {improvement:+.3f}"
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    base = {"ts": ts, "kind": "skill-content", "skill": skill_id,
+            "improvement": (round(improvement, 4) if improvement is not None else None),
+            **(extra_meta or {})}
+
+    if should_apply:
+        # Resolve symlinks (resources/skills is a submodule) so the backup lands
+        # beside the REAL file we overwrite, not beside a link.
+        real_path = skill_path.resolve()
+        backup = real_path.with_suffix(f".md.bak-{ts}")
+        backup.write_text(skill["raw"])          # backup BEFORE overwrite
+        _atomic_write(real_path, evolved_full)    # atomic: never a partial write
+        try:
+            _log_evolution(config, {**base, "path": str(real_path),
+                                    "backup": str(backup), "applied": True})
+        except OSError as exc:
+            console.print(f"[yellow]⚠ applied, but could not write evolution log: {exc}[/yellow]")
+        console.print(
+            f"\n[bold green]✓ Applied[/bold green] ({why}, lint passed). "
+            f"Backup: {backup.name}\n  Revert: mv {backup} {real_path}"
+        )
+        return 0
+
+    out_dir = config.cue_repo_path / "evolution" / "proposals" / skill_id.replace("/", "_") / ts
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "evolved_SKILL.md").write_text(evolved_full)
+    (out_dir / "baseline_SKILL.md").write_text(skill["raw"])
+    reason = ("lint/constraints failed" if not candidate_ok
+              else "body unchanged" if not changed else f"no improvement ({why})")
+    _log_evolution(config, {**base, "path": str(skill_path), "applied": False,
+                            "reason": reason, "proposal_dir": str(out_dir)})
+    console.print(f"\n[yellow]⚠ Not applied ({reason}). Proposal: {out_dir}[/yellow]")
+    return 0
+
+
 def evolve(
     skill_id: str,
     iterations: int = 10,
@@ -89,12 +144,19 @@ def evolve(
     eval_model: Optional[str] = None,
     cue_repo: Optional[str] = None,
     dry_run: bool = False,
+    use_claude_code: bool = False,
+    optimizer: str = "gepa",
 ) -> int:
     """Main evolution loop. Returns a process exit code."""
 
     config = CueEvolutionConfig(iterations=iterations)
     if cue_repo:
         config.cue_repo_path = Path(cue_repo)
+    # --use-claude-code: run the whole optimizer through headless `claude -p`
+    # (no separate API key). Explicit --optimizer-model/--eval-model still win.
+    if use_claude_code:
+        optimizer_model = optimizer_model or "claude-code/sonnet"
+        eval_model = eval_model or "claude-code/sonnet"
     if optimizer_model:
         config.optimizer_model = optimizer_model
     if eval_model:
@@ -130,13 +192,35 @@ def evolve(
 
     if dry_run:
         console.print("\n[bold green]DRY RUN — cue wiring validated.[/bold green]")
-        console.print(f"  Would build eval dataset (source: {eval_source})")
-        console.print(f"  Would run GEPA ({iterations} iters, optimizer={config.optimizer_model})")
-        console.print(f"  Would auto-apply IF holdout improves AND `cue lint-skill` passes")
+        console.print(f"  Optimizer: {optimizer}")
+        if optimizer == "single-shot":
+            console.print(f"  Would propose an improved body in 1 `claude -p` call "
+                          f"({claude_or_model(config)}), no DSPy/dataset")
+        else:
+            console.print(f"  Would build eval dataset (source: {eval_source})")
+            console.print(f"  Would run GEPA ({iterations} iters, optimizer={config.optimizer_model})")
+            if config.optimizer_model.startswith("claude-code/"):
+                console.print("  LM backend: headless `claude -p` — no API key needed")
+        console.print(f"  Would auto-apply IF candidate improves AND `cue lint-skill` passes")
         console.print(f"  Backups + log → {config.evolution_log}")
         return 0
 
-    # ── Heavy imports happen ONLY for a real run ─────────────────────────
+    # ── Single-shot optimizer: one claude -p call, no DSPy, no dataset, no key ──
+    if optimizer == "single-shot":
+        from evolution.skills.reflective import propose_improved_body
+        console.print(f"\n[bold cyan]Single-shot reflective improve[/bold cyan] "
+                      f"({claude_or_model(config)})...")
+        evolved_body = propose_improved_body(skill, config)
+        evolved_full = reassemble_skill(skill["frontmatter"], evolved_body)
+        console.print("\n[bold]Candidate constraints[/bold]")
+        candidate_ok = _print_constraints(
+            validator.validate_all(evolved_body, evolved_full, baseline_body=skill["body"]))
+        return _finalize(
+            config, skill_id, skill, skill_path, evolved_body, candidate_ok, improvement=None,
+            extra_meta={"optimizer": "single-shot", "optimizer_model": config.optimizer_model,
+                        "baseline_size": len(skill["body"]), "evolved_size": len(evolved_body)})
+
+    # ── Heavy imports happen ONLY for a real GEPA run ────────────────────
     try:
         import dspy  # noqa: F401
     except ImportError:
@@ -182,7 +266,8 @@ def evolve(
     )
 
     # ── 4. GEPA optimization ─────────────────────────────────────────────
-    lm = dspy.LM(config.eval_model)
+    from evolution.core.claude_lm import make_lm
+    lm = make_lm(config.eval_model, config)
     dspy.configure(lm=lm)
     baseline_module = SkillModule(skill["body"])
     trainset = dataset.to_dspy_examples("train")
@@ -190,13 +275,28 @@ def evolve(
 
     console.print(f"\n[bold cyan]Running GEPA ({iterations} iterations)...[/bold cyan]")
     start = time.time()
+    # GEPA needs a budget (max_metric_calls) and a reflection LM; scale the
+    # budget with --iterations so a small run stays cheap.
+    reflection_lm = make_lm(config.optimizer_model, config)
+    budget = max(6, iterations * 6)
     try:
-        optimizer = dspy.GEPA(metric=skill_fitness_metric, max_steps=iterations)
+        optimizer = dspy.GEPA(
+            metric=skill_fitness_metric,
+            reflection_lm=reflection_lm,
+            max_metric_calls=budget,
+            track_stats=False,
+        )
         optimized = optimizer.compile(baseline_module, trainset=trainset, valset=valset)
     except Exception as e:
         console.print(f"[yellow]GEPA unavailable ({e}); falling back to MIPROv2[/yellow]")
-        optimizer = dspy.MIPROv2(metric=skill_fitness_metric, auto="light")
-        optimized = optimizer.compile(baseline_module, trainset=trainset)
+        # Explicit tiny budget (not auto='light' = 10 trials) so it completes
+        # even on a rate-limited free endpoint.
+        optimizer = dspy.MIPROv2(metric=skill_fitness_metric, auto=None, num_candidates=2)
+        optimized = optimizer.compile(
+            baseline_module, trainset=trainset, valset=valset,
+            num_trials=max(2, iterations), max_bootstrapped_demos=1,
+            max_labeled_demos=1, requires_permission_to_run=False,
+        )
     elapsed = time.time() - start
 
     evolved_body = optimized.skill_text
@@ -230,49 +330,15 @@ def evolve(
     console.print()
     console.print(table)
 
-    # ── 7. Decide: auto-apply vs. proposal ───────────────────────────────
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    # Epsilon floor: don't auto-apply for a negligible/float-noise delta.
-    should_apply = candidate_ok and improvement > 1e-6
-
-    if should_apply:
-        # Resolve symlinks (the resources/skills tree is a submodule) so the
-        # backup lands next to the REAL file we overwrite, not beside a link.
-        real_path = skill_path.resolve()
-        backup = real_path.with_suffix(f".md.bak-{ts}")
-        backup.write_text(skill["raw"])     # backup BEFORE overwrite
-        _atomic_write(real_path, evolved_full)
-        try:
-            _log_evolution(config, {
-                "ts": ts, "kind": "skill-content", "skill": skill_id,
-                "path": str(real_path), "backup": str(backup),
-                "baseline_score": round(avg_base, 4), "evolved_score": round(avg_evo, 4),
-                "improvement": round(improvement, 4),
-                "baseline_size": len(skill["body"]), "evolved_size": len(evolved_body),
-                "optimizer_model": config.optimizer_model, "iterations": iterations,
-                "elapsed_s": round(elapsed, 1), "applied": True,
-            })
-        except OSError as exc:
-            console.print(f"[yellow]⚠ applied, but could not write evolution log: {exc}[/yellow]")
-        console.print(
-            f"\n[bold green]✓ Applied[/bold green] (holdout {improvement:+.3f}, lint passed). "
-            f"Backup: {backup.name}\n  Revert: mv {backup} {real_path}"
-        )
-        return 0
-
-    # Not applied — write an inert proposal for human review.
-    out_dir = config.cue_repo_path / "evolution" / "proposals" / skill_id.replace("/", "_") / ts
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "evolved_SKILL.md").write_text(evolved_full)
-    (out_dir / "baseline_SKILL.md").write_text(skill["raw"])
-    reason = "lint/constraints failed" if not candidate_ok else f"no holdout improvement ({improvement:+.3f})"
-    _log_evolution(config, {
-        "ts": ts, "kind": "skill-content", "skill": skill_id, "path": str(skill_path),
-        "applied": False, "reason": reason, "proposal_dir": str(out_dir),
-        "improvement": round(improvement, 4),
-    })
-    console.print(f"\n[yellow]⚠ Not applied ({reason}). Proposal: {out_dir}[/yellow]")
-    return 0
+    # ── 7. Decide: auto-apply vs. proposal (shared with single-shot) ─────
+    return _finalize(
+        config, skill_id, skill, skill_path, evolved_body, candidate_ok, improvement,
+        extra_meta={
+            "optimizer": "gepa", "optimizer_model": config.optimizer_model,
+            "baseline_score": round(avg_base, 4), "evolved_score": round(avg_evo, 4),
+            "baseline_size": len(skill["body"]), "evolved_size": len(evolved_body),
+            "iterations": iterations, "elapsed_s": round(elapsed, 1),
+        })
 
 
 @click.command()
@@ -285,13 +351,23 @@ def evolve(
 @click.option("--optimizer-model", default=None, help="Override GEPA reflection model")
 @click.option("--eval-model", default=None, help="Override eval/judge model")
 @click.option("--cue-repo", default=None, help="Path to the cue repo (else auto-discovered)")
+@click.option("--optimizer", default="gepa", type=click.Choice(["gepa", "single-shot"]),
+              help="gepa = iterative DSPy/GEPA (slow, needs dspy); single-shot = one claude -p call (fast, keyless)")
+@click.option("--use-claude-code", is_flag=True,
+              help="Run GEPA through headless `claude -p` — no separate API key (implied by single-shot)")
 @click.option("--dry-run", is_flag=True, help="Validate cue wiring without optimizing (no LLM, no install)")
-def main(skill_id, iterations, eval_source, dataset_path, optimizer_model, eval_model, cue_repo, dry_run):
-    """Evolve a cue skill's content with DSPy + GEPA, gated by `cue lint-skill`."""
+def main(skill_id, iterations, eval_source, dataset_path, optimizer_model, eval_model,
+         cue_repo, optimizer, use_claude_code, dry_run):
+    """Evolve a cue skill's content, gated by `cue lint-skill`. Two optimizers:
+    GEPA (DSPy, iterative) or single-shot (one `claude -p` call, keyless)."""
+    # single-shot always runs on claude -p; default its model accordingly.
+    if optimizer == "single-shot" and not optimizer_model:
+        optimizer_model = "claude-code/sonnet"
     sys.exit(evolve(
         skill_id=skill_id, iterations=iterations, eval_source=eval_source,
         dataset_path=dataset_path, optimizer_model=optimizer_model,
         eval_model=eval_model, cue_repo=cue_repo, dry_run=dry_run,
+        use_claude_code=use_claude_code, optimizer=optimizer,
     ))
 
 

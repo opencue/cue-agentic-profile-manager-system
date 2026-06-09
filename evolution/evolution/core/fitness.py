@@ -69,7 +69,8 @@ class LLMJudge:
         artifact_size: Optional[int] = None,
         max_size: Optional[int] = None,
     ) -> FitnessScore:
-        lm = dspy.LM(self.config.eval_model)
+        from evolution.core.claude_lm import make_lm
+        lm = make_lm(self.config.eval_model, self.config)
         with dspy.context(lm=lm):
             result = self.judge(
                 task_input=task_input,
@@ -93,8 +94,14 @@ class LLMJudge:
         )
 
 
-def skill_fitness_metric(example: "dspy.Example", prediction: "dspy.Prediction", trace=None) -> float:
-    """DSPy-compatible metric for GEPA. Fast keyword-overlap proxy (0-1)."""
+def skill_fitness_metric(example: "dspy.Example", prediction: "dspy.Prediction",
+                         trace=None, *args, **kwargs) -> float:
+    """DSPy-compatible metric for GEPA/MIPROv2. Fast keyword-overlap proxy (0-1).
+
+    Accepts extra args/kwargs because GEPA invokes metrics with additional
+    positional/keyword params (pred_name, pred_trace, …); ignoring them keeps
+    one metric usable by both optimizers.
+    """
     agent_output = getattr(prediction, "output", "") or ""
     expected = getattr(example, "expected_behavior", "") or ""
 

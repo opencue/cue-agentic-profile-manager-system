@@ -49,6 +49,13 @@ class CueEvolutionConfig:
     max_skill_size: int = 15_000  # 15KB
     max_prompt_growth: float = 0.2  # 20% max growth over baseline
 
+    # Generic OpenAI-compatible endpoint support (MiniMax, vLLM, LM Studio, any
+    # OpenAI-shaped server). When set, these are passed to every dspy.LM() call.
+    # Provider with a native LiteLLM prefix (anthropic/, openai/, nvidia_nim/,
+    # openrouter/) needs neither — LiteLLM resolves the base + key from env.
+    api_base: Optional[str] = field(default_factory=lambda: os.getenv("CUE_EVOLVE_API_BASE") or None)
+    api_key: Optional[str] = field(default_factory=lambda: os.getenv("CUE_EVOLVE_API_KEY") or None)
+
     # The auto-apply gate. `{path}` is substituted with the candidate SKILL.md.
     # Overridable for tests / non-PATH installs via CUE_LINT_CMD.
     lint_cmd: str = field(
@@ -68,6 +75,29 @@ class CueEvolutionConfig:
             raise ValueError(
                 f"lint_cmd / CUE_LINT_CMD must contain the {{path}} placeholder: {self.lint_cmd!r}"
             )
+        # NVIDIA NIM convenience: LiteLLM's nvidia_nim provider reads
+        # NVIDIA_NIM_API_KEY, but the common env var is NVIDIA_API_KEY. Bridge
+        # it so a `nvidia_nim/...` model works with either name.
+        if self._uses_nvidia_nim() and not os.getenv("NVIDIA_NIM_API_KEY"):
+            nv = os.getenv("NVIDIA_API_KEY")
+            if nv:
+                os.environ["NVIDIA_NIM_API_KEY"] = nv
+
+    def _uses_nvidia_nim(self) -> bool:
+        return any(
+            str(m).startswith("nvidia_nim/")
+            for m in (self.optimizer_model, self.eval_model, self.judge_model)
+        )
+
+    def lm_kwargs(self) -> dict:
+        """Extra kwargs for dspy.LM() — set only for custom OpenAI-compatible
+        endpoints (e.g. MiniMax). Empty for providers LiteLLM resolves from env."""
+        kw = {}
+        if self.api_base:
+            kw["api_base"] = self.api_base
+        if self.api_key:
+            kw["api_key"] = self.api_key
+        return kw
 
     @property
     def skills_root(self) -> Path:
@@ -78,6 +108,20 @@ class CueEvolutionConfig:
         """Reuse the same log `cue evolve` writes (~/.config/cue/evolution-log.jsonl)."""
         cfg = Path(os.getenv("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "cue"
         return cfg / "evolution-log.jsonl"
+
+    @property
+    def analytics_log(self) -> Path:
+        """The cue telemetry stream (~/.config/cue/analytics.jsonl) — the source
+        of real `skill_hit` first_prompts the routing dataset mines (see
+        src/lib/analytics.ts SessionEvent). Same XDG resolution as the CLI."""
+        cfg = Path(os.getenv("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "cue"
+        return cfg / "analytics.jsonl"
+
+    @property
+    def profiles_root(self) -> Path:
+        """Where per-profile persona_routing edits land — in the cue repo, NOT a
+        submodule. profiles/<name>/profile.yaml."""
+        return self.cue_repo_path / "profiles"
 
 
 def get_cue_repo_path() -> Path:

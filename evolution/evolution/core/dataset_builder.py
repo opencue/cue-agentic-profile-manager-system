@@ -104,8 +104,9 @@ class SyntheticDatasetBuilder:
 
     def generate(self, artifact_text: str, artifact_type: str = "skill",
                  num_cases: Optional[int] = None) -> EvalDataset:
+        from evolution.core.claude_lm import make_lm
         n = num_cases or self.config.eval_dataset_size
-        lm = dspy.LM(self.config.judge_model)
+        lm = make_lm(self.config.judge_model, self.config)
         with dspy.context(lm=lm):
             result = self.generator(artifact_text=artifact_text, artifact_type=artifact_type, num_cases=n)
 
