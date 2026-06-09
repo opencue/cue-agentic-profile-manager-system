@@ -35,7 +35,10 @@ hours="${CUE_AUTO_EVOLVE_COOLDOWN_HOURS:-24}"
 sentinel="$CFG/auto-evolve/last-run"
 mkdir -p "$(dirname "$sentinel")" 2>/dev/null || exit 0
 if [ -f "$sentinel" ]; then
-  age=$(( $(date +%s) - $(stat -c %Y "$sentinel" 2>/dev/null || echo 0) ))
+  # Portable mtime (GNU `stat -c` is Linux-only; macOS uses `stat -f`). python3
+  # is already required by the evolution package, so use it for cross-platform.
+  mtime="$(python3 -c 'import os,sys; print(int(os.path.getmtime(sys.argv[1])))' "$sentinel" 2>/dev/null || echo 0)"
+  age=$(( $(date +%s) - mtime ))
   [ "$age" -lt $(( hours * 3600 )) ] && exit 0
 fi
 touch "$sentinel" 2>/dev/null || true

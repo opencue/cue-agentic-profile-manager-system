@@ -27,6 +27,8 @@ import yaml
 from pathlib import Path
 from typing import Optional
 
+from evolution.core.atomic_io import atomic_write_text
+
 
 # ── description -> routing rows (port of skill-router.ts:parseDescription) ──
 
@@ -207,12 +209,17 @@ def _scalar(v) -> str:
     risky = (
         s == ""
         or s != s.strip()
+        or "\n" in s
         or bool(_NEEDS_QUOTE.search(s))
         or s.lower() in ("true", "false", "null", "yes", "no", "~", "on", "off")
         or bool(re.match(r"^[\d.+\-]", s))
     )
     if risky:
-        return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+        # Double-quoted scalar: escape backslash, quote, then newline/tab so a
+        # multi-line value can't break the YAML.
+        esc = (s.replace("\\", "\\\\").replace('"', '\\"')
+               .replace("\n", "\\n").replace("\t", "\\t"))
+        return '"' + esc + '"'
     return s
 
 
@@ -360,5 +367,7 @@ def backup_and_write(path: Path, new_content: str, ts: str,
     backup = path.parent / f"{path.name}.bak-{ts}"
     src = original_content if original_content is not None else path.read_text(encoding="utf-8")
     backup.write_text(src, encoding="utf-8")
-    path.write_text(new_content, encoding="utf-8")
+    # Atomic: a SIGKILL/disk-full mid-write must never leave profile.yaml
+    # truncated (cue launch reads it on every invocation).
+    atomic_write_text(path, new_content)
     return backup
