@@ -162,6 +162,14 @@ skills:
     # decks all gain doc-format capability without per-profile wiring.
     - repo: anthropics/skills
       skills: [pdf, docx, pptx]
+    # ── Langfuse LLM observability (langfuse/skills) ──
+    # Added to core: Langfuse tracing / prompt-management / eval guidance plus
+    # langfuse-cli API access (traces, prompts, datasets, scores) and docs lookup.
+    # Lets any inheriting profile instrument an LLM app with best-practice tracing
+    # and query Langfuse on demand. Skill id = SKILL.md `name:` field (langfuse),
+    # per `npx skills add langfuse/skills --skill langfuse`.
+    - repo: langfuse/skills
+      skills: [langfuse]
     # github-actions-docs dropped from core 2026-06-01 — CI-docs is not universal
     # baseline. Add it back per-profile (ops, the deploy-touching ones) if needed.
 mcps:

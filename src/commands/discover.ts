@@ -1177,12 +1177,22 @@ ${cards}
 // names), and so the repo's authors get a backlink from cue.dev.
 // ---------------------------------------------------------------------------
 
+/**
+ * Escape a string for a double-quoted YAML scalar in generated frontmatter.
+ * Repo descriptions routinely contain `"` and `\` (e.g. `Tell Claude "deploy this"`),
+ * which break Jekyll's YAML parser if interpolated raw — failing the landing build.
+ * Escapes backslash + double-quote and collapses newlines to spaces.
+ */
+function yamlStr(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ");
+}
+
 function buildRepoPage(gem: GemRepo, updated: string): string {
   const icon = tierIcon(gem.gem_score);
   const profileLinks = gem.suggested_profiles.map((p) => `[${p}](../${p}.md)`).join(", ") || "_(no profile match)_";
   return `---
-title: "${gem.full_name} — Claude Code skill discovered by cue"
-description: "${(gem.description || `Claude Code skill from ${gem.full_name}`).slice(0, 160)}"
+title: "${yamlStr(`${gem.full_name} — Claude Code skill discovered by cue`)}"
+description: "${yamlStr((gem.description || `Claude Code skill from ${gem.full_name}`).slice(0, 160))}"
 layout: page
 updated: ${updated.split("T")[0]}
 tags: [claude-code, skill, ${gem.suggested_profiles.join(", ")}]
