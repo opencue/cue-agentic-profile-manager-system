@@ -35,7 +35,7 @@ import { expandSkillWildcards, loadMcpRegistry, resolveClaudeCredentialsSource a
 import { detectKittyTerminal, kittyPlaceholderLabel, transmitKittyImage } from "../lib/kitty-image";
 import { computeStats } from "../lib/analytics";
 import { detectProfileV2, type DetectionResultV2 } from "../lib/auto-detect";
-import { detectCompanions, type CompanionSignal } from "../lib/companion-detect";
+import { detectCompanions, serviceCompanions, type CompanionSignal } from "../lib/companion-detect";
 import type { ResolvedProfile } from "../../profiles/_types";
 import type { ProfileAffinity, UniversalSuggestion } from "../lib/pair-suggestions";
 import { hasWorkspaces, getActiveWorkspace, computeOverrides, resolveWorkspaceForCwd } from "../lib/workspaces";
@@ -1326,16 +1326,19 @@ export async function run(args: string[]): Promise<number> {
     // with what the directory actually looks like (e.g. picking medusa-next
     // in a vite.config.ts project).
     let detected: ReadonlyArray<{ name: string; reasons: string[]; confidence: number }> = [];
+    let rawDetections: DetectionResultV2[] = [];
     try {
-      detected = detectProfileV2(cwd)
-        .filter((d) => knownProfileNames.has(d.profile))
-        .map((d) => ({ name: d.profile, reasons: d.reasons, confidence: d.confidence }));
+      rawDetections = detectProfileV2(cwd).filter((d) => knownProfileNames.has(d.profile));
+      detected = rawDetections.map((d) => ({ name: d.profile, reasons: d.reasons, confidence: d.confidence }));
     } catch (err) { debug("launch:autodetect", err); }
     // Content-aware combine companions: scan the cwd for asset/draft/brand
-    // signals and feed matching profiles into the combine multiselect.
+    // signals and feed matching profiles into the combine multiselect — plus
+    // dep-detected service profiles (stripe, @aws-sdk/*, …), which join as
+    // pre-checked rows (see serviceCompanions).
     let companions: CompanionSignal[] = [];
     try {
       companions = detectCompanions({ cwd, knownProfiles: knownProfileNames, brands: listPostizzBrands() });
+      companions = companions.concat(serviceCompanions(rawDetections, knownProfileNames));
     } catch (err) { debug("launch:companions", err); }
     // Cross-profile combine suggestions offered under every primary: the curated
     // `_featured.yaml` set (improver, secops, builder, …) plus the profiles the

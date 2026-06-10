@@ -164,17 +164,23 @@ export interface DepProfileRule {
   prefixes?: string[];
   confidence: number;
   reason: string;
+  /**
+   * Eligible as a combine-multiselect companion (see `serviceCompanions`).
+   * True for service integrations that ride alongside a primary stack;
+   * false/omitted for rules that ARE a primary stack (react-native).
+   */
+  companion?: boolean;
 }
 
 export const DEP_PROFILE_RULES: DepProfileRule[] = [
-  { profile: "stripe", deps: ["stripe"], prefixes: ["@stripe/"], confidence: 0.6, reason: "package.json has stripe" },
-  { profile: "aws", deps: ["aws-sdk", "aws-cdk"], prefixes: ["@aws-sdk/", "@aws-cdk/"], confidence: 0.6, reason: "package.json has @aws-sdk/*" },
-  { profile: "supabase", prefixes: ["@supabase/"], confidence: 0.6, reason: "package.json has @supabase/*" },
-  { profile: "slack", prefixes: ["@slack/"], confidence: 0.6, reason: "package.json has @slack/*" },
-  { profile: "postgres", deps: ["pg", "postgres", "pg-promise"], confidence: 0.55, reason: "package.json has pg/postgres" },
-  { profile: "resend", deps: ["resend"], confidence: 0.6, reason: "package.json has resend" },
-  { profile: "strapi", prefixes: ["@strapi/"], confidence: 0.65, reason: "package.json has @strapi/*" },
-  { profile: "threejs", deps: ["three"], confidence: 0.6, reason: "package.json has three" },
+  { profile: "stripe", deps: ["stripe"], prefixes: ["@stripe/"], confidence: 0.6, reason: "package.json has stripe", companion: true },
+  { profile: "aws", deps: ["aws-sdk", "aws-cdk"], prefixes: ["@aws-sdk/", "@aws-cdk/"], confidence: 0.6, reason: "package.json has @aws-sdk/*", companion: true },
+  { profile: "supabase", prefixes: ["@supabase/"], confidence: 0.6, reason: "package.json has @supabase/*", companion: true },
+  { profile: "slack", prefixes: ["@slack/"], confidence: 0.6, reason: "package.json has @slack/*", companion: true },
+  { profile: "postgres", deps: ["pg", "postgres", "pg-promise"], confidence: 0.55, reason: "package.json has pg/postgres", companion: true },
+  { profile: "resend", deps: ["resend"], confidence: 0.6, reason: "package.json has resend", companion: true },
+  { profile: "strapi", prefixes: ["@strapi/"], confidence: 0.65, reason: "package.json has @strapi/*", companion: true },
+  { profile: "threejs", deps: ["three"], confidence: 0.6, reason: "package.json has three", companion: true },
   // react-native is a primary stack, not a service: an RN repo also has
   // `react`, which the framework chain reads as plain `frontend` (0.8) — so
   // this one rule sits above the band to outrank that misread.
