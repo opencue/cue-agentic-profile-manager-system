@@ -4,7 +4,7 @@
 
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { detectProfile, } from "../lib/auto-detect";
+import { detectProfileV2 } from "../lib/auto-detect";
 import { scanProject } from "../lib/project-scanner";
 
 export async function run(args: string[]): Promise<number> {
@@ -12,7 +12,10 @@ export async function run(args: string[]): Promise<number> {
   const apply = args.includes("--apply");
   const cwd = process.cwd();
 
-  const results = detectProfile(cwd);
+  // Same detector the launch picker's "Suggested for this cwd" uses, so the
+  // CLI and the picker can never disagree about what this directory looks
+  // like (the old v1 file-signal detector was blind to package.json deps).
+  const results = detectProfileV2(cwd);
   const project = scanProject(cwd);
 
   if (json) {
@@ -36,9 +39,8 @@ export async function run(args: string[]): Promise<number> {
   process.stdout.write("Suggested profiles:\n\n");
   for (let i = 0; i < Math.min(results.length, 5); i++) {
     const r = results[i]!;
-    const signals = r.signals.join(", ");
-    process.stdout.write(`  ${i + 1}. ${r.profile}  (${r.confidence}% match)\n`);
-    process.stdout.write(`     signals: ${signals}\n\n`);
+    process.stdout.write(`  ${i + 1}. ${r.profile}  (${Math.round(r.confidence * 100)}% match)\n`);
+    process.stdout.write(`     signals: ${r.reasons.join(", ")}\n\n`);
   }
 
   if (apply && results.length > 0) {
