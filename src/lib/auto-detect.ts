@@ -145,6 +145,42 @@ function hasAny(deps: Set<string>, names: string[]): boolean {
   return false;
 }
 
+/**
+ * Service/integration dependency → profile suggestions. Unlike the framework
+ * chain below (mutually exclusive — a repo is *either* a Next.js app or a
+ * Vite app), these are additive: a Next.js shop with `stripe` installed gets
+ * both `nextjs` and `stripe` suggested. Confidence sits in the
+ * [SUGGESTED_MIN_CONFIDENCE, SUGGESTED_AUTO_PICK_CONFIDENCE) band on purpose:
+ * high enough to show in the picker, low enough to never outrank the primary
+ * stack profile or hijack the Enter default. Only profiles that exist in
+ * profiles/ belong here — the picker drops unknown names, but a dead rule is
+ * still noise.
+ */
+export interface DepProfileRule {
+  profile: string;
+  /** Exact dependency names that trigger the rule. */
+  deps?: string[];
+  /** Scoped-package prefixes, e.g. "@aws-sdk/". */
+  prefixes?: string[];
+  confidence: number;
+  reason: string;
+}
+
+export const DEP_PROFILE_RULES: DepProfileRule[] = [
+  { profile: "stripe", deps: ["stripe"], prefixes: ["@stripe/"], confidence: 0.6, reason: "package.json has stripe" },
+  { profile: "aws", deps: ["aws-sdk", "aws-cdk"], prefixes: ["@aws-sdk/", "@aws-cdk/"], confidence: 0.6, reason: "package.json has @aws-sdk/*" },
+  { profile: "supabase", prefixes: ["@supabase/"], confidence: 0.6, reason: "package.json has @supabase/*" },
+  { profile: "slack", prefixes: ["@slack/"], confidence: 0.6, reason: "package.json has @slack/*" },
+  { profile: "postgres", deps: ["pg", "postgres", "pg-promise"], confidence: 0.55, reason: "package.json has pg/postgres" },
+  { profile: "resend", deps: ["resend"], confidence: 0.6, reason: "package.json has resend" },
+  { profile: "strapi", prefixes: ["@strapi/"], confidence: 0.65, reason: "package.json has @strapi/*" },
+  { profile: "threejs", deps: ["three"], confidence: 0.6, reason: "package.json has three" },
+  // react-native is a primary stack, not a service: an RN repo also has
+  // `react`, which the framework chain reads as plain `frontend` (0.8) — so
+  // this one rule sits above the band to outrank that misread.
+  { profile: "react-native", deps: ["react-native", "expo"], prefixes: ["@react-native/"], confidence: 0.85, reason: "package.json has react-native/expo" },
+];
+
 const ex = (cwd: string, rel: string): boolean => existsSync(join(cwd, rel));
 const exAny = (cwd: string, rels: string[]): boolean => rels.some((r) => ex(cwd, r));
 
@@ -252,6 +288,13 @@ export function detectProfileV2(cwd: string): DetectionResultV2[] {
     // Vercel CLI / SDK in deps corroborates an existing vercel.json signal.
     if (hasPrefix(allDeps, "@vercel/") || allDeps.has("vercel")) {
       add("vercel", 0.6, "package.json @vercel/* or vercel");
+    }
+    // Service/integration deps (stripe, @aws-sdk/*, …) — additive, see table.
+    for (const rule of DEP_PROFILE_RULES) {
+      const hit =
+        (rule.deps !== undefined && hasAny(allDeps, rule.deps)) ||
+        (rule.prefixes ?? []).some((p) => hasPrefix(allDeps, p));
+      if (hit) add(rule.profile, rule.confidence, rule.reason);
     }
   }
 

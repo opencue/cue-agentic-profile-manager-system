@@ -116,6 +116,73 @@ describe("detectProfileV2", () => {
     for (const r of results) expect(r.confidence).toBeLessThanOrEqual(0.97);
   });
 
+  test("package.json with stripe dep → stripe profile suggested", () => {
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({
+      dependencies: { stripe: "14.0.0" },
+    }));
+    const results = detectProfileV2(tmp);
+    const stripe = results.find(r => r.profile === "stripe");
+    expect(stripe).toBeDefined();
+    // Above the picker's SUGGESTED_MIN_CONFIDENCE (0.5) so it actually shows,
+    // below SUGGESTED_AUTO_PICK_CONFIDENCE (0.7) so it never hijacks Enter.
+    expect(stripe!.confidence).toBeGreaterThanOrEqual(0.5);
+    expect(stripe!.confidence).toBeLessThan(0.7);
+    expect(stripe!.reasons.join(" ")).toContain("stripe");
+  });
+
+  test("package.json with @aws-sdk/client-s3 → aws profile suggested", () => {
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({
+      dependencies: { "@aws-sdk/client-s3": "3.0.0" },
+    }));
+    const results = detectProfileV2(tmp);
+    const aws = results.find(r => r.profile === "aws");
+    expect(aws).toBeDefined();
+    expect(aws!.confidence).toBeGreaterThanOrEqual(0.5);
+  });
+
+  test("service deps ride alongside the framework profile, not above it", () => {
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({
+      dependencies: { next: "14.0.0", stripe: "14.0.0" },
+    }));
+    const results = detectProfileV2(tmp);
+    const nextjs = results.find(r => r.profile === "nextjs");
+    const stripe = results.find(r => r.profile === "stripe");
+    expect(nextjs).toBeDefined();
+    expect(stripe).toBeDefined();
+    expect(nextjs!.confidence).toBeGreaterThan(stripe!.confidence);
+  });
+
+  test("scoped service deps match by prefix (@supabase/, @slack/)", () => {
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({
+      dependencies: { "@supabase/supabase-js": "2.0.0" },
+      devDependencies: { "@slack/web-api": "7.0.0" },
+    }));
+    const results = detectProfileV2(tmp);
+    expect(results.find(r => r.profile === "supabase")).toBeDefined();
+    expect(results.find(r => r.profile === "slack")).toBeDefined();
+  });
+
+  test("no service dep → no service profile suggested", () => {
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({
+      dependencies: { express: "4.0.0" },
+    }));
+    const results = detectProfileV2(tmp);
+    expect(results.find(r => r.profile === "stripe")).toBeUndefined();
+    expect(results.find(r => r.profile === "aws")).toBeUndefined();
+  });
+
+  test("react-native dep → react-native profile outranks generic frontend", () => {
+    writeFileSync(join(tmp, "package.json"), JSON.stringify({
+      dependencies: { react: "18.0.0", "react-native": "0.74.0" },
+    }));
+    const results = detectProfileV2(tmp);
+    const rn = results.find(r => r.profile === "react-native");
+    const frontend = results.find(r => r.profile === "frontend");
+    expect(rn).toBeDefined();
+    expect(frontend).toBeDefined();
+    expect(rn!.confidence).toBeGreaterThan(frontend!.confidence);
+  });
+
   test("results sorted by confidence descending, max 5", () => {
     writeFileSync(join(tmp, "Cargo.toml"), "");
     mkdirSync(join(tmp, "src"));
