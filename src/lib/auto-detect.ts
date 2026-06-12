@@ -101,7 +101,7 @@ const MAX_WORKSPACE_PKGS = 24;
  * ROOT cwd still detects service deps (stripe in packages/api). Patterns come
  * from package.json `workspaces` (array or {packages}) and pnpm-workspace.yaml.
  * Best-effort glob support: exact paths and single trailing `/*` only — deeper
- * globs (`**`, `a/*/b`) are skipped, negations ignored.
+ * globs (`**`, or a `*` mid-path) are skipped, negations ignored.
  */
 function readWorkspaceDeps(cwd: string): Set<string> {
   const patterns: string[] = [];
