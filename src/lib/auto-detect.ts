@@ -3,111 +3,8 @@
  * Scans cwd for project signals and scores against known profiles.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-
-interface Signal {
-  file: string;       // glob-like path to check (relative to cwd)
-  weight: number;
-  profile: string;
-}
-
-export const SIGNALS: Signal[] = [
-  // Frontend / Next.js
-  { file: "next.config.js", weight: 5, profile: "nextjs" },
-  { file: "next.config.ts", weight: 5, profile: "nextjs" },
-  { file: "next.config.mjs", weight: 5, profile: "nextjs" },
-  { file: "app/layout.tsx", weight: 4, profile: "nextjs" },
-  { file: "app/page.tsx", weight: 3, profile: "nextjs" },
-  { file: "next.config.js", weight: 4, profile: "frontend" },
-  { file: "next.config.ts", weight: 4, profile: "frontend" },
-  { file: "next.config.mjs", weight: 4, profile: "frontend" },
-  { file: "vite.config.ts", weight: 4, profile: "frontend" },
-  { file: "vite.config.js", weight: 4, profile: "frontend" },
-  { file: "tailwind.config.js", weight: 3, profile: "frontend" },
-  { file: "tailwind.config.ts", weight: 3, profile: "frontend" },
-  { file: "postcss.config.js", weight: 2, profile: "frontend" },
-  { file: "tsconfig.json", weight: 1, profile: "frontend" },
-
-  // Backend (Node/TS)
-  { file: "docker-compose.yml", weight: 3, profile: "backend" },
-  { file: "docker-compose.yaml", weight: 3, profile: "backend" },
-  { file: "Dockerfile", weight: 2, profile: "backend" },
-  { file: "prisma/schema.prisma", weight: 4, profile: "backend" },
-  { file: "migrations", weight: 3, profile: "backend" },
-  { file: "drizzle.config.ts", weight: 4, profile: "backend" },
-  { file: "src/server.ts", weight: 3, profile: "backend" },
-  { file: "src/index.ts", weight: 1, profile: "backend" },
-  { file: ".github/workflows/", weight: 1, profile: "backend" },
-
-  // Python API
-  { file: "pyproject.toml", weight: 4, profile: "python" },
-  { file: "setup.py", weight: 3, profile: "python" },
-  { file: "requirements.txt", weight: 3, profile: "python" },
-  { file: "app/main.py", weight: 5, profile: "python" },
-  { file: "main.py", weight: 3, profile: "python" },
-  { file: "manage.py", weight: 5, profile: "python" },
-  { file: "uvicorn.ini", weight: 4, profile: "python" },
-  { file: "alembic.ini", weight: 4, profile: "python" },
-  { file: ".python-version", weight: 2, profile: "python" },
-
-  // Rust
-  { file: "Cargo.toml", weight: 5, profile: "rust" },
-  { file: "Cargo.lock", weight: 3, profile: "rust" },
-  { file: "src/main.rs", weight: 4, profile: "rust" },
-  { file: "src/lib.rs", weight: 3, profile: "rust" },
-  { file: ".cargo/config.toml", weight: 2, profile: "rust" },
-
-  // Go API
-  { file: "go.mod", weight: 5, profile: "go-api" },
-  { file: "go.sum", weight: 3, profile: "go-api" },
-  { file: "cmd/", weight: 3, profile: "go-api" },
-  { file: "internal/", weight: 2, profile: "go-api" },
-  { file: "main.go", weight: 4, profile: "go-api" },
-
-  // Medusa
-  { file: "medusa-config.js", weight: 5, profile: "medusa-dev" },
-  { file: "medusa-config.ts", weight: 5, profile: "medusa-dev" },
-  { file: "packages/medusa", weight: 5, profile: "medusa-dev" },
-
-  // Docs
-  { file: "astro.config.mjs", weight: 4, profile: "docs-writer" },
-  { file: "docusaurus.config.js", weight: 4, profile: "docs-writer" },
-  { file: "mkdocs.yml", weight: 4, profile: "docs-writer" },
-  { file: "content/blog", weight: 3, profile: "docs-writer" },
-  { file: "docs/", weight: 2, profile: "docs-writer" },
-
-  // Fleet
-  { file: ".colony", weight: 5, profile: "fleet-control" },
-  { file: ".omx", weight: 4, profile: "fleet-control" },
-  { file: "scripts/codex-fleet", weight: 5, profile: "fleet-control" },
-
-  // Creative
-  { file: "design-tokens", weight: 4, profile: "creative-media" },
-  { file: "figma.config.ts", weight: 4, profile: "creative-media" },
-
-  // Research
-  { file: "research/", weight: 3, profile: "research" },
-  { file: "papers/", weight: 3, profile: "research" },
-
-  // Three.js
-  { file: "three.js", weight: 4, profile: "threejs" },
-
-  // Generic Claude-managed repo → baseline profile
-  { file: "CLAUDE.md", weight: 2, profile: "core" },
-  { file: ".claude/", weight: 2, profile: "core" },
-
-  // Full (meta)
-  { file: "profiles/", weight: 2, profile: "full" },
-];
-
-export interface DetectionResult {
-  profile: string;
-  score: number;
-  maxScore: number;
-  confidence: number; // 0-100
-  signals: string[];  // which files matched
-}
 
 /**
  * V2 detection result with 0-1 confidence and reasons array.
@@ -145,8 +42,157 @@ function hasAny(deps: Set<string>, names: string[]): boolean {
   return false;
 }
 
+/**
+ * Service/integration dependency → profile suggestions. Unlike the framework
+ * chain below (mutually exclusive — a repo is *either* a Next.js app or a
+ * Vite app), these are additive: a Next.js shop with `stripe` installed gets
+ * both `nextjs` and `stripe` suggested. Confidence sits in the
+ * [SUGGESTED_MIN_CONFIDENCE, SUGGESTED_AUTO_PICK_CONFIDENCE) band on purpose:
+ * high enough to show in the picker, low enough to never outrank the primary
+ * stack profile or hijack the Enter default. Only profiles that exist in
+ * profiles/ belong here — the picker drops unknown names, but a dead rule is
+ * still noise.
+ */
+export interface DepProfileRule {
+  profile: string;
+  /** Exact dependency names that trigger the rule. */
+  deps?: string[];
+  /** Scoped-package prefixes, e.g. "@aws-sdk/". */
+  prefixes?: string[];
+  /** Python package names (PEP 503 normalized: lowercase, `_`/`.` → `-`). */
+  pyDeps?: string[];
+  confidence: number;
+  reason: string;
+  /**
+   * Eligible as a combine-multiselect companion (see `serviceCompanions`).
+   * True for service integrations that ride alongside a primary stack;
+   * false/omitted for rules that ARE a primary stack (react-native).
+   */
+  companion?: boolean;
+}
+
+export const DEP_PROFILE_RULES: DepProfileRule[] = [
+  { profile: "stripe", deps: ["stripe"], prefixes: ["@stripe/"], pyDeps: ["stripe"], confidence: 0.6, reason: "package.json has stripe", companion: true },
+  { profile: "aws", deps: ["aws-sdk", "aws-cdk"], prefixes: ["@aws-sdk/", "@aws-cdk/"], pyDeps: ["boto3", "botocore", "aws-cdk-lib"], confidence: 0.6, reason: "package.json has @aws-sdk/*", companion: true },
+  { profile: "supabase", prefixes: ["@supabase/"], pyDeps: ["supabase"], confidence: 0.6, reason: "package.json has @supabase/*", companion: true },
+  { profile: "slack", prefixes: ["@slack/"], pyDeps: ["slack-sdk"], confidence: 0.6, reason: "package.json has @slack/*", companion: true },
+  { profile: "postgres", deps: ["pg", "postgres", "pg-promise"], pyDeps: ["psycopg", "psycopg2", "psycopg2-binary", "asyncpg"], confidence: 0.55, reason: "package.json has pg/postgres", companion: true },
+  { profile: "resend", deps: ["resend"], pyDeps: ["resend"], confidence: 0.6, reason: "package.json has resend", companion: true },
+  { profile: "strapi", prefixes: ["@strapi/"], confidence: 0.65, reason: "package.json has @strapi/*", companion: true },
+  { profile: "threejs", deps: ["three"], confidence: 0.6, reason: "package.json has three", companion: true },
+  // react-native is a primary stack, not a service: an RN repo also has
+  // `react`, which the framework chain reads as plain `frontend` (0.8) — so
+  // this one rule sits above the band to outrank that misread.
+  { profile: "react-native", deps: ["react-native", "expo"], prefixes: ["@react-native/"], confidence: 0.85, reason: "package.json has react-native/expo" },
+];
+
 const ex = (cwd: string, rel: string): boolean => existsSync(join(cwd, rel));
 const exAny = (cwd: string, rels: string[]): boolean => rels.some((r) => ex(cwd, r));
+
+/**
+ * Cap on workspace child package.jsons read per detection. The picker calls
+ * detectProfileV2 synchronously on every launch, so a huge monorepo must not
+ * turn profile suggestion into a directory crawl.
+ */
+const MAX_WORKSPACE_PKGS = 24;
+
+/**
+ * Union of dependency names across workspace child packages, so a monorepo
+ * ROOT cwd still detects service deps (stripe in packages/api). Patterns come
+ * from package.json `workspaces` (array or {packages}) and pnpm-workspace.yaml.
+ * Best-effort glob support: exact paths and single trailing `/*` only — deeper
+ * globs (`**`, or a `*` mid-path) are skipped, negations ignored.
+ */
+function readWorkspaceDeps(cwd: string): Set<string> {
+  const patterns: string[] = [];
+  try {
+    const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
+    const ws = Array.isArray(pkg.workspaces) ? pkg.workspaces : pkg.workspaces?.packages;
+    if (Array.isArray(ws)) for (const w of ws) if (typeof w === "string") patterns.push(w);
+  } catch { /* no root package.json */ }
+  try {
+    const raw = readFileSync(join(cwd, "pnpm-workspace.yaml"), "utf8");
+    const section = raw.match(/^packages:\s*\n((?:[ \t]*-[^\n]*\n?)*)/m);
+    if (section) {
+      for (const m of section[1]!.matchAll(/-\s*["']?([^"'\n#]+)/g)) patterns.push(m[1]!.trim());
+    }
+  } catch { /* no pnpm workspace file */ }
+
+  const deps = new Set<string>();
+  let read = 0;
+  for (const pattern of patterns) {
+    if (pattern.startsWith("!")) continue;
+    const dirs: string[] = [];
+    if (pattern.endsWith("/*") && !pattern.slice(0, -2).includes("*")) {
+      const base = pattern.slice(0, -2);
+      try {
+        for (const e of readdirSync(join(cwd, base), { withFileTypes: true })) {
+          if (e.isDirectory()) dirs.push(join(base, e.name));
+        }
+      } catch { /* glob base missing */ }
+    } else if (!pattern.includes("*")) {
+      dirs.push(pattern);
+    }
+    for (const dir of dirs) {
+      if (read >= MAX_WORKSPACE_PKGS) return deps;
+      try {
+        const pkg = JSON.parse(readFileSync(join(cwd, dir, "package.json"), "utf8"));
+        read += 1;
+        for (const k of Object.keys(pkg.dependencies ?? {})) deps.add(k);
+        for (const k of Object.keys(pkg.devDependencies ?? {})) deps.add(k);
+      } catch { /* dir without package.json */ }
+    }
+  }
+  return deps;
+}
+
+/** PEP 503 name normalization: lowercase, runs of `-`/`_`/`.` → single `-`. */
+const normPyName = (name: string): string => name.toLowerCase().replace(/[-_.]+/g, "-");
+
+/**
+ * Best-effort Python dependency names from requirements.txt and
+ * pyproject.toml, for the `pyDeps` side of DEP_PROFILE_RULES. requirements
+ * lines are parsed properly (comments, extras, version specifiers, env
+ * markers stripped); pyproject is a cheap regex over quoted strings in
+ * `dependencies = [...]` arrays plus `[tool.poetry.dependencies]` keys — not
+ * a TOML parser, same best-effort discipline as the rest of this module.
+ * `source` names the file that contributed deps, for detection reasons.
+ */
+function readPythonDeps(cwd: string): { deps: Set<string>; source: string } {
+  const deps = new Set<string>();
+  const sources: string[] = [];
+  try {
+    const raw = readFileSync(join(cwd, "requirements.txt"), "utf8");
+    for (const line of raw.split("\n")) {
+      const bare = line.split("#")[0]!.trim();
+      if (!bare || bare.startsWith("-")) continue; // blank / pip flags (-r, -e, --hash)
+      const m = bare.match(/^([A-Za-z0-9][A-Za-z0-9._-]*)/);
+      if (m) deps.add(normPyName(m[1]!));
+    }
+    if (deps.size > 0) sources.push("requirements.txt");
+  } catch { /* no requirements.txt */ }
+  try {
+    const raw = readFileSync(join(cwd, "pyproject.toml"), "utf8");
+    const before = deps.size;
+    // Quoted entries inside any `dependencies = [...]` array ([project] or
+    // optional-dependencies groups).
+    for (const arr of raw.matchAll(/dependencies\s*=\s*\[([^\]]*)\]/g)) {
+      for (const q of arr[1]!.matchAll(/["']([A-Za-z0-9][A-Za-z0-9._-]*)/g)) {
+        deps.add(normPyName(q[1]!));
+      }
+    }
+    // `[tool.poetry.dependencies]` table keys (one `name = ...` per line).
+    const poetry = raw.match(/\[tool\.poetry\.dependencies\]([^[]*)/);
+    if (poetry) {
+      for (const line of poetry[1]!.split("\n")) {
+        const m = line.match(/^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*=/);
+        if (m && m[1] !== "python") deps.add(normPyName(m[1]!));
+      }
+    }
+    if (deps.size > before) sources.push("pyproject.toml");
+  } catch { /* no pyproject.toml */ }
+  return { deps, source: sources.join(" + ") };
+}
 
 /**
  * Per-extra-signal confidence boost. A profile backed by several independent
@@ -253,6 +299,38 @@ export function detectProfileV2(cwd: string): DetectionResultV2[] {
     if (hasPrefix(allDeps, "@vercel/") || allDeps.has("vercel")) {
       add("vercel", 0.6, "package.json @vercel/* or vercel");
     }
+    // Service/integration deps (stripe, @aws-sdk/*, …) — additive, see table.
+    for (const rule of DEP_PROFILE_RULES) {
+      const hit =
+        (rule.deps !== undefined && hasAny(allDeps, rule.deps)) ||
+        (rule.prefixes ?? []).some((p) => hasPrefix(allDeps, p));
+      if (hit) add(rule.profile, rule.confidence, rule.reason);
+    }
+  }
+
+  // ── Workspace child deps (monorepo roots) — same rule table ──
+  if (exAny(cwd, ["package.json", "pnpm-workspace.yaml"])) {
+    const wsDeps = readWorkspaceDeps(cwd);
+    if (wsDeps.size > 0) {
+      for (const rule of DEP_PROFILE_RULES) {
+        const hit =
+          (rule.deps !== undefined && hasAny(wsDeps, rule.deps)) ||
+          (rule.prefixes ?? []).some((p) => hasPrefix(wsDeps, p));
+        if (hit) add(rule.profile, rule.confidence, `workspace ${rule.reason}`);
+      }
+    }
+  }
+
+  // ── Python deps (requirements.txt / pyproject.toml) — same rule table ──
+  if (exAny(cwd, ["requirements.txt", "pyproject.toml"])) {
+    const { deps: pyDeps, source } = readPythonDeps(cwd);
+    if (pyDeps.size > 0) {
+      for (const rule of DEP_PROFILE_RULES) {
+        if (rule.pyDeps === undefined) continue;
+        const matched = rule.pyDeps.find((d) => pyDeps.has(d));
+        if (matched !== undefined) add(rule.profile, rule.confidence, `${source} has ${matched}`);
+      }
+    }
   }
 
   return [...results.entries()]
@@ -266,36 +344,4 @@ export function detectProfileV2(cwd: string): DetectionResultV2[] {
     })
     .sort((a, b) => b.confidence - a.confidence)
     .slice(0, 5);
-}
-
-export function detectProfile(cwd: string): DetectionResult[] {
-  const scores = new Map<string, { score: number; max: number; signals: string[] }>();
-
-  // Compute max possible score per profile
-  for (const s of SIGNALS) {
-    const entry = scores.get(s.profile) ?? { score: 0, max: 0, signals: [] };
-    entry.max += s.weight;
-    scores.set(s.profile, entry);
-  }
-
-  // Score based on what exists
-  for (const s of SIGNALS) {
-    const target = join(cwd, s.file);
-    if (existsSync(target)) {
-      const entry = scores.get(s.profile)!;
-      entry.score += s.weight;
-      entry.signals.push(s.file);
-    }
-  }
-
-  return [...scores.entries()]
-    .map(([profile, d]) => ({
-      profile,
-      score: d.score,
-      maxScore: d.max,
-      confidence: d.max > 0 ? Math.round((d.score / d.max) * 100) : 0,
-      signals: d.signals,
-    }))
-    .filter(r => r.score > 0)
-    .sort((a, b) => b.confidence - a.confidence || b.score - a.score);
 }
