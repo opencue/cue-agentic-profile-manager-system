@@ -113,25 +113,23 @@ async function collectRuntimeCandidates(
     return [];
   }
 
-  const out: FreshestCandidate[] = [];
-  for (const profile of dirs) {
-    const claudeDir = join(runtimeRoot, profile, "claude");
-    try {
-      const st = await stat(claudeDir);
-      if (!st.isDirectory()) continue;
-    } catch {
-      continue;
-    }
-    const cand = await readCredentials(claudeDir);
-    if (!cand) continue;
-    // Strict uuid match — must equal the target. Undefined uuids are treated
-    // as "unknown account" and skipped because the credentials file may be
-    // a symlink pointing into a different account's storage.
-    if (cand.accountUuid !== targetUuid) continue;
-    if (cand.refreshToken.length === 0) continue;
-    out.push(cand);
-  }
-  return out;
+  const results = await Promise.all(
+    dirs.map(async (profile) => {
+      const claudeDir = join(runtimeRoot, profile, "claude");
+      try {
+        const st = await stat(claudeDir);
+        if (!st.isDirectory()) return null;
+      } catch {
+        return null;
+      }
+      const cand = await readCredentials(claudeDir);
+      if (!cand) return null;
+      if (cand.accountUuid !== targetUuid) return null;
+      if (cand.refreshToken.length === 0) return null;
+      return cand;
+    }),
+  );
+  return results.filter((c): c is FreshestCandidate => c !== null);
 }
 
 /**

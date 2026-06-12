@@ -155,18 +155,35 @@ export function recordSkillUsage(profile: string, agent: "claude-code" | "codex"
   } catch { /* non-fatal */ }
 }
 
+// Process-level cache keyed by resolved file path + mtime.
+// Two computeStats() calls in the same picker prep share one read; a new
+// path (tests using XDG_CONFIG_HOME overrides) or a file write (new events
+// appended) both bust the cache automatically.
+interface EventsCache { path: string; mtimeMs: number; events: SessionEvent[] }
+let _eventsCache: EventsCache | undefined;
+
 export function readEvents(since?: Date): SessionEvent[] {
-  if (!existsSync(analyticsPath())) return [];
-  const lines = readFileSync(analyticsPath(), "utf8").split("\n").filter(Boolean);
-  const events: SessionEvent[] = [];
-  for (const line of lines) {
-    try {
-      const e = JSON.parse(line) as SessionEvent;
-      if (since && new Date(e.ts) < since) continue;
-      events.push(e);
-    } catch { /* skip malformed */ }
+  const path = analyticsPath();
+  let mtimeMs = 0;
+  try {
+    const { statSync } = require("node:fs") as typeof import("node:fs");
+    mtimeMs = statSync(path).mtimeMs;
+  } catch { /* file missing — mtimeMs stays 0 */ }
+
+  if (!_eventsCache || _eventsCache.path !== path || _eventsCache.mtimeMs !== mtimeMs) {
+    const events: SessionEvent[] = [];
+    if (mtimeMs > 0) {
+      const lines = readFileSync(path, "utf8").split("\n").filter(Boolean);
+      for (const line of lines) {
+        try { events.push(JSON.parse(line) as SessionEvent); } catch { /* skip malformed */ }
+      }
+    }
+    _eventsCache = { path, mtimeMs, events };
   }
-  return events;
+
+  const all = _eventsCache.events;
+  if (!since) return all;
+  return all.filter((e) => new Date(e.ts) >= since);
 }
 
 export interface ProfileStats {
