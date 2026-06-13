@@ -37,8 +37,12 @@ const FRAMES = ["✦", "✧", "✶", "✷", "✸", "✹", "✺", "✻"];
 const TICK_MS = 90;
 /** Wait this long before drawing anything; warm launches finish first → no-op. */
 const START_DELAY_MS = 64;
-/** Fixed image id for the loader's logo so we can delete exactly it on stop. */
-const LOGO_IMAGE_ID = 1000;
+/**
+ * Fixed image id for the loader's logo so we can delete exactly it on stop.
+ * Chosen above renderKittyImage's random range (0..999_999) so it can never
+ * collide with a picker placement and get deleted out from under it.
+ */
+const LOGO_IMAGE_ID = 1_000_001;
 
 const HIDE_CURSOR = "\x1b[?25l";
 const SHOW_CURSOR = "\x1b[?25h";
@@ -102,8 +106,12 @@ function createLoaderCore(deps: CoreDeps, message: string): LoaderCore {
     // 1-based column where the text begins: after the logo (if any) + 1 gap cell.
     const textCol = logo ? deps.logoCols + 2 : 1;
     const spinner = `${CORAL}${FRAMES[frame % FRAMES.length]}${RESET}`;
+    // Strip control chars (CR/LF/ESC/tab) from the message — it can carry the
+    // classifier's REASON line, and an embedded \r/\n would break the single-line
+    // redraw (cursor leaves the line; stop() then erases the wrong one).
+    const safeMsg = msg.replace(/[\u0000-\u001f\u007f]/g, " ");
     // CHA to textCol, erase to EOL (leaves the logo cells intact), draw.
-    deps.write(`\x1b[${textCol}G\x1b[K${spinner} ${DIM}${msg}${RESET}`);
+    deps.write(`\x1b[${textCol}G\x1b[K${spinner} ${DIM}${safeMsg}${RESET}`);
   };
 
   return {

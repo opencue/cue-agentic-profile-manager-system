@@ -57,6 +57,19 @@ describe("launch-loader core — ANSI path (no logo)", () => {
     core.setMessage("new message");
     expect(r.get()).toContain("new message");
   });
+
+  test("strips embedded CR/LF/ESC from the message (classifier REASON safety)", () => {
+    const r = makeRecorder();
+    const core = createLoaderCore(r.deps, "5/12 kept — line1\r\nline2\x1b[31mx");
+    core.start();
+    const out = r.get();
+    // The message's own CR/LF/ESC must be neutralized (the loader still emits its
+    // own \r in start() and its own SGR sequences — we only assert the message's
+    // injected control chars are gone).
+    expect(out).toContain("line1  line2"); // CR + LF each collapsed to a space
+    expect(out).not.toContain("line1\r"); // the message's CR is gone
+    expect(out).not.toContain("\x1b[31m"); // the injected SGR's ESC was stripped
+  });
 });
 
 describe("launch-loader core — Kitty path (logo present)", () => {
@@ -116,6 +129,17 @@ describe("launch-loader core — lifecycle guards", () => {
     const core = createLoaderCore(r.deps, "m");
     core.tick();
     expect(r.get()).toBe("");
+  });
+
+  test("start then immediate stop draws one frame and cleans up (single-frame flash)", () => {
+    const r = makeRecorder();
+    const core = createLoaderCore(r.deps, "m");
+    core.start();
+    core.stop();
+    const out = r.get();
+    expect(out).toContain(ESC.HIDE_CURSOR);
+    expect(out).toContain(FRAMES[0]!); // exactly one frame was drawn
+    expect(out.trimEnd().endsWith(ESC.SHOW_CURSOR)).toBe(true); // ends clean
   });
 });
 

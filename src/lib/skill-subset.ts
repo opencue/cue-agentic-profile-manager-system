@@ -147,10 +147,16 @@ function spawnClaude(bin: string, prompt: string, timeoutMs: number): Promise<{ 
 }
 
 async function callClaudeAsync(prompt: string, timeoutMs: number): Promise<{ ok: boolean; output: string }> {
+  const startedAt = Date.now();
   let res = await spawnClaude("claude", prompt, timeoutMs);
   if (res.status !== 0 || !res.stdout.trim()) {
     const fallback = findRealClaudeBin();
-    if (fallback) res = await spawnClaude(fallback, prompt, timeoutMs);
+    // Share the budget: the fallback gets what's left of timeoutMs (min 2s), so a
+    // double-timeout can't stack to ~2x the stated tolerance and freeze the launch.
+    if (fallback) {
+      const remaining = Math.max(2_000, timeoutMs - (Date.now() - startedAt));
+      res = await spawnClaude(fallback, prompt, remaining);
+    }
   }
   if (res.status !== 0 || !res.stdout.trim()) return { ok: false, output: "" };
   return { ok: true, output: res.stdout.trim() };

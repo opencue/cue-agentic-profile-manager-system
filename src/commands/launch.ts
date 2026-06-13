@@ -1556,7 +1556,7 @@ export async function run(args: string[]): Promise<number> {
       : startLoader({ logoPath: ensureClaudeLogoPath() ?? undefined });
   const progress = (active: string, fallback: string): void => {
     if (loader) loader.setMessage(active);
-    else process.stderr.write(fallback);
+    else if (fallback) process.stderr.write(fallback);
   };
 
   let runtime!: Awaited<ReturnType<typeof materializeRuntime>>;
