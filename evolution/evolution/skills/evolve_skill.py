@@ -145,6 +145,40 @@ def _finalize(config, skill_id, skill, skill_path, evolved_body, candidate_ok,
     return 0
 
 
+def _representative_task(config, skill_id: str) -> str:
+    """The most recent real user prompt that triggered a skill_gap for this skill,
+    mined from ~/.config/cue/analytics.jsonl (DSPy-free, stdlib only).
+
+    This is what grounds the critic in GENUINE Claude Code usage: the writer's
+    rewrite is judged by how it behaves on the very task that exposed the gap.
+    Returns "" when there's no usable history (fresh machine, or the gap carried
+    no first_prompt) — the critic then falls back to text-only review.
+    """
+    path = config.analytics_log
+    if not path.exists():
+        return ""
+    best_ts, best_prompt = "", ""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if '"skill_gap"' not in line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if ev.get("event") != "skill_gap" or ev.get("skill") != skill_id:
+                    continue
+                fp = (ev.get("first_prompt") or "").strip()
+                ts = ev.get("ts", "")
+                # ISO-8601 ts strings sort lexicographically by recency.
+                if fp and ts >= best_ts:
+                    best_ts, best_prompt = ts, fp
+    except OSError:
+        return ""
+    return best_prompt
+
+
 def evolve(
     skill_id: str,
     iterations: int = 10,
@@ -250,9 +284,16 @@ def evolve(
                                     for c in results if not c.passed)
             return {"ok": ok, "results": results, "evidence": evidence, "lint_errors": lint_errors}
 
+        # Ground the critic in real usage: the most recent task that flagged this
+        # skill as a gap (mined from analytics.jsonl). "" → text-only review.
+        task_input = _representative_task(config, skill_id)
+        if task_input:
+            console.print(f"  [dim]grounding critic on a real mined task "
+                          f"({len(task_input)} chars)[/dim]")
+
         loop = writer_critic_loop(
             skill, config, validate_fn=_validate, max_rounds=config.writer_loop_rounds,
-            propose_only=propose_only, console=console)
+            task_input=task_input, propose_only=propose_only, console=console)
         evolved_body = loop["body"]
         console.print("\n[bold]Final candidate constraints[/bold]")
         candidate_ok = (_print_constraints(loop["results"]) if loop["results"] is not None

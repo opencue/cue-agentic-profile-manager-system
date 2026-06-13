@@ -140,6 +140,78 @@ def test_critic_step_returns_fixes(monkeypatch):
     assert "restore the path" in fixes
 
 
+class GroundedFake:
+    """3-way router: skill-run (instructions block), writer (<CURRENT>), critic."""
+
+    def __init__(self, writer, skillrun, critic):
+        self.writer, self.skillrun, self.critic = list(writer), list(skillrun), list(critic)
+        self.prompts = {"writer": [], "skillrun": [], "critic": []}
+
+    def __call__(self, prompt, model="sonnet", timeout=300):
+        if "--- SKILL (instructions to follow) ---" in prompt:
+            self.prompts["skillrun"].append(prompt)
+            return self.skillrun.pop(0)
+        if "<CURRENT>" in prompt:
+            self.prompts["writer"].append(prompt)
+            return self.writer.pop(0)
+        self.prompts["critic"].append(prompt)
+        return self.critic.pop(0)
+
+
+def test_run_skill_on_task(monkeypatch):
+    monkeypatch.setattr(reflective, "run_claude_p", lambda prompt, **k: f"ran:{'task X' in prompt}")
+    assert reflective.run_skill_on_task("BODY", "do task X", _cfg()) == "ran:True"
+    assert reflective.run_skill_on_task("BODY", "   ", _cfg()) == ""  # empty task → no call
+
+
+def test_run_skill_on_task_outage(monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("claude CLI not on PATH")
+    monkeypatch.setattr(reflective, "run_claude_p", boom)
+    assert reflective.run_skill_on_task("BODY", "task", _cfg()) == ""
+
+
+def test_critic_step_includes_task_demo(monkeypatch):
+    seen = {}
+
+    def cap(prompt, **k):
+        seen["p"] = prompt
+        return "VERDICT: BETTER — behaved well on the task"
+    monkeypatch.setattr(reflective, "run_claude_p", cap)
+    is_better, _, _ = reflective.critic_step(_skill(), "newbody", _cfg(), task_demo="THE TRANSCRIPT")
+    assert is_better is True
+    assert "THE TRANSCRIPT" in seen["p"] and "<DEMO>" in seen["p"]
+
+
+def test_loop_grounds_critic_with_real_transcript(monkeypatch):
+    fake = GroundedFake(writer=[_wrap("clean body")],
+                        skillrun=["TRANSCRIPT: skill ran and produced X"],
+                        critic=["VERDICT: BETTER — good behaviour"])
+    monkeypatch.setattr(reflective, "run_claude_p", fake)
+    out = reflective.writer_critic_loop(_skill(), _cfg(), validate_fn=_validate,
+                                        max_rounds=1, task_input="real user task")
+    assert out["quality_ok"] is True
+    assert len(fake.prompts["skillrun"]) == 1
+    assert "real user task" in fake.prompts["skillrun"][0]          # candidate ran on the mined task
+    assert "TRANSCRIPT: skill ran" in fake.prompts["critic"][0]     # critic saw the transcript
+
+
+def test_representative_task_mining(tmp_path):
+    from evolution.skills import evolve_skill
+    f = tmp_path / "analytics.jsonl"
+    f.write_text(
+        '{"event":"skill_gap","skill":"meta/foo","ts":"2026-06-01T00:00:00Z","first_prompt":"old prompt"}\n'
+        '{"event":"skill_gap","skill":"meta/foo","ts":"2026-06-10T00:00:00Z","first_prompt":"newer prompt"}\n'
+        '{"event":"skill_gap","skill":"meta/bar","ts":"2026-06-11T00:00:00Z","first_prompt":"other skill"}\n'
+        '{"event":"skill_hit","skill":"meta/foo","ts":"2026-06-12T00:00:00Z"}\n',
+        encoding="utf-8")
+    cfg = SimpleNamespace(analytics_log=f)
+    assert evolve_skill._representative_task(cfg, "meta/foo") == "newer prompt"  # most recent gap
+    assert evolve_skill._representative_task(cfg, "meta/none") == ""             # no gaps
+    cfg2 = SimpleNamespace(analytics_log=tmp_path / "missing.jsonl")
+    assert evolve_skill._representative_task(cfg2, "meta/foo") == ""             # no file
+
+
 def test_back_compat_wrappers(monkeypatch):
     # judge_is_better → 2-tuple; propose_improved_body → extracted body
     monkeypatch.setattr(reflective, "run_claude_p",

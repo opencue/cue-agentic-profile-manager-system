@@ -37,9 +37,32 @@ one text-diff judge is all that runs today.
 |---|---|---|
 | 0 | Worktree + baseline | tests green (78p/2s) + `auto_evolve --dry-run` ✅ |
 | 1 | Writer-critic loop (`reflective.py`, `evolve_skill.py`, `config.py`) | retry-logic unit test; `evolve <skill> --propose-only` → lint-passing proposal logged `optimizer:"writer-loop"` |
-| 2 | Real judge + grounded eval (`fitness.py`, `evolve_skill.py`, `config.py`) | judge scores good>bad fixture (dspy-mocked); subagent metric soft-fallback when `claude` absent; `--eval-source auto` |
+| 2a | **Task-grounded critic** (`reflective.py`, `evolve_skill.py`) — critic runs the candidate on a real mined task (`run_claude_p`) and judges the transcript | ✅ done: grounding + mining unit tests; loop feeds the critic a real transcript |
+| 2b/2c | GEPA `judge` default + `SubagentJudgeMetric` (holdout) | **deferred** — see below |
 | 3 | Activate into `core` (`profiles/core/profile.yaml`, `auto-evolve.sh`) | `cue validate` clean; materialized `settings.json` shows both Stop hooks; flags-OFF = no-op |
 | 4 | Review + ship | no CRITICAL/HIGH; full suite green; gated PR |
+
+## Deferred: Stage 2b/2c (GEPA judge default + subagent holdout metric)
+
+Cut from this pass on purpose — they only touch the **manual GEPA** path (the
+automated Stop-hook loop runs `single-shot`, never GEPA), and they **cannot be
+live-verified in this environment** (`dspy` import is broken). Spirit of "default
+to the LLM judge on real behaviour" is already delivered for the path that runs
+by Stage 2a. Ready-to-execute change-points when `dspy` works:
+
+- **2b — default the holdout/acceptance metric to `judge`.** Do NOT naively flip
+  `evolve_skill.py:~205` `metric_mode` default `overlap → judge`: that puts
+  `LLMJudge` in GEPA's *inner* loop (~`max_metric_calls` calls/run — a cost bomb).
+  Instead split it: keep GEPA's inner `fitness_metric` on `overlap`, and build a
+  separate `holdout_metric = make_judge_metric(config, skill_text=...)`
+  (`CUE_EVOLVE_HOLDOUT_METRIC`, default `judge`, soft-fallback) used only in the
+  holdout loop at `evolve_skill.py:~410-413`.
+- **2c — `SubagentJudgeMetric`** (`fitness.py`, beside `make_judge_metric`): a
+  metric that runs the candidate through `run_claude_p` on a holdout example and
+  feeds the transcript to `LLMJudge.score()`. Holdout-ONLY (one subprocess/example
+  ≈120s); never pass it as the GEPA inner metric. Soft-fallback to overlap when
+  `claude` is absent. `--eval-source` default `synthetic → auto` (sessiondb then
+  synthetic) at `evolve_skill.py:~155`.
 
 ## Environment notes
 

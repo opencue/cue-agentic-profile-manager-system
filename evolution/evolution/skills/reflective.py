@@ -108,7 +108,7 @@ REVISED:
 <B>
 {revised}
 </B>
-
+{demo_block}
 Reply on the FIRST line, exactly: VERDICT: BETTER|EQUAL|WORSE — <one-line reason>
 If the verdict is EQUAL or WORSE, add a SECOND line listing concrete, specific
 fixes the writer should make next:
@@ -116,7 +116,7 @@ FIXES: <semicolon-separated, imperative — e.g. "restore the `--json` flag; tig
 
 
 def critic_step(skill: dict, evolved_body: str, config, evidence: str = "",
-                timeout: int = 180):
+                task_demo: str = "", timeout: int = 180):
     """Independent reviewer `claude -p` call. Returns
     (is_better: bool, reason: str, suggested_fixes: str).
 
@@ -126,12 +126,20 @@ def critic_step(skill: dict, evolved_body: str, config, evidence: str = "",
     stronger model than the writer's `optimizer_model`) so the rewrite isn't
     graded by its own author, anchored on deterministic `evidence` (lint/size/
     token-preservation results).
+
+    When `task_demo` is supplied (a transcript of the REVISED skill running on a
+    real mined task), the critic judges actual behaviour, not just prose — this
+    is the "score by running through a real Claude Code subagent on a mined task"
+    signal, grounded in genuine usage.
     """
     model = claude_model_name(config.reviewer_model)
     evidence_block = f"\nDeterministic gate results (already checked):\n{evidence}\n" if evidence.strip() else ""
+    demo_block = (f"\nHow the REVISED skill actually behaved on a real past task that"
+                  f" needed it (judge the BEHAVIOUR, not just the prose):\n<DEMO>\n"
+                  f"{task_demo.strip()[:4000]}\n</DEMO>\n") if task_demo.strip() else ""
     prompt = _JUDGE_PROMPT.format(
         desc=skill["description"], original=skill["body"], revised=evolved_body,
-        evidence_block=evidence_block)
+        evidence_block=evidence_block, demo_block=demo_block)
     out = run_claude_p(prompt, model=model, timeout=timeout)
     m = re.search(r"VERDICT:\s*(BETTER|EQUAL|WORSE)\s*[—\-:]*\s*([^\n]*)", out, re.IGNORECASE)
     if not m:
@@ -151,8 +159,38 @@ def judge_is_better(skill: dict, evolved_body: str, config, timeout: int = 180,
     return is_better, reason
 
 
+_SKILL_RUN_PROMPT = """You are using the following Claude Code SKILL to handle a user request.
+Follow the skill's instructions exactly as written; do not improvise beyond it.
+
+--- SKILL (instructions to follow) ---
+{body}
+--- END SKILL ---
+
+User request:
+{task}
+
+Respond exactly as you would when actually performing this task using the skill."""
+
+
+def run_skill_on_task(body: str, task: str, config, timeout: int = 180) -> str:
+    """Run a candidate skill body AS INSTRUCTIONS against a real mined task via
+    `claude -p`, returning the transcript the critic then judges. DSPy-free.
+
+    Fails soft to "" on any `claude -p` outage, so grounding is best-effort: a
+    missing transcript just drops the critic back to text-only review.
+    """
+    if not task.strip():
+        return ""
+    model = claude_model_name(config.optimizer_model)
+    try:
+        return run_claude_p(_SKILL_RUN_PROMPT.format(body=body, task=task.strip()),
+                            model=model, timeout=timeout)
+    except RuntimeError:
+        return ""
+
+
 def writer_critic_loop(skill: dict, config, validate_fn, max_rounds: int = 2,
-                       signals: str = "", console=None,
+                       signals: str = "", task_input: str = "", console=None,
                        timeout_write: int = 300, timeout_judge: int = 180) -> dict:
     """Multi-agent writer -> lint -> critic loop (all `claude -p`, DSPy-free).
 
@@ -210,9 +248,13 @@ def writer_critic_loop(skill: dict, config, validate_fn, max_rounds: int = 2,
             best["judge_reason"] = "body unchanged"
             break
 
+        # Ground the critic in real behaviour: run the candidate on a mined task
+        # and let the critic judge the transcript, not just the diff. Best-effort.
+        task_demo = run_skill_on_task(body, task_input, config, timeout=timeout_judge) if task_input.strip() else ""
         try:
             is_better, reason, fixes = critic_step(
-                skill, body, config, evidence=v["evidence"], timeout=timeout_judge)
+                skill, body, config, evidence=v["evidence"], task_demo=task_demo,
+                timeout=timeout_judge)
         except RuntimeError as exc:
             # Critic outage: keep the lint-clean candidate as a proposal, don't apply.
             best["quality_ok"], best["judge_reason"] = False, f"critic unavailable: {exc}"
