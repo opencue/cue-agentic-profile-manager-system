@@ -76,6 +76,26 @@ describe("materializeRuntime", () => {
     expect(settings.env.AWS_SECRET_ACCESS_KEY).toBeUndefined();
   });
 
+  test("surfaces allowlisted ANTHROPIC_BASE_URL (headroom wrap) into settings.env", async () => {
+    const out = await materializeRuntime({
+      profile: {
+        ...sampleProfile,
+        env: {
+          // full-traffic wrap: route Claude through a local proxy (e.g. headroom)
+          ANTHROPIC_BASE_URL: "http://127.0.0.1:8787",
+        },
+      },
+      agent: "claude-code",
+      runtimeRoot: join(root, "runtime"),
+      skillSourceLookup: async (id) => `/fake/skills/${id}`,
+      mcpRegistry: { "claude-mem": { command: "claude-mem", args: [] } },
+      userClaudeMd: "# user CLAUDE.md\n",
+    });
+
+    const settings = JSON.parse(await readFile(join(out.runtimeDir, "settings.json"), "utf8"));
+    expect(settings.env).toEqual({ ANTHROPIC_BASE_URL: "http://127.0.0.1:8787" });
+  });
+
   test("second call with same profile is a no-op (rebuilt=false)", async () => {
     const args = {
       profile: sampleProfile,

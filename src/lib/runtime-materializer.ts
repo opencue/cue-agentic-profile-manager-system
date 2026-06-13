@@ -1140,6 +1140,7 @@ async function buildClaudeSettings(
     // into settings.json. To surface a new one, append its key here.
     const CLAUDE_RUNTIME_ENV_KEYS = [
       "CLAUDE_CODE_SUBAGENT_MODEL", // run Task/Agent subagents on a cheaper model
+      "ANTHROPIC_BASE_URL", // route Claude traffic through a local proxy (e.g. the headroom compression wrap). Only set by profiles that run such a proxy — a dead proxy makes Claude unreachable.
     ];
     // Preserve any account-level env from credentialsSource (spread in via
     // baseSettings above); profile-declared keys overlay it (profile is more
