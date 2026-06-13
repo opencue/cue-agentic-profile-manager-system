@@ -8,6 +8,10 @@ dist/
 # Profile runtime / cache
 profiles/_active
 profiles/_cache/
+# Test-output profile written by src/lib/dashboard-merge.test.ts (merge/save).
+# Self-healed by the test's beforeEach/afterAll, but ignore it so an
+# interrupted run can never leave a committable artifact in profiles/.
+profiles/dash-merge-test/
 
 # Editor / OS
 .DS_Store

@@ -81,10 +81,10 @@ function gitRepo(): string {
   git(["init", "-q"]);
   git(["config", "user.email", "t@t.test"]);
   git(["config", "user.name", "t"]);
-  spawnSync("bash", ["-c", `printf 'one\\n' > "${repo}/f.txt"`]);
+  spawnSync("bash", ["-c", `printf 'one\\n' > "${repo}/f.js"`]);
   git(["add", "."]);
   git(["commit", "-qm", "base"]);
-  spawnSync("bash", ["-c", `printf 'two has a bug\\n' > "${repo}/f.txt"`]); // uncommitted diff
+  spawnSync("bash", ["-c", `printf 'two has a bug\\n' > "${repo}/f.js"`]); // uncommitted diff
   return repo;
 }
 
@@ -104,11 +104,11 @@ describe("auto-review live progress integration", () => {
     await writeFile(join(home, ".config", "cue", "auto-review-enabled"), "");
     const repo = gitRepo();
     // Reviewer: live PROGRESS + FOUND, then the canonical HIGH: verdict bullet.
-    const stub = `cat >/dev/null; printf 'PROGRESS: f.txt | logic\\nFOUND: HIGH | f.txt:1 | off-by-one\\nHIGH: off-by-one bug\\n'`;
+    const stub = `cat >/dev/null; printf 'PROGRESS: f.js | logic\\nFOUND: HIGH | f.js:1 | off-by-one\\nHIGH: off-by-one bug\\n'`;
     const r = runAutoReview(repo, stub);
     expect(r.stdout).toContain('"decision":"block"'); // verdict still enforced
     const ev = await progressEvents();
-    expect(ev.some((e) => e.kind === "dim" && e.file === "f.txt")).toBe(true);
+    expect(ev.some((e) => e.kind === "dim" && e.file === "f.js")).toBe(true);
     expect(ev.some((e) => e.kind === "finding" && e.severity === "HIGH" && e.title === "off-by-one")).toBe(true);
     await rm(repo, { recursive: true, force: true });
   });
@@ -117,7 +117,7 @@ describe("auto-review live progress integration", () => {
     await mkdir(join(home, ".config", "cue"), { recursive: true });
     await writeFile(join(home, ".config", "cue", "auto-review-enabled"), "");
     const repo = gitRepo();
-    const stub = `cat >/dev/null; printf 'PROGRESS: f.txt | logic\\nREVIEW_CLEAN\\n'`;
+    const stub = `cat >/dev/null; printf 'PROGRESS: f.js | logic\\nREVIEW_CLEAN\\n'`;
     const r = runAutoReview(repo, stub);
     expect(r.stdout).not.toContain("block");
     const ev = await progressEvents();
