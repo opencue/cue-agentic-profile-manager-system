@@ -145,6 +145,40 @@ def _finalize(config, skill_id, skill, skill_path, evolved_body, candidate_ok,
     return 0
 
 
+def _representative_task(config, skill_id: str) -> str:
+    """The most recent real user prompt that triggered a skill_gap for this skill,
+    mined from ~/.config/cue/analytics.jsonl (DSPy-free, stdlib only).
+
+    This is what grounds the critic in GENUINE Claude Code usage: the writer's
+    rewrite is judged by how it behaves on the very task that exposed the gap.
+    Returns "" when there's no usable history (fresh machine, or the gap carried
+    no first_prompt) — the critic then falls back to text-only review.
+    """
+    path = config.analytics_log
+    if not path.exists():
+        return ""
+    best_ts, best_prompt = "", ""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if '"skill_gap"' not in line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if ev.get("event") != "skill_gap" or ev.get("skill") != skill_id:
+                    continue
+                fp = (ev.get("first_prompt") or "").strip()
+                ts = ev.get("ts", "")
+                # ISO-8601 ts strings sort lexicographically by recency.
+                if fp and ts >= best_ts:
+                    best_ts, best_prompt = ts, fp
+    except OSError:
+        return ""
+    return best_prompt
+
+
 def evolve(
     skill_id: str,
     iterations: int = 10,
@@ -214,8 +248,8 @@ def evolve(
         console.print("\n[bold green]DRY RUN — cue wiring validated.[/bold green]")
         console.print(f"  Optimizer: {optimizer}")
         if optimizer == "single-shot":
-            console.print(f"  Would propose an improved body in 1 `claude -p` call "
-                          f"({claude_or_model(config)}), no DSPy/dataset")
+            console.print(f"  Would run a writer→lint→critic loop (≤{config.writer_loop_rounds} "
+                          f"round(s)) of `claude -p` calls ({claude_or_model(config)}), no DSPy/dataset")
         else:
             console.print(f"  Would build eval dataset (source: {eval_source})")
             console.print(f"  Would run GEPA ({iterations} iters, optimizer={config.optimizer_model})")
@@ -226,39 +260,61 @@ def evolve(
         console.print(f"  Backups + log → {config.evolution_log}")
         return 0
 
-    # ── Single-shot optimizer: one claude -p call, no DSPy, no dataset, no key ──
+    # ── Single-shot optimizer: a short writer→lint→critic loop of claude -p ──
+    #    calls, no DSPy, no dataset, no key. This is the path the Stop-hook loop
+    #    runs. The writer proposes a body, the cue gate lints it, an INDEPENDENT
+    #    critic (reviewer_model, not the writer) judges it, and the writer retries
+    #    with the lint errors + critic fixes until BETTER or the round budget ends.
     if optimizer == "single-shot":
-        from evolution.skills.reflective import propose_improved_body, judge_is_better
-        console.print(f"\n[bold cyan]Single-shot reflective improve[/bold cyan] "
-                      f"({claude_or_model(config)})...")
-        evolved_body = propose_improved_body(skill, config)
-        evolved_full = reassemble_skill(skill["frontmatter"], evolved_body)
-        console.print("\n[bold]Candidate constraints[/bold]")
-        candidate_results = validator.validate_all(
-            evolved_body, evolved_full, baseline_body=skill["body"])
-        candidate_ok = _print_constraints(candidate_results)
+        from evolution.skills.reflective import writer_critic_loop
+        console.print(f"\n[bold cyan]Writer→lint→critic loop[/bold cyan] "
+                      f"(≤{config.writer_loop_rounds} round(s), {claude_or_model(config)} writer / "
+                      f"{claude_model_name(config.reviewer_model)} critic)...")
 
-        # Quality gate: an INDEPENDENT reviewer (config.reviewer_model, not the
-        # proposer) judges evolved vs baseline, fed the deterministic gate results
-        # as evidence. Auto-apply only on a BETTER verdict (skip the call in
-        # propose-only or when nothing changed — then it can't apply anyway).
-        quality_ok, judge_reason = None, ""
-        changed = evolved_body.strip() != skill["body"].strip()
-        if not propose_only and candidate_ok and changed:
+        def _validate(body: str) -> dict:
+            """Run the full cue constraint gate on a candidate body and package
+            the result for the loop: pass/fail, the per-constraint evidence the
+            critic reads, and the failing-constraint messages the writer repairs."""
+            full = reassemble_skill(skill["frontmatter"], body)
+            results = validator.validate_all(body, full, baseline_body=skill["body"])
+            ok = all(c.passed for c in results)
             evidence = "; ".join(f"{c.constraint_name}: {'pass' if c.passed else 'FAIL'}"
-                                 for c in candidate_results)
-            console.print(f"[bold]Independent review[/bold] ({claude_model_name(config.reviewer_model)}, "
-                          f"evolved vs baseline)...")
-            quality_ok, judge_reason = judge_is_better(
-                skill, evolved_body, config, evidence=evidence)
-            console.print(f"  {'✓' if quality_ok else '✗'} {judge_reason}")
+                                 for c in results)
+            lint_errors = "; ".join(f"{c.constraint_name}: {c.message}"
+                                    for c in results if not c.passed)
+            return {"ok": ok, "results": results, "evidence": evidence, "lint_errors": lint_errors}
+
+        # Ground the critic in real usage: the most recent task that flagged this
+        # skill as a gap (mined from analytics.jsonl). "" → text-only review.
+        task_input = _representative_task(config, skill_id)
+        if task_input:
+            console.print(f"  [dim]grounding critic on a real mined task "
+                          f"({len(task_input)} chars)[/dim]")
+
+        # The loop is propose-only-agnostic: it always iterates writer→critic to
+        # produce the best proposal; _finalize (below) is what refuses to APPLY
+        # when propose_only is set. So propose_only is NOT passed to the loop.
+        loop = writer_critic_loop(
+            skill, config, validate_fn=_validate, max_rounds=config.writer_loop_rounds,
+            task_input=task_input, console=console)
+        evolved_body = loop["body"]
+        console.print("\n[bold]Final candidate constraints[/bold]")
+        candidate_ok = (_print_constraints(loop["results"]) if loop["results"] is not None
+                        else False)
+
+        # The loop always returns an explicit quality_ok bool from the critic
+        # (or False when nothing changed / no candidate), so _finalize never falls
+        # through to its no-judge branch. In propose-only nothing is applied
+        # regardless, but the verdict is still logged for review.
+        quality_ok = loop["quality_ok"]
+        judge_reason = loop["judge_reason"]
 
         return _finalize(
             config, skill_id, skill, skill_path, evolved_body, candidate_ok, improvement=None,
             quality_ok=quality_ok, propose_only=propose_only,
-            extra_meta={"optimizer": "single-shot", "optimizer_model": config.optimizer_model,
-                        "baseline_size": len(skill["body"]), "evolved_size": len(evolved_body),
-                        "judge": judge_reason})
+            extra_meta={"optimizer": "writer-loop", "optimizer_model": config.optimizer_model,
+                        "rounds": loop["rounds"], "baseline_size": len(skill["body"]),
+                        "evolved_size": len(evolved_body), "judge": judge_reason})
 
     # ── Heavy imports happen ONLY for a real GEPA run ────────────────────
     try:
