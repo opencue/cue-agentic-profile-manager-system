@@ -13,11 +13,12 @@ env:
   # Full-traffic wrap (global): route every cue-launched Claude session through
   # the local headroom compression proxy (60–95% fewer tokens, reversible).
   # Surfaced into settings.json via the runtime allowlist (claude-code only;
-  # codex uses OPENAI_BASE_URL and is unaffected). REQUIRES the always-on
-  # headroom proxy at 127.0.0.1:8787 — run as the `headroom-proxy` user service
-  # (`systemctl --user status headroom-proxy`, linger enabled). If that proxy is
-  # ever down, Claude cannot reach Anthropic, which is why it is a persistent,
-  # auto-restarting service. To opt a single launch out, unset ANTHROPIC_BASE_URL.
+  # codex uses OPENAI_BASE_URL and is unaffected). HEALTH-GATED by the
+  # materializer: this URL is only written when 127.0.0.1:8787 actually answers,
+  # so a down/absent proxy falls back to talking to Anthropic directly (no
+  # compression) instead of bricking Claude. Run the proxy as the always-on
+  # `headroom-proxy` user service (`systemctl --user status headroom-proxy`,
+  # linger enabled) so compression is actually on. Unset to opt a launch out.
   ANTHROPIC_BASE_URL: "http://127.0.0.1:8787"
 persona_includes:
   - integrity-protocol-compact  # resources/personas/integrity-protocol-compact.md — compact 7-tag system inline; full protocol + examples load on demand (integrity-protocol.md / meta/integrity-tags). Fans out via inheritance.
@@ -192,7 +193,7 @@ skills:
 mcps:
   - lightpanda       # Fast headless browser MCP — fetch/render/scrape URLs without Chromium. Pairs with browser/lightpanda skill.
   - context7         # Up-to-date, version-specific library docs (Upstash @upstash/context7-mcp). No API key needed; set CONTEXT7_API_KEY for higher limits. Pairs with tools/context7 skill.
-  - headroom         # Context-compression MCP (headroom_compress/retrieve/stats) — 60–95% fewer tokens, reversible. Pairs with tools/headroom skill. Inert until `pip install "headroom-ai[mcp]"`. Full all-traffic wrap (ANTHROPIC_BASE_URL → local proxy) is opt-in via the `headroom` profile, not set here — a dead proxy would brick every profile's Claude calls.
+  - headroom         # Context-compression MCP (headroom_compress/retrieve/stats) — 60–95% fewer tokens, reversible. Pairs with tools/headroom skill. Inert until `pip install "headroom-ai[mcp]"`. The full all-traffic wrap (ANTHROPIC_BASE_URL → local proxy) IS set in core's env above, but health-gated by the materializer — applied only when the proxy answers, so a down proxy falls back to direct Anthropic instead of bricking Claude.
 plugins:
   - claude-mem@thedotmack
   # Disabled 2026-05-30: OMC's PreToolUse auto-mode classifier was intermittently
